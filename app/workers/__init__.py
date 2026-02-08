@@ -4,6 +4,7 @@ from arq import cron
 from arq.connections import RedisSettings
 
 from app.config import settings
+from app.workers.action_logs import persist_action_logs_task
 from app.workers.ai_logs import persist_ai_logs_task
 from app.workers.notifications import check_and_send_notifications
 
@@ -30,9 +31,11 @@ class WorkerSettings:
         "app.workers.notifications.send_note_reminders_task",
         "app.workers.notifications.check_and_send_notifications",
         "app.workers.ai_logs.persist_ai_logs_task",
+        "app.workers.action_logs.persist_action_logs_task",
     ]
 
     cron_jobs = [
         cron(check_and_send_notifications, minute=set(range(60))),
         cron(persist_ai_logs_task, minute=set(range(60))),  # Drain AI logs every minute
+        cron(persist_action_logs_task, minute=set(range(60))),  # Drain user action logs every minute
     ]

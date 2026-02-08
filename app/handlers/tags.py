@@ -6,6 +6,7 @@ from html import escape
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.handlers.states import TagCreateStates, TagRenameStates
@@ -13,6 +14,8 @@ from app.i18n.loader import t
 from app.keyboards.callbacks import PageCb, TagCb
 from app.keyboards.main_menu import cancel_kb
 from app.keyboards.tags import PAGE_SIZE, tag_delete_confirm_kb, tag_view_kb, tags_list_kb
+from app.models.event import EventTag
+from app.models.note import NoteTag
 from app.models.user import User
 from app.services.tag_service import (
     create_tag,
@@ -91,9 +94,13 @@ async def tag_view(
         await callback.answer(t("errors.not_found", lang), show_alert=True)
         return
 
-    # Count associated events and notes
-    events_count = len(tag.events) if tag.events else 0
-    notes_count = len(tag.notes) if tag.notes else 0
+    # Count associated events and notes via queries (no lazy load in async)
+    events_count = (await session.execute(
+        select(func.count()).where(EventTag.tag_id == tag.id)
+    )).scalar_one()
+    notes_count = (await session.execute(
+        select(func.count()).where(NoteTag.tag_id == tag.id)
+    )).scalar_one()
 
     text = (
         f"<b>\U0001f3f7 {escape(tag.name)}</b>\n\n"

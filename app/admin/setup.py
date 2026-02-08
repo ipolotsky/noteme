@@ -46,6 +46,7 @@ def setup_admin(app: FastAPI) -> Admin:
         NoteAdmin,
         NotificationLogAdmin,
         TagAdmin,
+        UserActionLogAdmin,
         UserAdmin,
     )
 
@@ -57,5 +58,6 @@ def setup_admin(app: FastAPI) -> Admin:
     admin.add_view(BeautifulDateAdmin)
     admin.add_view(NotificationLogAdmin)
     admin.add_view(AILogAdmin)
+    admin.add_view(UserActionLogAdmin)
 
     return admin

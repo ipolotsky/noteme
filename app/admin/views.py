@@ -11,6 +11,7 @@ from app.models.note import Note
 from app.models.notification_log import NotificationLog
 from app.models.tag import Tag
 from app.models.user import User
+from app.models.user_action_log import UserActionLog
 
 
 class UserAdmin(ModelView, model=User):
@@ -171,3 +172,27 @@ class AILogAdmin(ModelView, model=AILog):
     name = "AI Log"
     name_plural = "AI Logs"
     icon = "fa-solid fa-robot"
+
+
+class UserActionLogAdmin(ModelView, model=UserActionLog):
+    column_list = [
+        UserActionLog.id,
+        UserActionLog.user_id,
+        UserActionLog.action,
+        UserActionLog.detail,
+        UserActionLog.created_at,
+    ]
+    column_searchable_list = [UserActionLog.action, UserActionLog.detail]
+    column_sortable_list = [UserActionLog.created_at, UserActionLog.action, UserActionLog.user_id]
+    column_default_sort = ("created_at", True)
+    column_labels = {
+        UserActionLog.action: "Action",
+        UserActionLog.detail: "Detail",
+    }
+    can_create = False
+    can_edit = False
+    can_delete = False
+    page_size = 50
+    name = "User Action"
+    name_plural = "User Actions"
+    icon = "fa-solid fa-list-check"

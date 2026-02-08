@@ -1,6 +1,11 @@
 """Main menu keyboard."""
 
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+)
 
 from app.i18n.loader import t
 from app.keyboards.callbacks import MenuCb
@@ -54,3 +59,24 @@ def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
             ),
         ],
     ])
+
+
+def persistent_menu_kb(lang: str) -> ReplyKeyboardMarkup:
+    """Persistent reply keyboard — always visible at the bottom of the chat."""
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text=f"\U0001f4c5 {t('menu.feed', lang)}"),
+                KeyboardButton(text=f"\U0001f4cb {t('menu.events', lang)}"),
+            ],
+            [
+                KeyboardButton(text=f"\U0001f4dd {t('menu.notes', lang)}"),
+                KeyboardButton(text=f"\U0001f3f7 {t('menu.tags', lang)}"),
+            ],
+            [
+                KeyboardButton(text=f"\u2699\ufe0f {t('menu.settings', lang)}"),
+            ],
+        ],
+        resize_keyboard=True,
+        is_persistent=True,
+    )

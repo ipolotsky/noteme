@@ -11,10 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.handlers.states import OnboardingStates
 from app.i18n.loader import t
 from app.keyboards.callbacks import LangCb, OnboardCb
-from app.keyboards.main_menu import main_menu_kb, onboarding_skip_kb
+from app.keyboards.main_menu import onboarding_skip_kb, persistent_menu_kb
 from app.keyboards.settings import language_select_kb
 from app.models.user import User
 from app.schemas.user import UserUpdate
+from app.services.action_logger import log_user_action
 from app.services.user_service import update_user
 
 router = Router(name="start")
@@ -29,11 +30,13 @@ async def cmd_start(
     session: AsyncSession,
 ) -> None:
     await state.clear()
+    await log_user_action(user.id, "start")
 
     if user.onboarding_completed:
+        # Send persistent reply keyboard first, then inline menu
         await message.answer(
             t("welcome_back", lang, name=user.first_name),
-            reply_markup=main_menu_kb(lang),
+            reply_markup=persistent_menu_kb(lang),
         )
         return
 
@@ -60,6 +63,7 @@ async def onboarding_language(
 ) -> None:
     lang = callback_data.code
     await update_user(session, user.id, UserUpdate(language=lang))
+    await log_user_action(user.id, "set_language", lang)
 
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("language_set", lang)
@@ -187,7 +191,7 @@ async def onboarding_first_note_text(
     await message.answer(t("onboarding.step3", lang))
     await message.answer(
         t("welcome_back", lang, name=user.first_name),
-        reply_markup=main_menu_kb(lang),
+        reply_markup=persistent_menu_kb(lang),
     )
 
 
@@ -212,6 +216,6 @@ async def onboarding_skip_note(
     )
     await callback.message.answer(  # type: ignore[union-attr]
         t("welcome_back", lang, name=user.first_name),
-        reply_markup=main_menu_kb(lang),
+        reply_markup=persistent_menu_kb(lang),
     )
     await callback.answer()

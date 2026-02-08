@@ -1,4 +1,4 @@
-"""Logging middleware — logs every incoming update."""
+"""Logging middleware — logs every incoming update + user action tracking."""
 
 import logging
 import time
@@ -26,9 +26,14 @@ class LoggingMiddleware(BaseMiddleware):
             user_id = event.from_user.id if event.from_user else None
             detail = event.text[:50] if event.text else event.content_type
             logger.info("Message from %s: %s", user_id, detail)
+            # Log callback actions to user action log
+            if user_id:
+                await self._log_action(user_id, "message", detail)
         elif isinstance(event, CallbackQuery):
             user_id = event.from_user.id
             logger.info("Callback from %s: %s", user_id, event.data)
+            if user_id:
+                await self._log_action(user_id, "callback", event.data)
 
         try:
             result = await handler(event, data)
@@ -41,3 +46,11 @@ class LoggingMiddleware(BaseMiddleware):
                 "%s from %s failed after %.0fms", event_type, user_id, elapsed
             )
             raise
+
+    @staticmethod
+    async def _log_action(user_id: int, action: str, detail: str | None) -> None:
+        try:
+            from app.services.action_logger import log_user_action
+            await log_user_action(user_id, action, detail)
+        except Exception:
+            logger.debug("Action logging failed (non-critical)", exc_info=True)

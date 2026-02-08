@@ -17,6 +17,7 @@ from app.keyboards.notes import note_view_kb
 from app.models.user import User
 from app.schemas.event import EventCreate
 from app.schemas.note import NoteCreate
+from app.services.action_logger import log_user_action
 from app.services.event_service import EventLimitError, create_event
 from app.services.note_service import NoteLimitError, create_note
 
@@ -43,6 +44,7 @@ async def handle_voice(
         await message.answer(t("ai.rate_limit", lang))
         return
 
+    await log_user_action(user.id, "voice_message", f"duration={message.voice.duration}s")
     processing_msg = await message.answer(t("ai.processing", lang))
 
     try:
@@ -92,6 +94,7 @@ async def handle_text(
         await message.answer(t("ai.rate_limit", lang))
         return
 
+    await log_user_action(user.id, "text_message", message.text[:200])
     processing_msg = await message.answer(t("ai.processing", lang))
 
     try:
@@ -139,6 +142,7 @@ async def _handle_agent_result(
                 ),
             )
             logger.info("[handler] user=%s → event created id=%s", user.id, event.id)
+            await log_user_action(user.id, "create_event", f"{event.title} ({event.event_date})")
             # Trigger beautiful dates recalculation
             from app.services.beautiful_dates.engine import recalculate_for_event
             await recalculate_for_event(session, event)
@@ -171,6 +175,7 @@ async def _handle_agent_result(
                 ),
             )
             logger.info("[handler] user=%s → note created id=%s", user.id, note.id)
+            await log_user_action(user.id, "create_note", state.note_text[:100])
             await processing_msg.edit_text(
                 t("notes.created", lang),
                 reply_markup=note_view_kb(note, lang),

@@ -8,6 +8,7 @@ from app.models.note import Note, NoteTag
 from app.models.notification_log import NotificationLog
 from app.models.tag import Tag
 from app.models.user import User
+from app.models.user_action_log import UserActionLog
 
 __all__ = [
     "AILog",
@@ -22,4 +23,5 @@ __all__ = [
     "NotificationLog",
     "Tag",
     "User",
+    "UserActionLog",
 ]

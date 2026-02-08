@@ -133,7 +133,8 @@
     "ambiguous": "Is this an event or a note? Please clarify.",
     "confirm_create_event": "Create event \"{title}\" on {date}?",
     "confirm_create_note": "Save this note?",
-    "media_group_warning": "I'll only process the first message in the group."
+    "media_group_warning": "I'll only process the first message in the group.",
+    "help": "I help you store important dates and notes.\n\nTell me about an event (e.g., \"wedding August 17, 2022\") or a note (e.g., \"Max wants headphones\").\n\nUse the menu to navigate."
   },
 
   "errors": {

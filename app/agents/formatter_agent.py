@@ -59,7 +59,7 @@ async def formatter_node(state: AgentState) -> AgentState:
         state.response_text = ""  # Handler will show settings
 
     elif intent == "help":
-        state.response_text = t("welcome", lang, name="")
+        state.response_text = t("ai.help", lang)
 
     else:
         state.response_text = t("ai.not_understood", lang)
