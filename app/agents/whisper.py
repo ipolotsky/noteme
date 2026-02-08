@@ -1,7 +1,6 @@
 """Whisper transcription node."""
 
 import logging
-import tempfile
 import time
 
 from openai import AsyncOpenAI
@@ -13,6 +12,17 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 _client: AsyncOpenAI | None = None
+
+# Telegram sends voice as OGG Opus
+_MIME_TYPES = {
+    "ogg": "audio/ogg",
+    "oga": "audio/ogg",
+    "mp3": "audio/mpeg",
+    "m4a": "audio/mp4",
+    "wav": "audio/wav",
+    "webm": "audio/webm",
+    "flac": "audio/flac",
+}
 
 
 def _get_client() -> AsyncOpenAI:
@@ -28,22 +38,24 @@ async def transcribe_audio(audio_data: bytes, filename: str = "voice.ogg", user_
     audio_size = len(audio_data)
     start = time.monotonic()
 
-    try:
-        with tempfile.NamedTemporaryFile(suffix=f".{filename.split('.')[-1]}", delete=True) as tmp:
-            tmp.write(audio_data)
-            tmp.flush()
-            tmp.seek(0)
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "ogg"
+    mime = _MIME_TYPES.get(ext, "audio/ogg")
 
-            transcription = await client.audio.transcriptions.create(
-                model=settings.openai_whisper_model,
-                file=tmp,
-            )
+    logger.info("[whisper] user=%s uploading %d bytes as %s (%s)", user_id, audio_size, filename, mime)
+
+    try:
+        transcription = await client.audio.transcriptions.create(
+            model=settings.openai_whisper_model,
+            file=(filename, audio_data, mime),
+        )
 
         latency_ms = int((time.monotonic() - start) * 1000)
+        logger.info("[whisper] user=%s transcribed in %dms: %r", user_id, latency_ms, transcription.text[:200])
         await log_whisper_call(user_id, audio_size, transcription.text, latency_ms)
         return transcription.text
     except Exception as e:
         latency_ms = int((time.monotonic() - start) * 1000)
+        logger.error("[whisper] user=%s FAILED in %dms: %s", user_id, latency_ms, e)
         await log_whisper_call(user_id, audio_size, "", latency_ms, error=str(e))
         raise
 

@@ -26,6 +26,22 @@ logger = logging.getLogger(__name__)
 router = Router(name="ai")
 
 
+def _format_user_text(text: str) -> str:
+    """Clean up user input for saving as description/note text.
+
+    - Strip whitespace
+    - Capitalize first letter
+    - Ensure sentence-ending punctuation
+    """
+    text = " ".join(text.split())  # collapse multiple spaces/newlines
+    if not text:
+        return text
+    text = text[0].upper() + text[1:]
+    if text[-1] not in ".!?…":
+        text += "."
+    return text
+
+
 @router.message(F.voice)
 async def handle_voice(
     message: Message,
@@ -48,16 +64,21 @@ async def handle_voice(
     processing_msg = await message.answer(t("ai.processing", lang))
 
     try:
-        # Download and transcribe
-        from app.bot import bot
-        file = await bot.get_file(message.voice.file_id)
-        bio = await bot.download_file(file.file_path)
+        # Download voice file
+        logger.info("[voice] user=%s downloading file_id=%s", user.id, message.voice.file_id)
+        file = await message.bot.get_file(message.voice.file_id)
+        logger.info("[voice] user=%s file_path=%s", user.id, file.file_path)
+        bio = await message.bot.download_file(file.file_path)
         audio_bytes = bio.read()
+        logger.info("[voice] user=%s downloaded %d bytes", user.id, len(audio_bytes))
 
-        text = await transcribe_audio(audio_bytes, user_id=user.id)
+        # Transcribe — pass the real filename from Telegram
+        filename = file.file_path.rsplit("/", 1)[-1] if file.file_path else "voice.oga"
+        text = await transcribe_audio(audio_bytes, filename=filename, user_id=user.id)
         if not text.strip():
             await processing_msg.edit_text(t("ai.audio_empty", lang))
             return
+        logger.info("[voice] user=%s transcribed: %r", user.id, text[:200])
 
         # Process through agent pipeline
         state = await process_message(
@@ -127,9 +148,13 @@ async def _handle_agent_result(
         state.note_text[:80] if state.note_text else "", state.error,
     )
 
+    # Original user text — save as description (formatted)
+    raw_text = state.raw_text or ""
+
     # If the agent wants to create an event
     if intent == "create_event" and state.event_title and state.event_date:
         try:
+            description = _format_user_text(raw_text) if raw_text else (state.event_description or None)
             logger.info("[handler] user=%s → creating event %r on %s", user.id, state.event_title, state.event_date)
             event = await create_event(
                 session,
@@ -137,8 +162,8 @@ async def _handle_agent_result(
                 EventCreate(
                     title=state.event_title,
                     event_date=state.event_date,
-                    description=state.event_description or None,
-                    tag_names=state.tag_names or None,
+                    description=description,
+                    tag_names=state.tag_names or [],
                 ),
             )
             logger.info("[handler] user=%s → event created id=%s", user.id, event.id)
@@ -164,14 +189,15 @@ async def _handle_agent_result(
     # If the agent wants to create a note
     if intent == "create_note" and state.note_text:
         try:
+            note_text = _format_user_text(raw_text) if raw_text else state.note_text
             logger.info("[handler] user=%s → creating note", user.id)
             note = await create_note(
                 session,
                 user.id,
                 NoteCreate(
-                    text=state.note_text,
+                    text=note_text,
                     reminder_date=state.note_reminder_date,
-                    tag_names=state.tag_names or None,
+                    tag_names=state.tag_names or [],
                 ),
             )
             logger.info("[handler] user=%s → note created id=%s", user.id, note.id)
