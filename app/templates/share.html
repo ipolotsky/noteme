@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block meta %}
+    <meta property="og:title" content="{{ title }}">
+    <meta property="og:description" content="{{ label }}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ base_url }}/share/">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ title }}">
+    <meta name="twitter:description" content="{{ label }}">
+{% endblock %}
+
+{% block content %}
+<div class="max-w-lg w-full">
+    <!-- Card -->
+    <div class="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-purple-600/30 to-blue-600/30 p-8 text-center">
+            <div class="text-5xl mb-4">&#x1F52E;</div>
+            <h1 class="text-2xl font-bold text-white mb-2">{{ label }}</h1>
+            <p class="text-purple-200 text-lg">{{ target_date }}</p>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6 text-center">
+            <p class="text-gray-300 text-lg mb-2">
+                &#x1F4C5; {{ event_title }}
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-6 pt-0 text-center">
+            <a href="{{ bot_url }}"
+               class="inline-flex items-center px-6 py-3 text-base font-medium text-white bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg hover:from-purple-600 hover:to-blue-600 focus:ring-4 focus:ring-purple-300 transition-all duration-200 shadow-lg hover:shadow-xl">
+                &#x2728; {{ cta }}
+            </a>
+
+            <p class="mt-6 text-gray-500 text-sm">{{ powered_by }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

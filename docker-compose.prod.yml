@@ -1,0 +1,68 @@
+# Production docker-compose with standard ports + Traefik
+services:
+  app:
+    build: .
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.noteme.rule=Host(`${NOTEME_DOMAIN:-noteme.localhost}`)"
+      - "traefik.http.routers.noteme.entrypoints=websecure"
+      - "traefik.http.routers.noteme.tls.certresolver=letsencrypt"
+      - "traefik.http.services.noteme.loadbalancer.server.port=8000"
+    restart: unless-stopped
+
+  worker:
+    build: .
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: arq app.workers.WorkerSettings
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: noteme
+      POSTGRES_USER: noteme
+      POSTGRES_PASSWORD: ${NOTEME_DB_PASSWORD}
+    volumes:
+      - noteme_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U noteme -d noteme"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  traefik:
+    image: traefik:v3.2
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - traefik_certs:/letsencrypt
+    restart: unless-stopped
+
+volumes:
+  noteme_pgdata:
+  traefik_certs:

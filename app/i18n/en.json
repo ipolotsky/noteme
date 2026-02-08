@@ -1,0 +1,169 @@
+{
+  "welcome": "Hi, {name}! I'm Noteme, a bot for tracking important dates and notes.",
+  "welcome_back": "Welcome back, {name}!",
+  "choose_language": "Choose your language:",
+  "language_set": "Language set: English",
+
+  "onboarding": {
+    "step1": "Great! Let's create your first event. Write what the date is and when it happened.",
+    "step2": "Event created! Now let's add a note. Write something you want to remember.",
+    "step3": "Note saved! You're all set. Use the menu below to navigate.",
+    "skip": "Skip"
+  },
+
+  "menu": {
+    "feed": "Beautiful Dates Feed",
+    "events": "My Events",
+    "notes": "My Notes",
+    "tags": "Tags",
+    "settings": "Settings",
+    "back": "Back",
+    "cancel": "Cancel"
+  },
+
+  "events": {
+    "title": "My Events",
+    "empty": "You don't have any events yet. Create your first one!",
+    "create": "Create Event",
+    "create_title": "Enter event title:",
+    "create_date": "Enter event date (DD.MM.YYYY):",
+    "create_description": "Add a description (or press \"Skip\"):",
+    "create_tags": "Add tags separated by comma (or press \"Skip\"):",
+    "created": "Event \"{title}\" created!",
+    "edit": "Edit",
+    "delete": "Delete",
+    "delete_confirm": "Are you sure you want to delete event \"{title}\"?",
+    "deleted": "Event deleted.",
+    "cannot_delete_system": "System events cannot be deleted, but you can rename them.",
+    "updated": "Event updated.",
+    "beautiful_dates": "Beautiful Dates",
+    "limit_reached": "Event limit reached ({max}). Delete an existing one or contact the admin.",
+    "invalid_date": "Invalid date. Please use the DD.MM.YYYY format.",
+    "view_title": "Event: {title}",
+    "date_label": "Date: {date}",
+    "tags_label": "Tags: {tags}",
+    "no_tags": "No tags"
+  },
+
+  "notes": {
+    "title": "My Notes",
+    "empty": "You don't have any notes yet. Create your first one!",
+    "create": "Create Note",
+    "create_text": "Enter note text:",
+    "create_reminder": "Set a reminder? Enter date (DD.MM.YYYY) or press \"Skip\":",
+    "create_tags": "Add tags separated by comma (or press \"Skip\"):",
+    "created": "Note saved!",
+    "edit": "Edit",
+    "delete": "Delete",
+    "delete_confirm": "Are you sure you want to delete this note?",
+    "deleted": "Note deleted.",
+    "updated": "Note updated.",
+    "limit_reached": "Note limit reached ({max}). Delete an existing one or contact the admin.",
+    "reminder_set": "Reminder set for {date}.",
+    "view_title": "Note",
+    "tags_label": "Tags: {tags}",
+    "no_tags": "No tags"
+  },
+
+  "tags": {
+    "title": "My Tags",
+    "empty": "You don't have any tags yet.",
+    "create": "Create Tag",
+    "create_name": "Enter tag name:",
+    "created": "Tag \"{name}\" created!",
+    "rename": "Rename",
+    "rename_prompt": "Enter new tag name:",
+    "renamed": "Tag renamed to \"{name}\".",
+    "delete": "Delete",
+    "delete_confirm": "Delete tag \"{name}\"? It will be removed from all events and notes.",
+    "delete_warning_orphans": "Warning: some notes will be left without tags after deletion.",
+    "deleted": "Tag deleted.",
+    "already_exists": "Tag \"{name}\" already exists.",
+    "limit_reached": "Tag limit reached for this item ({max}).",
+    "events_count": "Events: {count}",
+    "notes_count": "Notes: {count}"
+  },
+
+  "feed": {
+    "title": "Beautiful Dates Feed",
+    "empty": "No beautiful dates yet. Add events to see the magic!",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "in_days": "In {days}",
+    "in_week": "In a week",
+    "share": "Share",
+    "shared_link": "Link for friends:\n{url}",
+    "related_notes": "Related notes:"
+  },
+
+  "settings": {
+    "title": "Settings",
+    "language": "Language: {language}",
+    "timezone": "Timezone: {tz}",
+    "notifications": "Notifications: {status}",
+    "notification_time": "Notification time: {time}",
+    "notification_count": "Dates in digest: {count}",
+    "spoiler": "Spoiler: {status}",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "change_language": "Change language",
+    "change_timezone": "Change timezone",
+    "change_notification_time": "Change time",
+    "change_notification_count": "Change count",
+    "toggle_notifications": "Toggle notifications",
+    "toggle_spoiler": "Toggle spoiler",
+    "saved": "Settings saved."
+  },
+
+  "notifications": {
+    "morning_greeting": "Good morning, {name}!",
+    "your_beautiful_dates": "Your upcoming beautiful dates:",
+    "open_feed": "Open feed",
+    "note_reminder": "Note reminder:",
+    "no_dates_today": "No beautiful dates today, but exciting ones are ahead!"
+  },
+
+  "ai": {
+    "processing": "Processing...",
+    "not_understood": "Sorry, I didn't understand. Try rephrasing.",
+    "off_topic": "I can only help with events and notes. Try creating an event or a note!",
+    "audio_too_long": "Audio is too long. Maximum is 1 minute.",
+    "audio_empty": "Could not understand the audio. Please try again.",
+    "rate_limit": "Too many requests. Please wait a moment.",
+    "ambiguous": "Is this an event or a note? Please clarify.",
+    "confirm_create_event": "Create event \"{title}\" on {date}?",
+    "confirm_create_note": "Save this note?",
+    "media_group_warning": "I'll only process the first message in the group."
+  },
+
+  "errors": {
+    "unknown": "An error occurred. Please try again later.",
+    "not_found": "Not found.",
+    "forbidden": "Access denied.",
+    "invalid_input": "Invalid input."
+  },
+
+  "buttons": {
+    "yes": "Yes",
+    "no": "No",
+    "skip": "Skip",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "prev": "Previous"
+  },
+
+  "share": {
+    "page_title": "{label} | Noteme",
+    "cta": "Create your own beautiful dates!",
+    "powered_by": "Powered by Noteme Bot"
+  },
+
+  "declension": {
+    "day": {"one": "day", "other": "days"},
+    "week": {"one": "week", "other": "weeks"},
+    "month": {"one": "month", "other": "months"},
+    "year": {"one": "year", "other": "years"}
+  }
+}
