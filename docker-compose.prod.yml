@@ -1,7 +1,7 @@
-# Production docker-compose with standard ports + Traefik
+# Production docker-compose with GHCR images + Traefik
 services:
   app:
-    build: .
+    image: ${NOTEME_DOCKER_IMAGE}
     env_file: .env
     depends_on:
       db:
@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
 
   worker:
-    build: .
+    image: ${NOTEME_DOCKER_IMAGE}
     env_file: .env
     depends_on:
       db:
@@ -77,6 +77,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - traefik_certs:/letsencrypt
+    environment:
+      - NOTEME_ACME_EMAIL=${NOTEME_ACME_EMAIL:-admin@example.com}
     restart: unless-stopped
 
 volumes:
