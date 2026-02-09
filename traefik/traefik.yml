@@ -20,7 +20,6 @@ providers:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: "${NOTEME_ACME_EMAIL}"
       storage: /letsencrypt/acme.json
       httpChallenge:
         entryPoint: web
