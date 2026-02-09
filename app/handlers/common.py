@@ -160,16 +160,9 @@ async def reply_kb_feed(
     session: AsyncSession,
 ) -> None:
     await state.clear()
-    from app.keyboards.feed import PAGE_SIZE, feed_list_kb
-    from app.services.beautiful_date_service import count_user_feed, get_user_feed
+    from app.handlers.feed import send_feed_messages
 
-    total = await count_user_feed(session, user.id)
-    items = await get_user_feed(session, user.id, offset=0, limit=PAGE_SIZE)
-
-    if not items:
-        await message.answer(t("feed.empty", lang), reply_markup=main_menu_kb(lang))
-    else:
-        await message.answer(t("feed.title", lang), reply_markup=feed_list_kb(items, 0, total, lang))
+    await send_feed_messages(message, user, lang, session, page=0)
 
 
 @router.message(F.text.startswith(_EMOJI_EVENTS))

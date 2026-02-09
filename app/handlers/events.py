@@ -21,6 +21,7 @@ from app.keyboards.events import (
     events_list_kb,
 )
 from app.keyboards.main_menu import cancel_kb
+from app.models.event import Event
 from app.models.user import User
 from app.schemas.event import EventCreate, EventUpdate
 from app.services.event_service import (
@@ -100,6 +101,32 @@ async def event_view(
         await callback.answer(t("errors.not_found", lang), show_alert=True)
         return
 
+    text, related_count, tag_counts = await _build_event_card(event, user, lang, session)
+
+    await callback.message.edit_text(  # type: ignore[union-attr]
+        text,
+        reply_markup=event_view_kb(
+            event, lang,
+            related_notes_count=related_count,
+            tag_event_counts=tag_counts,
+        ),
+    )
+    await callback.answer()
+
+
+async def _build_event_card(
+    event: Event,
+    user: User,
+    lang: str,
+    session: AsyncSession,
+) -> tuple[str, int, dict[str, tuple[str, int]]]:
+    """Build event card text and compute keyboard metadata.
+
+    Returns (text, related_notes_count, tag_event_counts).
+    """
+    from app.services.event_service import get_events_by_tag_names
+    from app.services.note_service import get_notes_by_tag_names
+
     tags_str = ", ".join(escape(tg.name) for tg in event.tags) if event.tags else t("events.no_tags", lang)
     text = (
         f"<b>{t('events.view_title', lang, title=escape(event.title))}</b>\n"
@@ -109,9 +136,66 @@ async def event_view(
     if event.description:
         text += f"\n\n{escape(event.description)}"
 
+    related_count = 0
+    tag_counts: dict[str, tuple[str, int]] = {}
+
+    if event.tags:
+        tag_names = [tg.name for tg in event.tags]
+        related = await get_notes_by_tag_names(session, user.id, tag_names, limit=5)
+        related_count = len(related)
+        if related:
+            text += f"\n\n<b>{t('events.related_notes', lang)}:</b>"
+            for nt in related:
+                preview = escape(nt.text[:60]) + ("..." if len(nt.text) > 60 else "")
+                text += f"\n\U0001f4dd {preview}"
+
+        # Count events per tag for buttons
+        for tg in event.tags:
+            evs = await get_events_by_tag_names(session, user.id, [tg.name], limit=50)
+            tag_counts[tg.name] = (str(tg.id), len(evs))
+
+    return text, related_count, tag_counts
+
+
+@router.callback_query(EventCb.filter(F.action == "related_notes"))
+async def event_related_notes(
+    callback: CallbackQuery,
+    callback_data: EventCb,
+    user: User,
+    lang: str,
+    session: AsyncSession,
+) -> None:
+    """Show full list of related notes for an event."""
+    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+    from app.keyboards.callbacks import NoteCb
+    from app.services.note_service import get_notes_by_tag_names
+
+    event = await get_event(session, uuid.UUID(callback_data.id), user_id=user.id)
+    if event is None:
+        await callback.answer(t("errors.not_found", lang), show_alert=True)
+        return
+
+    notes = []
+    if event.tags:
+        tag_names = [tg.name for tg in event.tags]
+        notes = await get_notes_by_tag_names(session, user.id, tag_names, limit=20)
+
+    text = f"<b>{t('events.related_notes', lang)}: {escape(event.title)}</b>"
+    rows: list[list[InlineKeyboardButton]] = []
+    for nt in notes:
+        preview = nt.text[:40] + ("..." if len(nt.text) > 40 else "")
+        rows.append([InlineKeyboardButton(
+            text=f"\U0001f4dd {preview}",
+            callback_data=NoteCb(action="view", id=str(nt.id)).pack(),
+        )])
+    rows.append([InlineKeyboardButton(
+        text=f"\u25c0 {t('menu.back', lang)}",
+        callback_data=EventCb(action="view", id=callback_data.id).pack(),
+    )])
+
     await callback.message.edit_text(  # type: ignore[union-attr]
-        text,
-        reply_markup=event_view_kb(event, lang),
+        text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows)
     )
     await callback.answer()
 

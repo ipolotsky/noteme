@@ -1,22 +1,24 @@
-"""Tag handlers — list, view, create, rename, delete."""
+"""Tag handlers — list, view, create, rename, delete, browse events/notes."""
 
 import uuid
 from html import escape
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.handlers.states import TagCreateStates, TagRenameStates
 from app.i18n.loader import t
-from app.keyboards.callbacks import PageCb, TagCb
+from app.keyboards.callbacks import EventCb, NoteCb, PageCb, TagCb
 from app.keyboards.main_menu import cancel_kb
 from app.keyboards.tags import PAGE_SIZE, tag_delete_confirm_kb, tag_view_kb, tags_list_kb
 from app.models.event import EventTag
 from app.models.note import NoteTag
 from app.models.user import User
+from app.services.event_service import get_events_by_tag_names
+from app.services.note_service import get_notes_by_tag_names
 from app.services.tag_service import (
     create_tag,
     delete_tag,
@@ -110,7 +112,97 @@ async def tag_view(
 
     await callback.message.edit_text(  # type: ignore[union-attr]
         text,
-        reply_markup=tag_view_kb(tag, lang),
+        reply_markup=tag_view_kb(tag, lang, events_count=events_count, notes_count=notes_count),
+    )
+    await callback.answer()
+
+
+# --- Browse events by tag ---
+
+
+@router.callback_query(TagCb.filter(F.action == "events"))
+async def tag_events(
+    callback: CallbackQuery,
+    callback_data: TagCb,
+    user: User,
+    lang: str,
+    session: AsyncSession,
+) -> None:
+    tag = await get_tag(session, uuid.UUID(callback_data.id), user_id=user.id)
+    if tag is None:
+        await callback.answer(t("errors.not_found", lang), show_alert=True)
+        return
+
+    events = await get_events_by_tag_names(session, user.id, [tag.name], limit=20)
+
+    text = f"<b>\U0001f3f7 {escape(tag.name)} — {t('tags.show_events', lang)}</b>\n\n"
+    if not events:
+        text += t("events.empty", lang)
+    else:
+        for ev in events:
+            text += f"\U0001f4c5 <b>{escape(ev.title)}</b> — {ev.event_date.strftime('%d.%m.%Y')}\n"
+
+    # Build keyboard: event buttons + back to tag
+    rows: list[list[InlineKeyboardButton]] = []
+    for ev in events:
+        rows.append([InlineKeyboardButton(
+            text=f"\U0001f4c5 {ev.title}",
+            callback_data=EventCb(action="view", id=str(ev.id)).pack(),
+        )])
+    rows.append([InlineKeyboardButton(
+        text=f"\u25c0 {t('menu.back', lang)}",
+        callback_data=TagCb(action="view", id=callback_data.id).pack(),
+    )])
+
+    await callback.message.edit_text(  # type: ignore[union-attr]
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+    await callback.answer()
+
+
+# --- Browse notes by tag ---
+
+
+@router.callback_query(TagCb.filter(F.action == "notes"))
+async def tag_notes(
+    callback: CallbackQuery,
+    callback_data: TagCb,
+    user: User,
+    lang: str,
+    session: AsyncSession,
+) -> None:
+    tag = await get_tag(session, uuid.UUID(callback_data.id), user_id=user.id)
+    if tag is None:
+        await callback.answer(t("errors.not_found", lang), show_alert=True)
+        return
+
+    notes = await get_notes_by_tag_names(session, user.id, [tag.name], limit=20)
+
+    text = f"<b>\U0001f3f7 {escape(tag.name)} — {t('tags.show_notes', lang)}</b>\n\n"
+    if not notes:
+        text += t("notes.empty", lang)
+    else:
+        for nt in notes:
+            preview = escape(nt.text[:50]) + ("..." if len(nt.text) > 50 else "")
+            text += f"\U0001f4dd {preview}\n"
+
+    # Build keyboard: note buttons + back to tag
+    rows: list[list[InlineKeyboardButton]] = []
+    for nt in notes:
+        preview = nt.text[:40] + ("..." if len(nt.text) > 40 else "")
+        rows.append([InlineKeyboardButton(
+            text=f"\U0001f4dd {preview}",
+            callback_data=NoteCb(action="view", id=str(nt.id)).pack(),
+        )])
+    rows.append([InlineKeyboardButton(
+        text=f"\u25c0 {t('menu.back', lang)}",
+        callback_data=TagCb(action="view", id=callback_data.id).pack(),
+    )])
+
+    await callback.message.edit_text(  # type: ignore[union-attr]
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await callback.answer()
 

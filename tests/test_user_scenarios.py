@@ -756,15 +756,15 @@ class TestFeed:
         # Either shows feed items or empty (depending on strategy results)
         cb.message.edit_text.assert_called_once()
 
-    async def test_43_feed_view_not_found(self, session: AsyncSession):
-        """S43: View non-existent feed item → not_found alert."""
-        from app.handlers.feed import feed_view
+    async def test_43_feed_share_not_found(self, session: AsyncSession):
+        """S43: Share non-existent feed item → not_found alert."""
+        from app.handlers.feed import feed_share
 
         user = await _make_user(session)
         cb = _mock_callback()
         cd = _mock_callback_data(id=str(uuid.uuid4()), page=0)
 
-        await feed_view(cb, cd, user, "ru", session)
+        await feed_share(cb, cd, "ru", session)
 
         cb.answer.assert_called()
         text = cb.answer.call_args.args[0]

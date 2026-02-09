@@ -34,9 +34,15 @@ class NoteEditCb(CallbackData, prefix="nt_edit"):
 
 # --- Tags ---
 class TagCb(CallbackData, prefix="tg"):
-    action: str  # "list", "view", "create", "rename", "delete", "confirm_delete"
+    action: str  # "list", "view", "create", "rename", "delete", "confirm_delete", "events", "notes"
     id: str = ""
     page: int = 0
+
+
+# --- Media tag selection ---
+class MediaTagCb(CallbackData, prefix="mt"):
+    action: str  # "select", "create", "cancel"
+    id: str = ""  # tag UUID
 
 
 # --- Settings ---

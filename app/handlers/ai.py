@@ -19,7 +19,7 @@ from app.schemas.event import EventCreate
 from app.schemas.note import NoteCreate
 from app.services.action_logger import log_user_action
 from app.services.event_service import EventLimitError, create_event
-from app.services.note_service import NoteLimitError, create_note
+from app.services.note_service import NoteLimitError, create_note, get_notes_by_tag_names
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +151,11 @@ async def _handle_agent_result(
     # Original user text — save as description (formatted)
     raw_text = state.raw_text or ""
 
+    # Limit AI-extracted tags to 2; fallback to "Личное"/"Personal" if none
+    tag_names = (state.tag_names or [])[:2]
+    if not tag_names:
+        tag_names = ["Личное" if lang == "ru" else "Personal"]
+
     # If the agent wants to create an event
     if intent == "create_event" and state.event_title and state.event_date:
         try:
@@ -163,7 +168,7 @@ async def _handle_agent_result(
                     title=state.event_title,
                     event_date=state.event_date,
                     description=description,
-                    tag_names=state.tag_names or [],
+                    tag_names=tag_names,
                 ),
             )
             logger.info("[handler] user=%s → event created id=%s", user.id, event.id)
@@ -172,9 +177,16 @@ async def _handle_agent_result(
             from app.services.beautiful_dates.engine import recalculate_for_event
             await recalculate_for_event(session, event)
 
+            # Build full event card using shared helper
+            from app.handlers.events import _build_event_card
+            card, related_count, tag_counts = await _build_event_card(event, user, lang, session)
             await processing_msg.edit_text(
-                t("events.created", lang, title=escape(event.title)),
-                reply_markup=event_view_kb(event, lang),
+                card,
+                reply_markup=event_view_kb(
+                    event, lang,
+                    related_notes_count=related_count,
+                    tag_event_counts=tag_counts,
+                ),
             )
         except EventLimitError:
             logger.warning("[handler] user=%s → event limit reached", user.id)
@@ -197,15 +209,21 @@ async def _handle_agent_result(
                 NoteCreate(
                     text=note_text,
                     reminder_date=state.note_reminder_date,
-                    tag_names=state.tag_names or [],
+                    tag_names=tag_names,
                 ),
             )
             logger.info("[handler] user=%s → note created id=%s", user.id, note.id)
             await log_user_action(user.id, "create_note", state.note_text[:100])
-            await processing_msg.edit_text(
-                t("notes.created", lang),
-                reply_markup=note_view_kb(note, lang),
+            # Build full note card
+            tags_str = ", ".join(escape(tg.name) for tg in note.tags) if note.tags else t("notes.no_tags", lang)
+            card = (
+                f"<b>{t('notes.view_title', lang)}</b>\n\n"
+                f"{escape(note.text)}\n\n"
+                f"{t('notes.tags_label', lang, tags=tags_str)}"
             )
+            if note.reminder_date:
+                card += f"\n{t('notes.reminder_set', lang, date=note.reminder_date.strftime('%d.%m.%Y'))}"
+            await processing_msg.edit_text(card, reply_markup=note_view_kb(note, lang))
         except NoteLimitError:
             logger.warning("[handler] user=%s → note limit reached", user.id)
             await processing_msg.edit_text(

@@ -114,6 +114,34 @@ async def delete_note(
     return True
 
 
+async def create_note_with_media(
+    session: AsyncSession,
+    user_id: int,
+    text: str,
+    tag_names: list[str],
+    chat_id: int,
+    message_id: int,
+    media_type: str,
+) -> Note:
+    """Create a note with an attached media link in one transaction."""
+    from app.models.media_link import MediaLink
+
+    note = await create_note(
+        session, user_id, NoteCreate(text=text, tag_names=tag_names)
+    )
+
+    media_link = MediaLink(
+        note_id=note.id,
+        chat_id=chat_id,
+        message_id=message_id,
+        media_type=media_type,
+    )
+    session.add(media_link)
+    await session.flush()
+
+    return note
+
+
 async def get_notes_by_tag_names(
     session: AsyncSession, user_id: int, tag_names: list[str], limit: int = 5
 ) -> list[Note]:

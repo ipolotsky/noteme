@@ -43,6 +43,11 @@ class TagRenameStates(StatesGroup):
     waiting_name = State()
 
 
+class MediaNoteStates(StatesGroup):
+    waiting_tag = State()
+    waiting_new_tag_name = State()
+
+
 class SettingsStates(StatesGroup):
     waiting_timezone = State()
     waiting_notification_time = State()

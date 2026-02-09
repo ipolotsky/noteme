@@ -3,7 +3,7 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.i18n.loader import t
-from app.keyboards.callbacks import EventCb, EventEditCb, MenuCb
+from app.keyboards.callbacks import EventCb, EventEditCb, MenuCb, TagCb
 from app.keyboards.pagination import pagination_row
 from app.models.event import Event
 
@@ -37,10 +37,20 @@ def events_list_kb(
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def event_view_kb(event: Event, lang: str) -> InlineKeyboardMarkup:
+def event_view_kb(
+    event: Event,
+    lang: str,
+    related_notes_count: int = 0,
+    tag_event_counts: dict[str, tuple[str, int]] | None = None,
+) -> InlineKeyboardMarkup:
+    """Build event view keyboard.
+
+    tag_event_counts: {tag_name: (tag_id, event_count)} for per-tag buttons.
+    """
     eid = str(event.id)
     rows: list[list[InlineKeyboardButton]] = []
 
+    # Row 1: Edit + Delete
     rows.append([
         InlineKeyboardButton(
             text=f"\u270f\ufe0f {t('events.edit', lang)}",
@@ -52,11 +62,30 @@ def event_view_kb(event: Event, lang: str) -> InlineKeyboardMarkup:
         ),
     ])
 
+    # Row 2: Beautiful dates
     rows.append([InlineKeyboardButton(
         text=f"\U0001f52e {t('events.beautiful_dates', lang)}",
         callback_data=EventCb(action="dates", id=eid).pack(),
     )])
 
+    # Row 3: Related notes (if any)
+    if related_notes_count > 0:
+        rows.append([InlineKeyboardButton(
+            text=f"\U0001f4dd {t('events.related_notes', lang)} ({related_notes_count})",
+            callback_data=EventCb(action="related_notes", id=eid).pack(),
+        )])
+
+    # Per-tag event buttons (only if >1 event with that tag)
+    if tag_event_counts:
+        for tag_name, (tag_id, count) in tag_event_counts.items():
+            if count > 1:
+                label = t("events.events_with_tag", lang, tag=tag_name)
+                rows.append([InlineKeyboardButton(
+                    text=f"\U0001f4cb {label} ({count})",
+                    callback_data=TagCb(action="events", id=tag_id).pack(),
+                )])
+
+    # Back
     rows.append([InlineKeyboardButton(
         text=f"\u25c0 {t('menu.back', lang)}",
         callback_data=EventCb(action="list").pack(),

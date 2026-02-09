@@ -6,7 +6,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.event import Event
+from app.models.event import Event, EventTag
+from app.models.tag import Tag
 from app.models.user import User
 from app.schemas.event import EventCreate, EventUpdate
 from app.services.tag_service import get_or_create_tags
@@ -113,3 +114,23 @@ async def delete_event(
     await session.delete(event)
     await session.flush()
     return True
+
+
+async def get_events_by_tag_names(
+    session: AsyncSession, user_id: int, tag_names: list[str], limit: int = 10
+) -> list[Event]:
+    """Find events matching any of the given tag names."""
+    result = await session.execute(
+        select(Event)
+        .options(selectinload(Event.tags))
+        .join(EventTag, Event.id == EventTag.event_id)
+        .join(Tag, EventTag.tag_id == Tag.id)
+        .where(
+            Event.user_id == user_id,
+            func.lower(Tag.name).in_([n.lower() for n in tag_names]),
+        )
+        .distinct()
+        .order_by(Event.event_date.desc())
+        .limit(limit)
+    )
+    return list(result.scalars().unique().all())

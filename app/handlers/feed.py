@@ -1,16 +1,16 @@
-"""Feed handler — beautiful dates feed."""
+"""Feed handler — beautiful dates feed (each date as a separate message)."""
 
 import uuid
 from html import escape
 
 from aiogram import F, Router
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.i18n.loader import t
-from app.keyboards.callbacks import FeedCb, PageCb
-from app.keyboards.feed import PAGE_SIZE, feed_item_kb, feed_list_kb
+from app.keyboards.callbacks import FeedCb, MenuCb, PageCb
+from app.keyboards.pagination import pagination_row
 from app.models.user import User
 from app.services.beautiful_date_service import (
     count_user_feed,
@@ -22,6 +22,62 @@ from app.utils.date_utils import format_relative_date
 
 router = Router(name="feed")
 
+PAGE_SIZE = 5
+
+
+async def _send_feed(
+    chat_message: Message,
+    user: User,
+    lang: str,
+    session: AsyncSession,
+    page: int = 0,
+) -> bool:
+    """Send feed dates as separate messages. Returns False if empty."""
+    total = await count_user_feed(session, user.id)
+    items = await get_user_feed(session, user.id, offset=page * PAGE_SIZE, limit=PAGE_SIZE)
+
+    if not items:
+        return False
+
+    for bd in items:
+        label = bd.label_ru if lang == "ru" else bd.label_en
+        relative = format_relative_date(bd.target_date, lang)
+        text = f"\U0001f52e <b>{relative} — {label}</b>\n"
+        text += f"\U0001f4c5 {bd.target_date.strftime('%d.%m.%Y')}\n"
+        text += f"\U0001f4cb {escape(bd.event.title)}"
+
+        if bd.event.tags:
+            tag_names = [tg.name for tg in bd.event.tags]
+            notes = await get_notes_by_tag_names(session, user.id, tag_names, limit=3)
+            if notes:
+                text += f"\n\n{t('feed.related_notes', lang)}"
+                for note in notes:
+                    preview = escape(note.text[:60]) + ("..." if len(note.text) > 60 else "")
+                    text += f"\n\U0001f4dd {preview}"
+
+        kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(
+                text=f"\U0001f517 {t('feed.share', lang)}",
+                callback_data=FeedCb(action="share", id=str(bd.id)).pack(),
+            ),
+        ]])
+        await chat_message.answer(text, reply_markup=kb)
+
+    # Navigation footer
+    nav_rows: list[list[InlineKeyboardButton]] = []
+    if total > PAGE_SIZE:
+        nav_rows.append(pagination_row("feed", page, total, PAGE_SIZE, lang))
+    nav_rows.append([InlineKeyboardButton(
+        text=f"\u25c0 {t('menu.back', lang)}",
+        callback_data=MenuCb(action="main").pack(),
+    )])
+    total_pages = max((total + PAGE_SIZE - 1) // PAGE_SIZE, 1)
+    await chat_message.answer(
+        f"\U0001f52e {t('feed.title', lang)} ({page + 1}/{total_pages})",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=nav_rows),
+    )
+    return True
+
 
 async def show_feed_list(
     callback: CallbackQuery,
@@ -30,21 +86,37 @@ async def show_feed_list(
     session: AsyncSession,
     page: int = 0,
 ) -> None:
-    total = await count_user_feed(session, user.id)
-    items = await get_user_feed(session, user.id, offset=page * PAGE_SIZE, limit=PAGE_SIZE)
-
-    if not items:
+    """Show feed from a callback query (inline button press)."""
+    sent = await _send_feed(callback.message, user, lang, session, page)  # type: ignore[arg-type]
+    if not sent:
         from app.keyboards.main_menu import main_menu_kb
+
         await callback.message.edit_text(  # type: ignore[union-attr]
             t("feed.empty", lang),
             reply_markup=main_menu_kb(lang),
         )
         return
 
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        t("feed.title", lang),
-        reply_markup=feed_list_kb(items, page, total, lang),
-    )
+    # Delete the triggering menu message
+    try:
+        await callback.message.delete()  # type: ignore[union-attr]
+    except Exception:
+        pass
+
+
+async def send_feed_messages(
+    message: Message,
+    user: User,
+    lang: str,
+    session: AsyncSession,
+    page: int = 0,
+) -> None:
+    """Send feed from a plain message context (reply keyboard)."""
+    from app.keyboards.main_menu import main_menu_kb
+
+    sent = await _send_feed(message, user, lang, session, page)
+    if not sent:
+        await message.answer(t("feed.empty", lang), reply_markup=main_menu_kb(lang))
 
 
 # --- List ---
@@ -71,59 +143,6 @@ async def feed_page(
     session: AsyncSession,
 ) -> None:
     await show_feed_list(callback, user, lang, session, page=callback_data.page)
-    await callback.answer()
-
-
-# --- View ---
-
-
-@router.callback_query(FeedCb.filter(F.action == "view"))
-async def feed_view(
-    callback: CallbackQuery,
-    callback_data: FeedCb,
-    user: User,
-    lang: str,
-    session: AsyncSession,
-) -> None:
-    from sqlalchemy import select
-    from sqlalchemy.orm import selectinload
-
-    from app.models.beautiful_date import BeautifulDate
-    from app.models.event import Event
-
-    result = await session.execute(
-        select(BeautifulDate)
-        .options(
-            selectinload(BeautifulDate.event).selectinload(Event.tags),
-        )
-        .where(BeautifulDate.id == uuid.UUID(callback_data.id))
-    )
-    bd = result.scalar_one_or_none()
-
-    if bd is None:
-        await callback.answer(t("errors.not_found", lang), show_alert=True)
-        return
-
-    label = bd.label_ru if lang == "ru" else bd.label_en
-    relative = format_relative_date(bd.target_date, lang)
-    text = f"\U0001f52e <b>{relative} — {label}</b>\n\n"
-    text += f"\U0001f4c5 {bd.target_date.strftime('%d.%m.%Y')}\n"
-    text += f"\U0001f4cb {escape(bd.event.title)}"
-
-    # Related notes
-    if bd.event.tags:
-        tag_names = [tg.name for tg in bd.event.tags]
-        notes = await get_notes_by_tag_names(session, user.id, tag_names, limit=5)
-        if notes:
-            text += f"\n\n{t('feed.related_notes', lang)}"
-            for note in notes:
-                preview = escape(note.text[:60]) + ("..." if len(note.text) > 60 else "")
-                text += f"\n\U0001f4dd {preview}"
-
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        text,
-        reply_markup=feed_item_kb(bd, lang),
-    )
     await callback.answer()
 
 

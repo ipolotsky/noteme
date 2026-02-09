@@ -42,7 +42,9 @@
     "view_title": "Событие: {title}",
     "date_label": "Дата: {date}",
     "tags_label": "Теги: {tags}",
-    "no_tags": "Без тегов"
+    "no_tags": "Без тегов",
+    "related_notes": "Связанные заметки",
+    "events_with_tag": "События с «{tag}»"
   },
 
   "notes": {
@@ -81,7 +83,17 @@
     "already_exists": "Тег «{name}» уже существует.",
     "limit_reached": "Достигнут лимит тегов для этого элемента ({max}).",
     "events_count": "Событий: {count}",
-    "notes_count": "Заметок: {count}"
+    "notes_count": "Заметок: {count}",
+    "show_events": "События",
+    "show_notes": "Заметки"
+  },
+
+  "media": {
+    "choose_tag": "К какому тегу привязать?",
+    "note_created": "Медиа привязано к тегу «{tag}».",
+    "create_tag_first": "Введите название нового тега:",
+    "saved": "Сохранено!",
+    "no_tags": "У вас пока нет тегов. Сначала создайте тег в разделе «Теги»."
   },
 
   "feed": {

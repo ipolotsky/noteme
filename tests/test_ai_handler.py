@@ -215,7 +215,7 @@ class TestHandleAgentResult:
         call_args = mock_create.call_args
         event_data = call_args[0][2]  # 3rd positional arg: EventCreate
         assert isinstance(event_data, EventCreate)
-        assert event_data.tag_names == []
+        assert event_data.tag_names == ["Личное"]
         # Verify raw_text saved as formatted description
         assert event_data.description == "Свадьба 17 августа 2022."
 
@@ -279,7 +279,7 @@ class TestHandleAgentResult:
         mock_create.assert_called_once()
         note_data = mock_create.call_args[0][2]
         assert isinstance(note_data, NoteCreate)
-        assert note_data.tag_names == []
+        assert note_data.tag_names == ["Личное"]
         # Note text should be formatted original text
         assert note_data.text == "Я хочу книгу От нуля до единицы."
 
@@ -803,7 +803,8 @@ class TestAIHandlerIntegrationWithDB:
         notes = await get_user_notes(session, user.id)
         assert len(notes) == 1
         assert notes[0].text == "Я хочу книгу От нуля до единицы"
-        assert len(notes[0].tags) == 0
+        assert len(notes[0].tags) == 1
+        assert notes[0].tags[0].name == "Личное"
 
     async def test_create_note_with_tags_with_db(self, session):
         """Create a note with tags — uses real DB."""
@@ -869,6 +870,8 @@ class TestAIHandlerIntegrationWithDB:
         assert len(events) == 1
         assert events[0].title == "Concert"
         assert events[0].event_date == date(2025, 3, 15)
+        assert len(events[0].tags) == 1
+        assert events[0].tags[0].name == "Personal"
 
     async def test_create_event_with_tags_with_db(self, session):
         """Create an event with tags — uses real DB."""

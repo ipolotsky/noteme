@@ -6,7 +6,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage
 
 from app.config import settings
-from app.handlers import ai, common, errors, events, feed, notes, start, tags
+from app.handlers import ai, common, errors, events, feed, media, notes, start, tags
 from app.handlers import settings as settings_handler
 from app.middlewares import (
     DbSessionMiddleware,
@@ -48,4 +48,5 @@ dp.include_router(feed.router)
 dp.include_router(notes.router)
 dp.include_router(tags.router)
 dp.include_router(settings_handler.router)
+dp.include_router(media.router)  # Before AI — catches photo/video/document
 dp.include_router(ai.router)  # Must be last — catches all text/voice

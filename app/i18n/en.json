@@ -42,7 +42,9 @@
     "view_title": "Event: {title}",
     "date_label": "Date: {date}",
     "tags_label": "Tags: {tags}",
-    "no_tags": "No tags"
+    "no_tags": "No tags",
+    "related_notes": "Related notes",
+    "events_with_tag": "Events with \"{tag}\""
   },
 
   "notes": {
@@ -81,7 +83,17 @@
     "already_exists": "Tag \"{name}\" already exists.",
     "limit_reached": "Tag limit reached for this item ({max}).",
     "events_count": "Events: {count}",
-    "notes_count": "Notes: {count}"
+    "notes_count": "Notes: {count}",
+    "show_events": "Events",
+    "show_notes": "Notes"
+  },
+
+  "media": {
+    "choose_tag": "Which tag to attach to?",
+    "note_created": "Media attached to tag \"{tag}\".",
+    "create_tag_first": "Enter new tag name:",
+    "saved": "Saved!",
+    "no_tags": "You don't have any tags yet. Create one in the Tags section first."
   },
 
   "feed": {
