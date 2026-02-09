@@ -122,7 +122,7 @@ jobs:
             set -e
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
             cd /opt/noteme
-            docker compose -f docker-compose.prod.yml pull app worker
+            docker compose -f docker-compose.prod.yml pull app worker traefik
             docker compose -f docker-compose.prod.yml up -d db redis
             sleep 5
             docker compose -f docker-compose.prod.yml run --rm app alembic upgrade head
