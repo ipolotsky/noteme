@@ -54,5 +54,18 @@ services:
       timeout: 5s
       retries: 5
 
+  databasus:
+    image: databasus/databasus:latest
+    container_name: noteme-databasus
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "4005:4005"
+    volumes:
+      - noteme_databasus:/databasus-data
+    restart: unless-stopped
+
 volumes:
   noteme_pgdata:
+  noteme_databasus:

@@ -51,6 +51,22 @@ services:
       retries: 5
     restart: unless-stopped
 
+  databasus:
+    image: databasus/databasus:latest
+    container_name: noteme-databasus
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - noteme_databasus:/databasus-data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.databasus.rule=Host(`${NOTEME_BACKUP_DOMAIN:-backup.noteme.localhost}`)"
+      - "traefik.http.routers.databasus.entrypoints=websecure"
+      - "traefik.http.routers.databasus.tls.certresolver=letsencrypt"
+      - "traefik.http.services.databasus.loadbalancer.server.port=4005"
+    restart: unless-stopped
+
   traefik:
     image: traefik:v3.2
     ports:
@@ -65,4 +81,5 @@ services:
 
 volumes:
   noteme_pgdata:
+  noteme_databasus:
   traefik_certs:
