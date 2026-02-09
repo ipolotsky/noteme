@@ -89,6 +89,60 @@ def setup_admin(app: FastAPI) -> Admin:
         logger.warning("[admin] Database cleared by admin")
         return RedirectResponse(url="/admin", status_code=302)
 
+    @app.get("/admin/seed-strategies", response_class=HTMLResponse)
+    async def seed_strategies_page(request: Request) -> HTMLResponse:
+        if not request.session.get("authenticated"):
+            return RedirectResponse(url="/admin/login", status_code=302)  # type: ignore[return-value]
+
+        from sqlalchemy import func, select
+
+        from app.models.beautiful_date_strategy import BeautifulDateStrategy
+        from app.utils.seed import STRATEGIES
+
+        async with async_session_factory() as session:
+            result = await session.execute(
+                select(func.count(BeautifulDateStrategy.id))
+            )
+            current = result.scalar() or 0
+
+        return HTMLResponse(
+            "<html><body style='font-family:sans-serif;text-align:center;margin-top:80px'>"
+            "<h2>Seed Strategies</h2>"
+            f"<p>Current: <b>{current}</b> strategies in DB</p>"
+            f"<p>Expected: <b>{len(STRATEGIES)}</b> strategies from code</p>"
+            "<p>This will add any missing strategies without modifying existing ones.</p>"
+            "<form method='POST'>"
+            "<button type='submit' style='padding:12px 32px;font-size:16px;"
+            "background:#198754;color:#fff;border:none;border-radius:6px;cursor:pointer'>"
+            "Seed Missing Strategies</button></form>"
+            "<br><a href='/admin/beautiful-date-strategy/list'>Back to strategies</a>"
+            " | <a href='/admin'>Admin home</a>"
+            "</body></html>"
+        )
+
+    @app.post("/admin/seed-strategies", response_class=HTMLResponse)
+    async def seed_strategies_action(request: Request) -> HTMLResponse:
+        if not request.session.get("authenticated"):
+            return RedirectResponse(url="/admin/login", status_code=302)  # type: ignore[return-value]
+
+        from app.utils.seed import seed_strategies
+
+        try:
+            created = await seed_strategies()
+            status = f"Done! Created <b>{created}</b> new strategies."
+        except Exception:
+            logger.exception("[admin] Failed to seed strategies")
+            status = "Error: failed to seed strategies. Check logs."
+
+        return HTMLResponse(
+            "<html><body style='font-family:sans-serif;text-align:center;margin-top:80px'>"
+            "<h2>Seed Strategies</h2>"
+            f"<p>{status}</p>"
+            "<br><a href='/admin/beautiful-date-strategy/list'>Back to strategies</a>"
+            " | <a href='/admin'>Admin home</a>"
+            "</body></html>"
+        )
+
     @app.get("/admin/test-notify/{user_id}", response_class=HTMLResponse)
     async def test_notify_page(request: Request, user_id: int) -> HTMLResponse:
         if not request.session.get("authenticated"):

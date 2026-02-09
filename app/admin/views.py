@@ -120,6 +120,20 @@ class BeautifulDateStrategyAdmin(ModelView, model=BeautifulDateStrategy):
     name_plural = "Strategies"
     icon = "fa-solid fa-wand-magic-sparkles"
 
+    column_formatters = {
+        BeautifulDateStrategy.name_en: lambda m, _: Markup(
+            f'{m.name_en}'
+            + (
+                ' <a href="/admin/seed-strategies" '
+                'style="margin-left:8px;padding:2px 8px;background:#198754;color:#fff;'
+                'border-radius:4px;text-decoration:none;font-size:12px">'
+                '\U0001f331 Seed All</a>'
+                if m.priority == 1
+                else ''
+            )
+        ),
+    }
+
 
 class BeautifulDateAdmin(ModelView, model=BeautifulDate):
     column_list = [

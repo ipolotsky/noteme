@@ -68,7 +68,7 @@ services:
     restart: unless-stopped
 
   traefik:
-    image: traefik:v3.2
+    image: traefik:v3.3
     ports:
       - "80:80"
       - "443:443"
@@ -79,6 +79,7 @@ services:
       - traefik_certs:/letsencrypt
     environment:
       - NOTEME_ACME_EMAIL=${NOTEME_ACME_EMAIL:-admin@example.com}
+      - DOCKER_API_VERSION=1.44
     restart: unless-stopped
 
 volumes:
