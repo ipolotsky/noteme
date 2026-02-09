@@ -16,7 +16,7 @@ venv/
 env/
 
 # uv
-uv.lock
+# uv.lock is committed for reproducible builds
 
 # Environment
 .env
