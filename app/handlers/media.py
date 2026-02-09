@@ -24,21 +24,32 @@ _MEDIA_TYPE_NAMES = {
     "video": {"ru": "Видео", "en": "Video"},
     "video_note": {"ru": "Кружок", "en": "Circle"},
     "document": {"ru": "Файл", "en": "File"},
+    "location": {"ru": "Локация", "en": "Location"},
 }
 
 
-def _media_note_text(media_type: str, lang: str, caption: str | None = None) -> str:
+def _media_note_text(
+    media_type: str,
+    lang: str,
+    caption: str | None = None,
+    filename: str | None = None,
+    recorded_date: str | None = None,
+) -> str:
     names = _MEDIA_TYPE_NAMES.get(media_type, {"ru": "Медиа", "en": "Media"})
     text = names.get(lang, names["en"])
     if caption:
         text += f" — {caption}"
+    elif recorded_date:
+        text += f" — {'записано' if lang == 'ru' else 'recorded'} {recorded_date}"
+    elif filename:
+        text += f" — {filename}"
     return text
 
 
 # --- Incoming media ---
 
 
-@router.message(F.photo | F.video | F.video_note | F.document)
+@router.message(F.photo | F.video | F.video_note | F.document | F.location)
 async def handle_media(
     message: Message,
     state: FSMContext,
@@ -46,17 +57,27 @@ async def handle_media(
     lang: str,
     session: AsyncSession,
 ) -> None:
-    # Detect media type
+    # Detect media type and extract extra info
+    media_filename = ""
     if message.photo:
         media_type = "photo"
     elif message.video:
         media_type = "video"
+        media_filename = message.video.file_name or ""
     elif message.video_note:
         media_type = "video_note"
     elif message.document:
         media_type = "document"
+        media_filename = message.document.file_name or ""
+    elif message.location:
+        media_type = "location"
     else:
         return
+
+    # For video_note and location, record the message date
+    media_recorded_date = ""
+    if media_type in ("video_note", "location"):
+        media_recorded_date = message.date.strftime("%d.%m.%Y")
 
     # Store media info in FSM (include caption for note description)
     await state.update_data(
@@ -64,6 +85,8 @@ async def handle_media(
         media_message_id=message.message_id,
         media_type=media_type,
         media_caption=message.caption or "",
+        media_filename=media_filename,
+        media_recorded_date=media_recorded_date,
     )
 
     # Fetch user's existing tags
@@ -98,7 +121,11 @@ async def media_tag_selected(
         await callback.answer(t("errors.not_found", lang), show_alert=True)
         return
 
-    note_text = _media_note_text(data["media_type"], lang, data.get("media_caption"))
+    note_text = _media_note_text(
+        data["media_type"], lang, data.get("media_caption"),
+        filename=data.get("media_filename"),
+        recorded_date=data.get("media_recorded_date"),
+    )
 
     try:
         note = await create_note_with_media(
@@ -173,7 +200,11 @@ async def media_new_tag_name(
         return
 
     data = await state.get_data()
-    note_text = _media_note_text(data["media_type"], lang, data.get("media_caption"))
+    note_text = _media_note_text(
+        data["media_type"], lang, data.get("media_caption"),
+        filename=data.get("media_filename"),
+        recorded_date=data.get("media_recorded_date"),
+    )
 
     try:
         note = await create_note_with_media(
