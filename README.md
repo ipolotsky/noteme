@@ -1,5 +1,10 @@
 # Noteme
 
+[![CI/CD](https://github.com/ipolotsky/noteme/actions/workflows/ci.yml/badge.svg)](https://github.com/ipolotsky/noteme/actions/workflows/ci.yml)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-proprietary-red.svg)](#license)
+[![Telegram Bot](https://img.shields.io/badge/Telegram-Bot-26A5E4?logo=telegram&logoColor=white)](https://t.me/remark_right_now_bot)
+
 Telegram bot for tracking important dates, discovering beautiful date milestones, and managing personal notes with smart tagging.
 
 Built with **aiogram 3** + **FastAPI** + **LangGraph AI agents**.
@@ -264,4 +269,4 @@ noteme/
 
 ## License
 
-Private project. All rights reserved.
+**Proprietary.** This source code is provided for reference only. You may not copy, modify, distribute, or use this code (in whole or in part) without explicit written permission from the author. See [LICENSE](LICENSE) for details.
