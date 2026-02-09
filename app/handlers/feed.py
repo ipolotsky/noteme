@@ -65,8 +65,7 @@ async def _send_feed(
             text = f"\U0001f52e <b>{relative} — {label}</b>\n"
         else:
             text = f"\U0001f52e <b>{label}</b>\n"
-        text += f"\U0001f4c5 {t('feed.when', lang)} {bd.target_date.strftime('%d.%m.%Y')}\n"
-        text += f"\U0001f4cb {escape(bd.event.title)}"
+        text += f"\U0001f4c5 {t('feed.when', lang)} {bd.target_date.strftime('%d.%m.%Y')}"
 
         if bd.event.tags:
             tag_names = [tg.name for tg in bd.event.tags]

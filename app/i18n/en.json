@@ -132,11 +132,12 @@
   },
 
   "notifications": {
-    "morning_greeting": "Good morning, {name}!",
+    "morning_greeting": "Hey, {name}!",
     "your_beautiful_dates": "Your upcoming beautiful dates:",
     "open_feed": "Open feed",
     "note_reminder": "Note reminder:",
-    "no_dates_today": "No beautiful dates today, but exciting ones are ahead!"
+    "no_dates_today": "No beautiful dates today, but exciting ones are ahead!",
+    "closing": "Don't forget to add notes when you notice your loved ones want something"
   },
 
   "ai": {

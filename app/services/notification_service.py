@@ -77,7 +77,7 @@ async def format_digest_message(
             line = f"\U0001f52e {relative} \u2014 {label}"
 
             if user.spoiler_enabled:
-                line = f"||{line}||"
+                line = f"<tg-spoiler>{line}</tg-spoiler>"
 
             lines.append(line)
 
