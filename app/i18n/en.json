@@ -104,6 +104,7 @@
     "in_days": "In {days}",
     "in_week": "In a week",
     "share": "Share",
+    "to_event": "To event",
     "shared_link": "Link for friends:\n{url}",
     "related_notes": "Related notes:"
   },

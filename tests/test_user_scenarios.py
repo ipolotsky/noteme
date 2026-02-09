@@ -731,8 +731,9 @@ class TestFeed:
 
         user = await _make_user(session)
         cb = _mock_callback()
+        state = _mock_state()
 
-        await show_feed_list(cb, user, "ru", session, page=0)
+        await show_feed_list(cb, user, "ru", session, state, page=0)
 
         text = cb.message.edit_text.call_args.args[0]
         assert "пока нет" in text.lower() or "нет" in text.lower() or "empty" in text.lower()
@@ -751,10 +752,11 @@ class TestFeed:
         await session.flush()
 
         cb = _mock_callback()
-        await show_feed_list(cb, user, "en", session, page=0)
+        state = _mock_state()
+        await show_feed_list(cb, user, "en", session, state, page=0)
 
-        # Either shows feed items or empty (depending on strategy results)
-        cb.message.edit_text.assert_called_once()
+        # Feed sends separate messages or shows empty via edit_text
+        assert cb.message.answer.called or cb.message.edit_text.called
 
     async def test_43_feed_share_not_found(self, session: AsyncSession):
         """S43: Share non-existent feed item → not_found alert."""

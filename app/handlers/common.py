@@ -126,12 +126,13 @@ async def menu_settings(
 @router.callback_query(MenuCb.filter(F.action == "feed"))
 async def menu_feed(
     callback: CallbackQuery,
+    state: FSMContext,
     user: User,
     lang: str,
     session: AsyncSession,
 ) -> None:
     from app.handlers.feed import show_feed_list
-    await show_feed_list(callback, user, lang, session, page=0)
+    await show_feed_list(callback, user, lang, session, state, page=0)
     await callback.answer()
 
 
@@ -162,7 +163,7 @@ async def reply_kb_feed(
     await state.clear()
     from app.handlers.feed import send_feed_messages
 
-    await send_feed_messages(message, user, lang, session, page=0)
+    await send_feed_messages(message, user, lang, session, state, page=0)
 
 
 @router.message(F.text.startswith(_EMOJI_EVENTS))

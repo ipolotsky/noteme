@@ -35,6 +35,7 @@ services:
       POSTGRES_PASSWORD: ${NOTEME_DB_PASSWORD}
     volumes:
       - noteme_pgdata:/var/lib/postgresql/data
+      - ./init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
     ports:
       - "5433:5432"
     healthcheck:
