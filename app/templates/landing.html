@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noteme — {{ bot_name }}</title>
+    <meta name="description" content="Telegram-bot that tracks your important dates, discovers beautiful date milestones, and keeps your notes with smart tags.">
+    <meta property="og:title" content="Noteme — {{ bot_name }}">
+    <meta property="og:description" content="Track dates. Discover milestones. Keep notes. All by voice.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ base_url }}">
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff', 100: '#ede9fe', 200: '#ddd6fe', 300: '#c4b5fd',
+                            400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9',
+                            800: '#5b21b6', 900: '#4c1d95',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: linear-gradient(135deg, #0f0a1e 0%, #1a1040 40%, #0d1b3e 100%); }
+        .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }
+        .glass-strong { background: rgba(255,255,255,0.07); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.12); }
+        .glow { box-shadow: 0 0 60px rgba(139,92,246,0.15), 0 0 120px rgba(139,92,246,0.05); }
+        .glow-text { text-shadow: 0 0 40px rgba(139,92,246,0.3); }
+        .fade-in { animation: fadeIn 0.6s ease-out both; }
+        .fade-in-delay-1 { animation-delay: 0.1s; }
+        .fade-in-delay-2 { animation-delay: 0.2s; }
+        .fade-in-delay-3 { animation-delay: 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .float { animation: float 4s ease-in-out infinite; }
+        .float-delay { animation: float 4s ease-in-out 1s infinite; }
+    </style>
+</head>
+<body class="min-h-screen text-gray-200 antialiased">
+
+<!-- ===== HERO ===== -->
+<section class="relative overflow-hidden">
+    <!-- Background decoration -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-96 h-96 bg-brand-600/10 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/3 -left-20 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="relative max-w-screen-xl mx-auto px-4 pt-20 pb-16 sm:pt-28 sm:pb-24 text-center">
+        <div class="fade-in">
+            <span class="inline-flex items-center gap-2 px-4 py-1.5 mb-6 text-sm font-medium text-brand-300 glass rounded-full">
+                <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                Telegram Bot
+            </span>
+        </div>
+
+        <h1 class="fade-in fade-in-delay-1 text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6">
+            <span class="text-white glow-text">Noteme</span>
+        </h1>
+
+        <p class="fade-in fade-in-delay-2 max-w-2xl mx-auto text-lg sm:text-xl text-gray-400 mb-10 leading-relaxed">
+            Telegram-бот, который помнит важные даты, находит красивые числовые совпадения
+            и хранит заметки с умными тегами. Текстом или голосом — как удобно.
+        </p>
+
+        <div class="fade-in fade-in-delay-3 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="{{ bot_url }}" target="_blank"
+               class="inline-flex items-center gap-2 px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-brand-600 to-brand-500 rounded-xl hover:from-brand-500 hover:to-brand-400 focus:ring-4 focus:ring-brand-500/30 transition-all duration-300 shadow-lg shadow-brand-600/20 hover:shadow-brand-500/30 hover:-translate-y-0.5">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                Open in Telegram
+            </a>
+            <a href="#features"
+               class="inline-flex items-center gap-2 px-6 py-4 text-base font-medium text-gray-300 glass rounded-xl hover:bg-white/10 transition-all duration-300">
+                Узнать больше
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </a>
+        </div>
+
+        <!-- Hero visual -->
+        <div class="mt-16 max-w-md mx-auto">
+            <div class="glass-strong rounded-2xl p-6 glow float">
+                <div class="space-y-3 text-left text-sm">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl shrink-0">&#x1F399;</span>
+                        <div class="glass rounded-xl px-4 py-2.5 text-gray-300">"День рождения Маши — 15 марта"</div>
+                    </div>
+                    <div class="flex items-start gap-3 justify-end">
+                        <div class="bg-brand-600/20 border border-brand-500/20 rounded-xl px-4 py-2.5">
+                            <div class="text-brand-300 font-medium">&#x2728; Событие создано!</div>
+                            <div class="text-gray-400 text-xs mt-1">&#x1F3F7; Маша &middot; &#x1F4C5; 15.03</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 justify-end">
+                        <div class="bg-brand-600/10 border border-brand-500/15 rounded-xl px-4 py-2.5">
+                            <div class="text-purple-300 text-xs">&#x1F52E; Через 42 дня — 1000 дней!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== FEATURES ===== -->
+<section id="features" class="relative max-w-screen-xl mx-auto px-4 py-20 sm:py-28">
+    <div class="text-center mb-16">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Что умеет Noteme</h2>
+        <p class="text-gray-400 max-w-xl mx-auto">Один бот — для дат, заметок и красивых числовых совпадений</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Feature 1 -->
+        <div class="glass-strong rounded-2xl p-6 hover:bg-white/[0.08] transition-all duration-300 group">
+            <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-brand-600/20 text-2xl mb-4 group-hover:scale-110 transition-transform">&#x1F52E;</div>
+            <h3 class="text-lg font-semibold text-white mb-2">Красивые даты</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">
+                Бот находит математические совпадения: 1000 дней, палиндромы, степени двойки,
+                круглые числа недель и месяцев. Для каждого вашего события — десятки поводов для радости.
+            </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="glass-strong rounded-2xl p-6 hover:bg-white/[0.08] transition-all duration-300 group">
+            <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-blue-600/20 text-2xl mb-4 group-hover:scale-110 transition-transform">&#x1F3F7;</div>
+            <h3 class="text-lg font-semibold text-white mb-2">Умные теги</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">
+                ИИ сам определяет теги для заметок и событий. Упомянули имя — оно станет тегом.
+                Все связанное с Машей или с работой — легко найти в одном месте.
+            </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="glass-strong rounded-2xl p-6 hover:bg-white/[0.08] transition-all duration-300 group">
+            <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-green-600/20 text-2xl mb-4 group-hover:scale-110 transition-transform">&#x1F3A4;</div>
+            <h3 class="text-lg font-semibold text-white mb-2">Голосом</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">
+                Не хочется печатать? Запишите голосовое — бот распознает речь,
+                выделит даты, имена и создаст событие или заметку автоматически.
+            </p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="glass-strong rounded-2xl p-6 hover:bg-white/[0.08] transition-all duration-300 group">
+            <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-amber-600/20 text-2xl mb-4 group-hover:scale-110 transition-transform">&#x1F4CE;</div>
+            <h3 class="text-lg font-semibold text-white mb-2">Файлы и медиа</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">
+                Фото, видео, кружочки, документы — отправьте что угодно,
+                выберите тег, и файл сохранится как заметка с ссылкой на оригинал.
+            </p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="glass-strong rounded-2xl p-6 hover:bg-white/[0.08] transition-all duration-300 group">
+            <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-rose-600/20 text-2xl mb-4 group-hover:scale-110 transition-transform">&#x1F514;</div>
+            <h3 class="text-lg font-semibold text-white mb-2">Утренний дайджест</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">
+                Каждое утро — карточки ближайших красивых дат с привязанными заметками.
+                Настройте время и количество. Или включите спойлеры, чтобы никто не подглядел.
+            </p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="glass-strong rounded-2xl p-6 hover:bg-white/[0.08] transition-all duration-300 group">
+            <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-cyan-600/20 text-2xl mb-4 group-hover:scale-110 transition-transform">&#x1F517;</div>
+            <h3 class="text-lg font-semibold text-white mb-2">Поделиться</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">
+                Нашли красивую дату? Создайте публичную ссылку и отправьте друзьям.
+                Они увидят карточку с числом и событием — без доступа к вашим данным.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- ===== BEAUTIFUL DATES EXPLAINED ===== -->
+<section class="relative max-w-screen-xl mx-auto px-4 py-20 sm:py-28">
+    <div class="glass-strong rounded-3xl p-8 sm:p-12 glow">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+                <span class="inline-flex items-center px-3 py-1 text-xs font-medium text-brand-300 bg-brand-600/20 rounded-full mb-4">Главная фишка</span>
+                <h2 class="text-3xl sm:text-4xl font-bold text-white mb-6">Красивые даты — что это?</h2>
+                <p class="text-gray-400 leading-relaxed mb-4">
+                    Вы помните день знакомства, дату свадьбы, рождение ребенка.
+                    А бот помнит, что через 37 дней будет ровно <strong class="text-brand-300">1000 дней</strong> с того момента.
+                    Или что через неделю пройдет <strong class="text-brand-300">123 недели</strong>.
+                    Или что скоро будет <strong class="text-brand-300">2 года 2 месяца и 2 дня</strong>.
+                </p>
+                <p class="text-gray-400 leading-relaxed">
+                    Палиндромы, степени двойки, круглые числа дней, недель, месяцев —
+                    для каждого вашего события бот находит десятки поводов улыбнуться.
+                </p>
+            </div>
+            <div class="space-y-3">
+                <div class="glass rounded-xl px-5 py-3 flex items-center gap-4 float">
+                    <span class="text-2xl">&#x1F52E;</span>
+                    <div>
+                        <div class="text-white font-medium">Через 3 дня — 1000 дней</div>
+                        <div class="text-gray-500 text-sm">Наше знакомство</div>
+                    </div>
+                </div>
+                <div class="glass rounded-xl px-5 py-3 flex items-center gap-4 float-delay">
+                    <span class="text-2xl">&#x1F52E;</span>
+                    <div>
+                        <div class="text-white font-medium">Через 12 дней — 256 недель</div>
+                        <div class="text-gray-500 text-sm">Свадьба</div>
+                    </div>
+                </div>
+                <div class="glass rounded-xl px-5 py-3 flex items-center gap-4 float">
+                    <span class="text-2xl">&#x1F52E;</span>
+                    <div>
+                        <div class="text-white font-medium">Завтра — 3 года 3 месяца 3 дня</div>
+                        <div class="text-gray-500 text-sm">Рождение дочери</div>
+                    </div>
+                </div>
+                <div class="glass rounded-xl px-5 py-3 flex items-center gap-4 float-delay">
+                    <span class="text-2xl">&#x1F52E;</span>
+                    <div>
+                        <div class="text-white font-medium">Через неделю — 12321 дней</div>
+                        <div class="text-gray-500 text-sm">День рождения мамы</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== HOW IT WORKS ===== -->
+<section class="relative max-w-screen-xl mx-auto px-4 py-20 sm:py-28">
+    <div class="text-center mb-16">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Как это работает</h2>
+        <p class="text-gray-400 max-w-xl mx-auto">Три шага — и бот начнет помнить за вас</p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+        <div class="text-center">
+            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-brand-600/30 to-brand-500/10 flex items-center justify-center text-3xl border border-brand-500/20">1</div>
+            <h3 class="text-lg font-semibold text-white mb-2">Расскажите о дате</h3>
+            <p class="text-gray-400 text-sm">
+                Напишите или наговорите: "День рождения Маши — 15 марта".
+                ИИ разберется сам.
+            </p>
+        </div>
+        <div class="text-center">
+            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-blue-600/30 to-blue-500/10 flex items-center justify-center text-3xl border border-blue-500/20">2</div>
+            <h3 class="text-lg font-semibold text-white mb-2">Бот найдет красивые даты</h3>
+            <p class="text-gray-400 text-sm">
+                Автоматически рассчитает все красивые числовые совпадения:
+                круглые числа, палиндромы, последовательности.
+            </p>
+        </div>
+        <div class="text-center">
+            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-green-600/30 to-green-500/10 flex items-center justify-center text-3xl border border-green-500/20">3</div>
+            <h3 class="text-lg font-semibold text-white mb-2">Получайте уведомления</h3>
+            <p class="text-gray-400 text-sm">
+                Утренний дайджест напомнит о ближайших красивых датах.
+                С привязанными заметками и связанными событиями.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- ===== NOTES SECTION ===== -->
+<section class="relative max-w-screen-xl mx-auto px-4 py-20 sm:py-28">
+    <div class="glass-strong rounded-3xl p-8 sm:p-12">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <div class="order-2 lg:order-1 space-y-3">
+                <div class="glass rounded-xl px-5 py-3">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs px-2 py-0.5 bg-brand-600/30 text-brand-300 rounded-full">Маша</span>
+                    </div>
+                    <div class="text-gray-300 text-sm">Хочет хрустальную вазу и сову</div>
+                </div>
+                <div class="glass rounded-xl px-5 py-3">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs px-2 py-0.5 bg-blue-600/30 text-blue-300 rounded-full">Работа</span>
+                    </div>
+                    <div class="text-gray-300 text-sm">Завтра собеседование в 15:00</div>
+                </div>
+                <div class="glass rounded-xl px-5 py-3">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs px-2 py-0.5 bg-amber-600/30 text-amber-300 rounded-full">Морфей</span>
+                    </div>
+                    <div class="text-gray-300 text-sm">&#x1F4F7; Фото &#x2014; кот на подоконнике</div>
+                </div>
+                <div class="glass rounded-xl px-5 py-3">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs px-2 py-0.5 bg-green-600/30 text-green-300 rounded-full">Личное</span>
+                    </div>
+                    <div class="text-gray-300 text-sm">Рецепт пасты с трюфелем из ресторана</div>
+                </div>
+            </div>
+            <div class="order-1 lg:order-2">
+                <span class="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-300 bg-blue-600/20 rounded-full mb-4">Заметки</span>
+                <h2 class="text-3xl sm:text-4xl font-bold text-white mb-6">Все в одном месте</h2>
+                <p class="text-gray-400 leading-relaxed mb-4">
+                    Голосовые заметки, текстовые записи, фотографии, файлы — все хранится
+                    с тегами и привязкой к людям. "Что хотела Маша на день рождения?" —
+                    и вы сразу найдете.
+                </p>
+                <p class="text-gray-400 leading-relaxed">
+                    ИИ сам определяет теги по имени человека. А если имени нет —
+                    подберет подходящую категорию. Не нужно ничего сортировать вручную.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== CTA ===== -->
+<section class="relative max-w-screen-xl mx-auto px-4 pt-12 pb-24 sm:pb-32 text-center">
+    <div class="max-w-2xl mx-auto">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-6">Попробуйте прямо сейчас</h2>
+        <p class="text-gray-400 mb-10">
+            Бесплатно. Без регистрации. Просто откройте бота и расскажите ему о важной дате.
+        </p>
+        <a href="{{ bot_url }}" target="_blank"
+           class="inline-flex items-center gap-2 px-10 py-4 text-lg font-semibold text-white bg-gradient-to-r from-brand-600 to-brand-500 rounded-xl hover:from-brand-500 hover:to-brand-400 focus:ring-4 focus:ring-brand-500/30 transition-all duration-300 shadow-lg shadow-brand-600/25 hover:shadow-brand-500/30 hover:-translate-y-0.5">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+            &#x1F680; Open {{ bot_name }}
+        </a>
+    </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="border-t border-white/5 py-8">
+    <div class="max-w-screen-xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-600">
+        <span>&copy; {{ year }} Noteme</span>
+        <span>Built with &#x2764;&#xfe0f; using aiogram, FastAPI &amp; LangGraph</span>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+</body>
+</html>

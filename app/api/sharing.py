@@ -1,6 +1,7 @@
-"""Share API endpoint — public beautiful date pages."""
+"""Public pages — landing + share beautiful date pages."""
 
 import uuid
+from datetime import date
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
@@ -11,6 +12,28 @@ from app.database import get_session
 from app.services.beautiful_date_service import get_by_share_uuid
 
 router = APIRouter()
+
+
+@router.get("/", response_class=HTMLResponse)
+async def landing_page(request: Request) -> HTMLResponse:
+    """Landing page at /."""
+    bot_name = settings.bot_username or "Noteme"
+    bot_url = f"https://t.me/{settings.bot_username}" if settings.bot_username else "#"
+
+    from jinja2 import Environment, FileSystemLoader
+    env = Environment(
+        loader=FileSystemLoader("app/templates"),
+        autoescape=True,
+    )
+    template = env.get_template("landing.html")
+
+    html = template.render(
+        bot_name=bot_name,
+        bot_url=bot_url,
+        base_url=settings.app_base_url,
+        year=date.today().year,
+    )
+    return HTMLResponse(content=html)
 
 
 @router.get("/share/{share_uuid}", response_class=HTMLResponse)
