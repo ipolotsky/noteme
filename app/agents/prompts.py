@@ -52,9 +52,9 @@ Extract:
 Guidelines:
 - If date is relative ("вчера", "в прошлом году"), calculate the absolute date based on today: {today}
 - ANY date is allowed — past, present, future. There is NO minimum year restriction. Dates from any century (e.g., 1812, 1900, 1066) are perfectly valid.
-- Extract person names as tags (e.g., "Макс", "Маша", "Морфей")
-- Extract category words as tags (e.g., "отношения", "работа", "семья")
-- Extract at most 2 tags. Pick the most relevant person name(s) or category.
+- Person names are the TOP PRIORITY for tags (e.g., "Макс", "Маша", "Морфей"). Always extract them first.
+- Category words are secondary tags, only if no person names found (e.g., "отношения", "работа", "семья")
+- Extract at most 2 tags. Prefer person names over categories. Example: "И она, Аня, на своей празднике хочет золотую подвеску" → tags: ["Аня"]
 - Respond in JSON format: {{"title": "...", "date": "YYYY-MM-DD", "description": "...", "tags": [...]}}
 - If you cannot determine the date, set date to null and the system will ask the user"""
 
@@ -66,9 +66,9 @@ Extract:
 - reminder_date: If the user mentions wanting to be reminded, extract date in YYYY-MM-DD format
 
 Guidelines:
-- Person names should be tags (e.g., "Макс хочет наушники" → tags: ["Макс"])
-- Category words can be tags (e.g., "подарки", "рестораны")
-- Extract at most 2 tags. Pick the most relevant person name(s) or category.
+- Person names are the TOP PRIORITY for tags (e.g., "Макс хочет наушники" → tags: ["Макс"]). Always extract them first.
+- Category words are secondary tags, only if no person names found (e.g., "подарки", "рестораны")
+- Extract at most 2 tags. Prefer person names over categories. Example: "И она, Аня, на своей празднике хочет золотую подвеску" → tags: ["Аня"]
 - Respond in JSON format: {{"text": "...", "tags": [...], "reminder_date": "YYYY-MM-DD" or null}}"""
 
 QUERY_AGENT_SYSTEM = """You are a query agent for Noteme bot. The user wants to view data.

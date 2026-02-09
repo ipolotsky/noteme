@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 router = Router(name="start")
 
 
-async def _transcribe_voice(message: Message, lang: str) -> str | None:
+async def _transcribe_voice(message: Message, lang: str, user_id: int = 0) -> str | None:
     """Transcribe a voice message. Returns text or None on failure."""
     from app.agents.whisper import transcribe_audio
 
@@ -37,7 +37,7 @@ async def _transcribe_voice(message: Message, lang: str) -> str | None:
         bio = await message.bot.download_file(file.file_path)  # type: ignore[union-attr]
         audio_bytes = bio.read()  # type: ignore[union-attr]
         filename = file.file_path.rsplit("/", 1)[-1] if file.file_path else "voice.oga"
-        text = await transcribe_audio(audio_bytes, filename=filename, user_id=0)
+        text = await transcribe_audio(audio_bytes, filename=filename, user_id=user_id)
         if not text.strip():
             await message.answer(t("ai.audio_empty", lang))
             return None
@@ -147,6 +147,7 @@ async def onboarding_first_event_text(
             await recalculate_for_event(session, event)
             await message.answer(t("events.created", lang, title=escape(event.title)))
             await state.update_data(event_created=True)
+            await log_user_action(user.id, "onboarding_create_event", event.title)
         else:
             await message.answer(
                 t("ai.not_understood", lang),
@@ -179,7 +180,7 @@ async def onboarding_first_event_voice(
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
-    text = await _transcribe_voice(message, lang)
+    text = await _transcribe_voice(message, lang, user_id=user.id)
     if text is None:
         return
 
@@ -203,6 +204,7 @@ async def onboarding_first_event_voice(
             await recalculate_for_event(session, event)
             await message.answer(t("events.created", lang, title=escape(event.title)))
             await state.update_data(event_created=True)
+            await log_user_action(user.id, "onboarding_create_event_voice", event.title)
         else:
             await message.answer(t("ai.not_understood", lang), reply_markup=onboarding_skip_kb(lang))
             return
@@ -228,6 +230,7 @@ async def onboarding_skip_event(
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
+    await log_user_action(user.id, "onboarding_skip_event")
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("onboarding.step2", lang),
         reply_markup=onboarding_skip_kb(lang),
@@ -248,6 +251,7 @@ async def _finish_onboarding(
     event_created = data.get("event_created", False)
 
     await update_user(session, user.id, UserUpdate(onboarding_completed=True))
+    await log_user_action(user.id, "onboarding_completed")
     await state.clear()
     await message.answer(t("onboarding.step3", lang))
     await message.answer(
@@ -264,6 +268,33 @@ async def _finish_onboarding(
 # --- Step 2: first note (text or skip) ---
 
 
+async def _create_note_via_ai(
+    text: str, user: User, lang: str, session: AsyncSession,
+) -> bool:
+    """Create a note via AI pipeline (extracts tags). Returns True on success."""
+    from app.agents.graph import process_message
+    from app.schemas.note import NoteCreate
+    from app.services.note_service import create_note
+
+    result = await process_message(text=text, user_id=user.id, user_language=lang)
+
+    tag_names = (result.tag_names or [])[:2]
+    if not tag_names:
+        tag_names = ["Личное" if lang == "ru" else "Personal"]
+
+    note_text = result.note_text if result.intent == "create_note" and result.note_text else text
+
+    await create_note(
+        session, user.id,
+        NoteCreate(
+            text=note_text,
+            tag_names=tag_names,
+            reminder_date=result.note_reminder_date,
+        ),
+    )
+    return True
+
+
 @router.message(OnboardingStates.waiting_first_note, F.text)
 async def onboarding_first_note_text(
     message: Message,
@@ -271,19 +302,14 @@ async def onboarding_first_note_text(
     user: User,
     session: AsyncSession,
 ) -> None:
-    """User typed text during onboarding step 2 — create note, then finish."""
+    """User typed text during onboarding step 2 — create note via AI, then finish."""
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
     try:
-        from app.schemas.note import NoteCreate
-        from app.services.note_service import create_note
-
-        await create_note(
-            session, user.id,
-            NoteCreate(text=message.text or ""),
-        )
+        await _create_note_via_ai(message.text or "", user, lang, session)
         await message.answer(t("notes.created", lang))
+        await log_user_action(user.id, "onboarding_create_note")
     except Exception:
         await message.answer(
             t("ai.not_understood", lang),
@@ -301,20 +327,18 @@ async def onboarding_first_note_voice(
     user: User,
     session: AsyncSession,
 ) -> None:
-    """User sent voice during onboarding step 2 — transcribe, create note, finish."""
+    """User sent voice during onboarding step 2 — transcribe, create note via AI, finish."""
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
-    text = await _transcribe_voice(message, lang)
+    text = await _transcribe_voice(message, lang, user_id=user.id)
     if text is None:
         return
 
     try:
-        from app.schemas.note import NoteCreate
-        from app.services.note_service import create_note
-
-        await create_note(session, user.id, NoteCreate(text=text))
+        await _create_note_via_ai(text, user, lang, session)
         await message.answer(t("notes.created", lang))
+        await log_user_action(user.id, "onboarding_create_note_voice")
     except Exception:
         logger.exception("Onboarding voice note failed for user %s", user.id)
         await message.answer(t("ai.not_understood", lang), reply_markup=onboarding_skip_kb(lang))
@@ -336,6 +360,7 @@ async def onboarding_skip_note(
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
+    await log_user_action(user.id, "onboarding_skip_note")
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("onboarding.step2", lang).split("\n")[0] + " \u2714",
     )
