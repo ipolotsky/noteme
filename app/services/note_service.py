@@ -151,6 +151,7 @@ async def get_notes_by_tag_names(
 
     result = await session.execute(
         select(Note)
+        .options(selectinload(Note.media_link))
         .join(NoteTag, Note.id == NoteTag.note_id)
         .join(Tag, NoteTag.tag_id == Tag.id)
         .where(

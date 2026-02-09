@@ -31,7 +31,7 @@ def _media_note_text(media_type: str, lang: str, caption: str | None = None) -> 
     names = _MEDIA_TYPE_NAMES.get(media_type, {"ru": "Медиа", "en": "Media"})
     text = names.get(lang, names["en"])
     if caption:
-        text += f"\n\n{caption}"
+        text += f" — {caption}"
     return text
 
 

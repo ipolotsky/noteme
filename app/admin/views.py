@@ -1,5 +1,6 @@
 """sqladmin model views for all entities."""
 
+from markupsafe import Markup
 from sqladmin import ModelView
 
 from app.models.ai_log import AILog
@@ -24,6 +25,22 @@ class UserAdmin(ModelView, model=User):
         User.onboarding_completed,
         User.created_at,
     ]
+    column_details_list = [
+        User.id,
+        User.username,
+        User.first_name,
+        User.language,
+        User.timezone,
+        User.is_active,
+        User.onboarding_completed,
+        User.notifications_enabled,
+        User.notification_time,
+        User.notification_count,
+        User.spoiler_enabled,
+        User.max_events,
+        User.max_notes,
+        User.created_at,
+    ]
     column_searchable_list = [User.username, User.first_name]
     column_sortable_list = [User.id, User.created_at]
     column_default_sort = ("created_at", True)
@@ -31,6 +48,15 @@ class UserAdmin(ModelView, model=User):
     name = "User"
     name_plural = "Users"
     icon = "fa-solid fa-users"
+
+    column_formatters = {
+        User.id: lambda m, _: Markup(
+            f'{m.id} <a href="/admin/test-notify/{m.id}" '
+            f'style="margin-left:8px;padding:2px 8px;background:#0d6efd;color:#fff;'
+            f'border-radius:4px;text-decoration:none;font-size:12px">'
+            f'\U0001f514 Test</a>'
+        ),
+    }
 
 
 class EventAdmin(ModelView, model=Event):

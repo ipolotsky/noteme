@@ -28,7 +28,6 @@ PAGE_SIZE = 5
 
 _FSM_KEY = "feed_message_ids"
 
-
 async def _delete_previous_feed(chat_id: int, state: FSMContext, bot) -> None:  # noqa: ANN001
     """Delete previously sent feed messages from chat."""
     data = await state.get_data()
@@ -71,17 +70,17 @@ async def _send_feed(
 
         if bd.event.tags:
             tag_names = [tg.name for tg in bd.event.tags]
-            notes = await get_notes_by_tag_names(session, user.id, tag_names, limit=3)
+            notes = await get_notes_by_tag_names(session, user.id, tag_names, limit=50)
             if notes:
                 text += f"\n\n{t('feed.related_notes', lang)}"
                 for note in notes:
                     preview = escape(note.text[:60]) + ("..." if len(note.text) > 60 else "")
-                    text += f"\n\U0001f4dd {preview}"
+                    text += f"\n— {preview}"
 
         kb = InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(
                 text=f"\U0001f4c5 {t('feed.to_event', lang)}",
-                callback_data=EventCb(action="view", id=str(bd.event_id)).pack(),
+                callback_data=EventCb(action="view_new", id=str(bd.event_id)).pack(),
             ),
             InlineKeyboardButton(
                 text=f"\U0001f517 {t('feed.share', lang)}",

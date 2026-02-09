@@ -114,6 +114,33 @@ async def event_view(
     await callback.answer()
 
 
+@router.callback_query(EventCb.filter(F.action == "view_new"))
+async def event_view_new(
+    callback: CallbackQuery,
+    callback_data: EventCb,
+    user: User,
+    lang: str,
+    session: AsyncSession,
+) -> None:
+    """Send event card as a new message (used from feed)."""
+    event = await get_event(session, uuid.UUID(callback_data.id), user_id=user.id)
+    if event is None:
+        await callback.answer(t("errors.not_found", lang), show_alert=True)
+        return
+
+    text, related_count, tag_counts = await _build_event_card(event, user, lang, session)
+
+    await callback.message.answer(  # type: ignore[union-attr]
+        text,
+        reply_markup=event_view_kb(
+            event, lang,
+            related_notes_count=related_count,
+            tag_event_counts=tag_counts,
+        ),
+    )
+    await callback.answer()
+
+
 async def _build_event_card(
     event: Event,
     user: User,
@@ -147,7 +174,7 @@ async def _build_event_card(
             text += f"\n\n<b>{t('events.related_notes', lang)}:</b>"
             for nt in related:
                 preview = escape(nt.text[:60]) + ("..." if len(nt.text) > 60 else "")
-                text += f"\n\U0001f4dd {preview}"
+                text += f"\n— {preview}"
 
         # Count events per tag for buttons
         for tg in event.tags:
