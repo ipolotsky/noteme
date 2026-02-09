@@ -195,7 +195,7 @@ def setup_admin(app: FastAPI) -> Admin:
         engine,
         authentication_backend=auth_backend,
         title="Noteme Admin",
-        templates_dir="app/templates",
+        templates_dir="app/templates/sqladmin_overrides",
     )
 
     from app.admin.views import (

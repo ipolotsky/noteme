@@ -119,7 +119,7 @@ class BeautifulDateStrategyAdmin(ModelView, model=BeautifulDateStrategy):
     name = "Strategy"
     name_plural = "Strategies"
     icon = "fa-solid fa-wand-magic-sparkles"
-    list_template = "admin/strategy_list.html"
+    list_template = "strategy_list.html"
 
 
 class BeautifulDateAdmin(ModelView, model=BeautifulDate):
