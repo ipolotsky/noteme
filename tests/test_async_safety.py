@@ -24,7 +24,6 @@ from app.services.beautiful_date_service import generate_share_uuid, get_by_shar
 from app.services.beautiful_dates.engine import recalculate_for_event
 from app.services.event_service import create_event
 from app.services.note_service import create_note
-from app.services.tag_service import get_tag
 from app.services.user_service import get_or_create_user
 
 
@@ -65,7 +64,7 @@ class TestTagCountQueries:
     async def test_tag_counts_with_event(self, session: AsyncSession, user_id: int):
         await _make_user(session, user_id)
 
-        event = await create_event(
+        await create_event(
             session, user_id,
             EventCreate(title="Wedding", event_date=date(2022, 8, 17), tag_names=["Max"]),
         )

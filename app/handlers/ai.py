@@ -19,7 +19,7 @@ from app.schemas.event import EventCreate
 from app.schemas.note import NoteCreate
 from app.services.action_logger import log_user_action
 from app.services.event_service import EventLimitError, create_event
-from app.services.note_service import NoteLimitError, create_note, get_notes_by_tag_names
+from app.services.note_service import NoteLimitError, create_note
 
 logger = logging.getLogger(__name__)
 

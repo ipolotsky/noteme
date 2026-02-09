@@ -1,5 +1,6 @@
 """Media handlers — photo/video/video_note/document → note with tag."""
 
+import contextlib
 import uuid
 from html import escape
 
@@ -154,10 +155,8 @@ async def media_tag_selected(
         f"{t('notes.tags_label', lang, tags=tags_str)}"
     )
     # Delete tag selection message and reply to the original media
-    try:
+    with contextlib.suppress(Exception):
         await callback.message.delete()  # type: ignore[union-attr]
-    except Exception:
-        pass
     await callback.bot.send_message(  # type: ignore[union-attr]
         chat_id=data["media_chat_id"],
         text=card,

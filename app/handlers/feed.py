@@ -1,5 +1,6 @@
 """Feed handler — beautiful dates feed (each date as a separate message)."""
 
+import contextlib
 import uuid
 from datetime import date as date_type
 from html import escape
@@ -28,15 +29,13 @@ PAGE_SIZE = 5
 
 _FSM_KEY = "feed_message_ids"
 
-async def _delete_previous_feed(chat_id: int, state: FSMContext, bot) -> None:  # noqa: ANN001
+async def _delete_previous_feed(chat_id: int, state: FSMContext, bot) -> None:
     """Delete previously sent feed messages from chat."""
     data = await state.get_data()
     msg_ids = data.get(_FSM_KEY, [])
     for mid in msg_ids:
-        try:
+        with contextlib.suppress(Exception):
             await bot.delete_message(chat_id, mid)
-        except Exception:
-            pass
     await state.update_data(**{_FSM_KEY: []})
 
 
@@ -133,10 +132,8 @@ async def show_feed_list(
         return
 
     # Delete the triggering menu message
-    try:
+    with contextlib.suppress(Exception):
         await callback.message.delete()  # type: ignore[union-attr]
-    except Exception:
-        pass
 
 
 async def send_feed_messages(

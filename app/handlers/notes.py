@@ -1,5 +1,6 @@
 """Note handlers — list, view, create, edit, delete."""
 
+import contextlib
 import uuid
 from datetime import datetime
 from html import escape
@@ -111,10 +112,8 @@ async def note_view(
 
     # If note has media link, send card as reply to original media message
     if note.media_link and not note.media_link.is_deleted:
-        try:
+        with contextlib.suppress(Exception):
             await callback.message.delete()  # type: ignore[union-attr]
-        except Exception:
-            pass
         await callback.bot.send_message(  # type: ignore[union-attr]
             chat_id=note.media_link.chat_id,
             text=text,

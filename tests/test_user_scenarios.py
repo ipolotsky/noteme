@@ -762,7 +762,7 @@ class TestFeed:
         """S43: Share non-existent feed item → not_found alert."""
         from app.handlers.feed import feed_share
 
-        user = await _make_user(session)
+        await _make_user(session)
         cb = _mock_callback()
         cd = _mock_callback_data(id=str(uuid.uuid4()), page=0)
 

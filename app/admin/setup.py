@@ -83,7 +83,7 @@ def setup_admin(app: FastAPI) -> Admin:
 
         async with async_session_factory() as session:
             for table in _CLEAR_TABLES:
-                await session.execute(text(f"DELETE FROM {table}"))  # noqa: S608
+                await session.execute(text(f"DELETE FROM {table}"))
             await session.commit()
 
         logger.warning("[admin] Database cleared by admin")

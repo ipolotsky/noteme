@@ -104,10 +104,7 @@ async def process_message(
     result = await graph.ainvoke(initial_state)
 
     # LangGraph ainvoke returns a dict — convert back to AgentState
-    if isinstance(result, dict):
-        state = AgentState(**result)
-    else:
-        state = result
+    state = AgentState(**result) if isinstance(result, dict) else result
 
     logger.info(
         "[pipeline] user=%s intent=%s title=%r date=%s note=%r error=%r response=%r",

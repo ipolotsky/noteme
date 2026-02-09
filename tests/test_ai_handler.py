@@ -10,12 +10,12 @@ from io import BytesIO
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from app.agents.state import AgentState
 from app.handlers.ai import _format_user_text
 from app.schemas.event import EventCreate
 from app.schemas.note import NoteCreate
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -98,7 +98,7 @@ class TestTagNamesSchemaValidation:
 
     def test_note_create_with_none_fails(self):
         """NoteCreate rejects None for tag_names — the original bug."""
-        with pytest.raises(Exception):  # Pydantic ValidationError
+        with pytest.raises(ValidationError):
             NoteCreate(text="test", tag_names=None)
 
     def test_event_create_with_empty_list_ok(self):
@@ -108,7 +108,7 @@ class TestTagNamesSchemaValidation:
 
     def test_event_create_with_none_fails(self):
         """EventCreate rejects None for tag_names."""
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             EventCreate(title="test", event_date=date(2024, 1, 1), tag_names=None)
 
     def test_or_none_vs_or_empty_list(self):
