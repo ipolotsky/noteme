@@ -1,0 +1,12 @@
+{% extends "sqladmin/list.html" %}
+
+{% block content %}
+<div style="margin-bottom: 16px; text-align: right;">
+    <a href="/admin/seed-strategies"
+       class="btn btn-success btn-sm"
+       style="padding: 6px 16px; font-size: 14px;">
+        &#x1F331; Seed Strategies
+    </a>
+</div>
+{{ super() }}
+{% endblock %}
