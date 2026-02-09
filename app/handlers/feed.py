@@ -1,6 +1,7 @@
 """Feed handler — beautiful dates feed (each date as a separate message)."""
 
 import uuid
+from datetime import date as date_type
 from html import escape
 
 from aiogram import F, Router
@@ -59,9 +60,13 @@ async def _send_feed(
 
     for bd in items:
         label = bd.label_ru if lang == "ru" else bd.label_en
-        relative = format_relative_date(bd.target_date, lang)
-        text = f"\U0001f52e <b>{relative} — {label}</b>\n"
-        text += f"\U0001f4c5 {bd.target_date.strftime('%d.%m.%Y')}\n"
+        delta_days = (bd.target_date - date_type.today()).days
+        if 0 <= delta_days < 20:
+            relative = format_relative_date(bd.target_date, lang)
+            text = f"\U0001f52e <b>{relative} — {label}</b>\n"
+        else:
+            text = f"\U0001f52e <b>{label}</b>\n"
+        text += f"\U0001f4c5 {t('feed.when', lang)} {bd.target_date.strftime('%d.%m.%Y')}\n"
         text += f"\U0001f4cb {escape(bd.event.title)}"
 
         if bd.event.tags:

@@ -131,8 +131,8 @@ class TestOnboarding:
         await onboarding_language(cb, cd, state, user, session)
 
         cb.message.edit_text.assert_called_once()
-        text = cb.message.edit_text.call_args.args[0]
-        assert "onboarding" in text.lower() or "событие" in text.lower() or "event" in text.lower() or "Отлично" in text
+        # Intro and step1 are sent as separate answer messages
+        assert cb.message.answer.call_count >= 2
         state.set_state.assert_called_once()
 
     async def test_04_onboarding_skip_event_advances_to_step2(self, session: AsyncSession):

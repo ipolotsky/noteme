@@ -93,9 +93,15 @@ async def onboarding_language(
     await log_user_action(user.id, "set_language", lang)
 
     await callback.message.edit_text(  # type: ignore[union-attr]
-        t("language_set", lang)
-        + "\n\n"
-        + t("onboarding.step1", lang),
+        t("language_set", lang),
+    )
+    # Send intro explaining what the bot does
+    await callback.message.answer(  # type: ignore[union-attr]
+        t("onboarding.intro", lang),
+    )
+    # Then prompt for first event with examples
+    await callback.message.answer(  # type: ignore[union-attr]
+        t("onboarding.step1", lang),
         reply_markup=onboarding_skip_kb(lang),
     )
     await state.set_state(OnboardingStates.waiting_first_event)
@@ -140,6 +146,7 @@ async def onboarding_first_event_text(
             from app.services.beautiful_dates.engine import recalculate_for_event
             await recalculate_for_event(session, event)
             await message.answer(t("events.created", lang, title=escape(event.title)))
+            await state.update_data(event_created=True)
         else:
             await message.answer(
                 t("ai.not_understood", lang),
@@ -195,6 +202,7 @@ async def onboarding_first_event_voice(
             from app.services.beautiful_dates.engine import recalculate_for_event
             await recalculate_for_event(session, event)
             await message.answer(t("events.created", lang, title=escape(event.title)))
+            await state.update_data(event_created=True)
         else:
             await message.answer(t("ai.not_understood", lang), reply_markup=onboarding_skip_kb(lang))
             return
@@ -228,6 +236,31 @@ async def onboarding_skip_event(
     await callback.answer()
 
 
+async def _finish_onboarding(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    lang: str,
+    session: AsyncSession,
+) -> None:
+    """Complete onboarding, show menu, and optionally show feed."""
+    data = await state.get_data()
+    event_created = data.get("event_created", False)
+
+    await update_user(session, user.id, UserUpdate(onboarding_completed=True))
+    await state.clear()
+    await message.answer(t("onboarding.step3", lang))
+    await message.answer(
+        t("welcome_back", lang, name=user.first_name),
+        reply_markup=persistent_menu_kb(lang),
+    )
+
+    if event_created:
+        from app.handlers.feed import send_feed_messages
+
+        await send_feed_messages(message, user, lang, session, state)
+
+
 # --- Step 2: first note (text or skip) ---
 
 
@@ -258,14 +291,7 @@ async def onboarding_first_note_text(
         )
         return
 
-    # Finish onboarding
-    await update_user(session, user.id, UserUpdate(onboarding_completed=True))
-    await state.clear()
-    await message.answer(t("onboarding.step3", lang))
-    await message.answer(
-        t("welcome_back", lang, name=user.first_name),
-        reply_markup=persistent_menu_kb(lang),
-    )
+    await _finish_onboarding(message, state, user, lang, session)
 
 
 @router.message(OnboardingStates.waiting_first_note, F.voice)
@@ -294,13 +320,7 @@ async def onboarding_first_note_voice(
         await message.answer(t("ai.not_understood", lang), reply_markup=onboarding_skip_kb(lang))
         return
 
-    await update_user(session, user.id, UserUpdate(onboarding_completed=True))
-    await state.clear()
-    await message.answer(t("onboarding.step3", lang))
-    await message.answer(
-        t("welcome_back", lang, name=user.first_name),
-        reply_markup=persistent_menu_kb(lang),
-    )
+    await _finish_onboarding(message, state, user, lang, session)
 
 
 @router.callback_query(
@@ -316,14 +336,10 @@ async def onboarding_skip_note(
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
-    await update_user(session, user.id, UserUpdate(onboarding_completed=True))
-    await state.clear()
-
     await callback.message.edit_text(  # type: ignore[union-attr]
-        t("onboarding.step3", lang),
+        t("onboarding.step2", lang).split("\n")[0] + " \u2714",
     )
-    await callback.message.answer(  # type: ignore[union-attr]
-        t("welcome_back", lang, name=user.first_name),
-        reply_markup=persistent_menu_kb(lang),
+    await _finish_onboarding(
+        callback.message, state, user, lang, session,  # type: ignore[arg-type]
     )
     await callback.answer()
