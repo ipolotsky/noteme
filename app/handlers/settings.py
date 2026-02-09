@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.handlers.states import SettingsStates
 from app.i18n.loader import t
 from app.keyboards.callbacks import LangCb, SettingsCb
-from app.keyboards.main_menu import cancel_kb
+from app.keyboards.main_menu import cancel_kb, persistent_menu_kb
 from app.keyboards.settings import language_select_kb, settings_kb
 from app.models.user import User
 from app.schemas.user import UserUpdate
@@ -75,6 +75,11 @@ async def settings_set_language(
 
     await callback.answer(t("language_set", new_lang))
     await show_settings(callback, user, new_lang)
+    # Update persistent reply keyboard with new language
+    await callback.message.answer(  # type: ignore[union-attr]
+        t("language_set", new_lang),
+        reply_markup=persistent_menu_kb(new_lang),
+    )
 
 
 # --- Timezone ---
