@@ -5,7 +5,7 @@ from html import escape
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, ReplyParameters
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.handlers.states import MediaNoteStates
@@ -126,8 +126,19 @@ async def media_tag_selected(
         f"{escape(note.text)}\n\n"
         f"{t('notes.tags_label', lang, tags=tags_str)}"
     )
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        card, reply_markup=note_view_kb(note, lang)
+    # Delete tag selection message and reply to the original media
+    try:
+        await callback.message.delete()  # type: ignore[union-attr]
+    except Exception:
+        pass
+    await callback.bot.send_message(  # type: ignore[union-attr]
+        chat_id=data["media_chat_id"],
+        text=card,
+        reply_markup=note_view_kb(note, lang),
+        reply_parameters=ReplyParameters(
+            message_id=data["media_message_id"],
+            allow_sending_without_reply=True,
+        ),
     )
     await callback.answer()
 
@@ -189,7 +200,16 @@ async def media_new_tag_name(
         f"{escape(note.text)}\n\n"
         f"{t('notes.tags_label', lang, tags=tags_str)}"
     )
-    await message.answer(card, reply_markup=note_view_kb(note, lang))
+    # Reply to the original media message so user sees what was saved
+    await message.bot.send_message(  # type: ignore[union-attr]
+        chat_id=data["media_chat_id"],
+        text=card,
+        reply_markup=note_view_kb(note, lang),
+        reply_parameters=ReplyParameters(
+            message_id=data["media_message_id"],
+            allow_sending_without_reply=True,
+        ),
+    )
 
 
 # --- Cancel ---

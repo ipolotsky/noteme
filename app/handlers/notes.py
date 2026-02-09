@@ -6,7 +6,7 @@ from html import escape
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, ReplyParameters
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.handlers.states import NoteCreateStates, NoteEditStates
@@ -109,10 +109,26 @@ async def note_view(
     if note.reminder_date:
         text += f"\n{t('notes.reminder_set', lang, date=note.reminder_date.strftime('%d.%m.%Y'))}"
 
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        text,
-        reply_markup=note_view_kb(note, lang),
-    )
+    # If note has media link, send card as reply to original media message
+    if note.media_link and not note.media_link.is_deleted:
+        try:
+            await callback.message.delete()  # type: ignore[union-attr]
+        except Exception:
+            pass
+        await callback.bot.send_message(  # type: ignore[union-attr]
+            chat_id=note.media_link.chat_id,
+            text=text,
+            reply_markup=note_view_kb(note, lang),
+            reply_parameters=ReplyParameters(
+                message_id=note.media_link.message_id,
+                allow_sending_without_reply=True,
+            ),
+        )
+    else:
+        await callback.message.edit_text(  # type: ignore[union-attr]
+            text,
+            reply_markup=note_view_kb(note, lang),
+        )
     await callback.answer()
 
 

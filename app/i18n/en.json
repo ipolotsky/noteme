@@ -6,8 +6,8 @@
 
   "onboarding": {
     "intro": "I remember important dates and find beautiful numbers in them.\n\n<b>How it works:</b>\n\n1. Tell me about an event — voice or text:\n\"Wedding with Maria on July 17, 2022\"\nI'll understand the date, create the event, and add tags.\n\n2. Add notes:\n\"Maria wants a hot air balloon ride\"\nI'll link the note to the right event.\n\n3. Get notifications about beautiful dates:\n<i>\"In 10 days — exactly 777 days since the wedding\n\uD83D\uDCDD Maria wants a hot air balloon ride\"</i>\n\nNotifications are sent as spoilers — no one will see and ruin the surprise.\n\nWorks for everyone: friends, parents, colleagues. Photos, videos, files — I'll save them as notes too.",
-    "step1": "Tell me about an important event — text or voice.\n\nExamples:\n\uD83D\uDC8D \"Wedding with Maria on July 17, 2022\"\n\uD83C\uDF82 \"Mike's birthday March 3, 1995\"",
-    "step2": "Now add a note — a gift idea or something to remember.\n\nExamples:\n\uD83D\uDC8D \"Maria wants a hot air balloon ride\"\n\uD83C\uDF82 \"Mike dreams of Sony headphones\"",
+    "step1": "Tell me about an important event — text or voice.\n\nExamples:\n\uD83D\uDC8D \"Wedding with Maria on July 17, 2022\"\n\uD83D\uDE97 \"Mike got his driver's license two days ago\"",
+    "step2": "Now add a note — a gift idea or something to remember.\n\nExamples:\n\uD83D\uDC8D \"Maria wants a hot air balloon ride\"\n\uD83D\uDE97 \"Mike dreams of Sony headphones\"",
     "step3": "All set! Use the menu below to navigate.",
     "skip": "Skip"
   },
