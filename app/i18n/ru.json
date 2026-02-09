@@ -127,6 +127,7 @@
     "change_notification_count": "Изменить кол-во",
     "toggle_notifications": "Вкл/Выкл уведомления",
     "toggle_spoiler": "Вкл/Выкл спойлер",
+    "current_time": "Сейчас в вашем часовом поясе: {time}",
     "saved": "Настройки сохранены."
   },
 

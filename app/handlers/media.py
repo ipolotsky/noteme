@@ -27,9 +27,12 @@ _MEDIA_TYPE_NAMES = {
 }
 
 
-def _media_note_text(media_type: str, lang: str) -> str:
+def _media_note_text(media_type: str, lang: str, caption: str | None = None) -> str:
     names = _MEDIA_TYPE_NAMES.get(media_type, {"ru": "Медиа", "en": "Media"})
-    return names.get(lang, names["en"])
+    text = names.get(lang, names["en"])
+    if caption:
+        text += f"\n\n{caption}"
+    return text
 
 
 # --- Incoming media ---
@@ -55,11 +58,12 @@ async def handle_media(
     else:
         return
 
-    # Store media info in FSM
+    # Store media info in FSM (include caption for note description)
     await state.update_data(
         media_chat_id=message.chat.id,
         media_message_id=message.message_id,
         media_type=media_type,
+        media_caption=message.caption or "",
     )
 
     # Fetch user's existing tags
@@ -94,7 +98,7 @@ async def media_tag_selected(
         await callback.answer(t("errors.not_found", lang), show_alert=True)
         return
 
-    note_text = _media_note_text(data["media_type"], lang)
+    note_text = _media_note_text(data["media_type"], lang, data.get("media_caption"))
 
     try:
         note = await create_note_with_media(
@@ -158,7 +162,7 @@ async def media_new_tag_name(
         return
 
     data = await state.get_data()
-    note_text = _media_note_text(data["media_type"], lang)
+    note_text = _media_note_text(data["media_type"], lang, data.get("media_caption"))
 
     try:
         note = await create_note_with_media(

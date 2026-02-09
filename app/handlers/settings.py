@@ -1,6 +1,7 @@
 """Settings handler — language, timezone, notifications, spoiler."""
 
-from datetime import time
+from datetime import datetime, time
+from zoneinfo import ZoneInfo
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -140,10 +141,18 @@ async def settings_notif_toggle(
 async def settings_notif_time(
     callback: CallbackQuery,
     state: FSMContext,
+    user: User,
     lang: str,
 ) -> None:
+    text = t("settings.change_notification_time", lang) + "\n\nFormat: HH:MM (e.g. 09:00, 21:30)"
+    try:
+        tz = ZoneInfo(user.timezone)
+        now = datetime.now(tz).strftime("%H:%M")
+        text += f"\n\n{t('settings.current_time', lang, time=now)}"
+    except Exception:
+        pass
     await callback.message.edit_text(  # type: ignore[union-attr]
-        t("settings.change_notification_time", lang) + "\n\nFormat: HH:MM (e.g. 09:00, 21:30)",
+        text,
         reply_markup=cancel_kb(lang),
     )
     await state.set_state(SettingsStates.waiting_notification_time)

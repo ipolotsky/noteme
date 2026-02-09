@@ -127,6 +127,7 @@
     "change_notification_count": "Change count",
     "toggle_notifications": "Toggle notifications",
     "toggle_spoiler": "Toggle spoiler",
+    "current_time": "Current time in your timezone: {time}",
     "saved": "Settings saved."
   },
 
