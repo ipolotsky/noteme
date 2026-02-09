@@ -454,7 +454,7 @@ class TestNotificationFlow:
         assert "\u2600" in message  # sun emoji for greeting
 
     async def test_format_digest_with_spoiler(self, session: AsyncSession):
-        """Spoiler-enabled user gets ||...|| wrapped content."""
+        """Spoiler-enabled user gets <tg-spoiler> wrapped content."""
         from app.services.beautiful_dates.engine import recalculate_for_event
         from app.services.notification_service import build_digest, format_digest_message
 
@@ -472,7 +472,7 @@ class TestNotificationFlow:
         digest = await build_digest(session, user)
         message = await format_digest_message(session, user, digest)
 
-        assert "||" in message
+        assert "<tg-spoiler>" in message
 
     async def test_note_reminders_due_tomorrow(self, session: AsyncSession):
         """Notes with reminder_date = tomorrow are found."""
