@@ -187,6 +187,7 @@ async def event_related_notes(
     session: AsyncSession,
 ) -> None:
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
     from app.services.note_service import get_notes_by_tag_names
 
     event = await get_event(session, uuid.UUID(callback_data.id), user_id=user.id)
@@ -231,6 +232,7 @@ async def event_wish_list(
     session: AsyncSession,
 ) -> None:
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
     from app.keyboards.callbacks import NoteCb
     from app.services.note_service import get_notes_by_tag_names
 

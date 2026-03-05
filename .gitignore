@@ -68,3 +68,5 @@ logs/
 
 # Sentry
 .sentryclirc
+agent-config.json
+agent-runner.sh
