@@ -1,19 +1,22 @@
-"""Feed handler — beautiful dates feed (each date as a separate message)."""
+"""Feed handler — beautiful dates gallery (single card with navigation)."""
 
 import contextlib
+import logging
 import uuid
-from datetime import date as date_type
 from html import escape
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.i18n.loader import t
-from app.keyboards.callbacks import EventCb, FeedCb, MenuCb, PageCb
-from app.keyboards.pagination import pagination_row
+from app.keyboards.callbacks import EventCb, FeedCb, MenuCb
+from app.models.beautiful_date import BeautifulDate
+from app.models.event import Event
 from app.models.user import User
 from app.services.beautiful_date_service import (
     count_user_feed,
@@ -21,16 +24,117 @@ from app.services.beautiful_date_service import (
     get_user_feed,
 )
 from app.services.note_service import get_notes_by_tag_names
-from app.utils.date_utils import format_relative_date
+from app.utils.date_utils import format_date, format_relative_date
 
 router = Router(name="feed")
 
-PAGE_SIZE = 5
+logger = logging.getLogger(__name__)
 
 _FSM_KEY = "feed_message_ids"
 
+
+async def _select_best_wish(notes, label: str) -> str | None:
+    if not notes:
+        return None
+    if len(notes) == 1:
+        return notes[0].text
+    if not settings.openai_api_key:
+        return notes[0].text
+    try:
+        from langchain_openai import ChatOpenAI
+
+        llm = ChatOpenAI(
+            model=settings.openai_model,
+            api_key=settings.openai_api_key,
+            temperature=0,
+            max_tokens=10,
+        )
+        notes_list = "\n".join(f"{i + 1}. {n.text[:100]}" for i, n in enumerate(notes))
+        messages = [
+            {
+                "role": "system",
+                "content": "Select the most relevant wish for the given date milestone. Reply with ONLY the wish number.",
+            },
+            {
+                "role": "user",
+                "content": f"Milestone: {label}\n\nWishes:\n{notes_list}\n\nBest wish number?",
+            },
+        ]
+        response = await llm.ainvoke(messages)
+        idx = int(str(response.content).strip()) - 1
+        if 0 <= idx < len(notes):
+            return notes[idx].text
+    except Exception:
+        logger.debug("wish selector fallback to first note")
+    return notes[0].text
+
+
+async def _build_card(
+    bd: BeautifulDate,
+    offset: int,
+    total: int,
+    lang: str,
+    session: AsyncSession,
+    user_id: int,
+) -> tuple[str, InlineKeyboardMarkup]:
+    label = bd.label_ru if lang == "ru" else bd.label_en
+    relative = format_relative_date(bd.target_date, lang)
+    calendar = format_date(bd.target_date, lang)
+
+    text = f"\U0001f52e <b>{escape(label)}</b>\n\n"
+    text += f"\U0001f4c5 {calendar}\n"
+    text += f"\u23f3 {relative}"
+
+    if bd.event.tags:
+        tag_names = [tg.name for tg in bd.event.tags]
+        notes = await get_notes_by_tag_names(session, user_id, tag_names, limit=10)
+        wish = await _select_best_wish(notes, label)
+        if wish:
+            text += f"\n\n{t('feed.wish', lang)}\n{escape(wish)}"
+
+    text += f"\n\n<i>{t('feed.counter', lang, current=offset + 1, total=total)}</i>"
+
+    rows: list[list[InlineKeyboardButton]] = []
+
+    nav_row: list[InlineKeyboardButton] = []
+    if offset > 0:
+        nav_row.append(InlineKeyboardButton(
+            text=f"\u25c0 {t('feed.prev', lang)}",
+            callback_data=FeedCb(action="card", page=offset - 1).pack(),
+        ))
+    if offset < total - 1:
+        nav_row.append(InlineKeyboardButton(
+            text=f"{t('feed.next', lang)} \u25b6",
+            callback_data=FeedCb(action="card", page=offset + 1).pack(),
+        ))
+    if nav_row:
+        rows.append(nav_row)
+
+    rows.append([
+        InlineKeyboardButton(
+            text=f"\U0001f4c5 {t('feed.to_event', lang)}",
+            callback_data=EventCb(action="view_new", id=str(bd.event_id)).pack(),
+        ),
+        InlineKeyboardButton(
+            text=f"\U0001f4cb {t('feed.all_wishes', lang)}",
+            callback_data=FeedCb(action="wishes", id=str(bd.id)).pack(),
+        ),
+    ])
+
+    rows.append([InlineKeyboardButton(
+        text=f"\U0001f517 {t('feed.share', lang)}",
+        callback_data=FeedCb(action="share", id=str(bd.id)).pack(),
+    )])
+
+    rows.append([InlineKeyboardButton(
+        text=f"\u25c0 {t('menu.back', lang)}",
+        callback_data=MenuCb(action="main").pack(),
+    )])
+
+    return text, InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 async def _delete_previous_feed(chat_id: int, state: FSMContext, bot) -> None:
-    """Delete previously sent feed messages from chat."""
     data = await state.get_data()
     msg_ids = data.get(_FSM_KEY, [])
     for mid in msg_ids:
@@ -39,73 +143,27 @@ async def _delete_previous_feed(chat_id: int, state: FSMContext, bot) -> None:
     await state.update_data(**{_FSM_KEY: []})
 
 
-async def _send_feed(
-    chat_message: Message,
+async def _show_card_new(
+    send_to: Message,
     user: User,
     lang: str,
     session: AsyncSession,
     state: FSMContext,
-    page: int = 0,
+    offset: int = 0,
 ) -> bool:
-    """Send feed dates as separate messages. Returns False if empty."""
     total = await count_user_feed(session, user.id)
-    items = await get_user_feed(session, user.id, offset=page * PAGE_SIZE, limit=PAGE_SIZE)
+    if total == 0:
+        return False
 
+    offset = max(0, min(offset, total - 1))
+    items = await get_user_feed(session, user.id, offset=offset, limit=1)
     if not items:
         return False
 
-    sent_ids: list[int] = []
-
-    for bd in items:
-        label = bd.label_ru if lang == "ru" else bd.label_en
-        delta_days = (bd.target_date - date_type.today()).days
-        if 0 <= delta_days < 20:
-            relative = format_relative_date(bd.target_date, lang)
-            text = f"\U0001f52e <b>{relative} — {label}</b>\n"
-        else:
-            text = f"\U0001f52e <b>{label}</b>\n"
-        text += f"\U0001f4c5 {t('feed.when', lang)} {bd.target_date.strftime('%d.%m.%Y')}"
-
-        if bd.event.tags:
-            tag_names = [tg.name for tg in bd.event.tags]
-            notes = await get_notes_by_tag_names(session, user.id, tag_names, limit=50)
-            if notes:
-                text += f"\n\n{t('feed.related_notes', lang)}"
-                for note in notes:
-                    preview = escape(note.text[:60]) + ("..." if len(note.text) > 60 else "")
-                    text += f"\n— {preview}"
-
-        kb = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(
-                text=f"\U0001f4c5 {t('feed.to_event', lang)}",
-                callback_data=EventCb(action="view_new", id=str(bd.event_id)).pack(),
-            ),
-            InlineKeyboardButton(
-                text=f"\U0001f517 {t('feed.share', lang)}",
-                callback_data=FeedCb(action="share", id=str(bd.id)).pack(),
-            ),
-        ]])
-        msg = await chat_message.answer(text, reply_markup=kb)
-        sent_ids.append(msg.message_id)
-
-    # Navigation footer
-    nav_rows: list[list[InlineKeyboardButton]] = []
-    if total > PAGE_SIZE:
-        nav_rows.append(pagination_row("feed", page, total, PAGE_SIZE, lang))
-    nav_rows.append([InlineKeyboardButton(
-        text=f"\u25c0 {t('menu.back', lang)}",
-        callback_data=MenuCb(action="main").pack(),
-    )])
-    total_pages = max((total + PAGE_SIZE - 1) // PAGE_SIZE, 1)
-    nav_msg = await chat_message.answer(
-        f"\U0001f52e {t('feed.title', lang)} ({page + 1}/{total_pages})",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=nav_rows),
-    )
-    sent_ids.append(nav_msg.message_id)
-
-    # Save sent message IDs for cleanup on pagination
-    await state.update_data(**{_FSM_KEY: sent_ids})
-
+    bd = items[0]
+    text, kb = await _build_card(bd, offset, total, lang, session, user.id)
+    msg = await send_to.answer(text, reply_markup=kb)
+    await state.update_data(**{_FSM_KEY: [msg.message_id]})
     return True
 
 
@@ -117,11 +175,9 @@ async def show_feed_list(
     state: FSMContext,
     page: int = 0,
 ) -> None:
-    """Show feed from a callback query (inline button press)."""
-    # Delete previous feed messages
     await _delete_previous_feed(callback.message.chat.id, state, callback.bot)  # type: ignore[union-attr]
 
-    sent = await _send_feed(callback.message, user, lang, session, state, page)  # type: ignore[arg-type]
+    sent = await _show_card_new(callback.message, user, lang, session, state, offset=page)  # type: ignore[arg-type]
     if not sent:
         from app.keyboards.main_menu import main_menu_kb
 
@@ -131,7 +187,6 @@ async def show_feed_list(
         )
         return
 
-    # Delete the triggering menu message
     with contextlib.suppress(Exception):
         await callback.message.delete()  # type: ignore[union-attr]
 
@@ -144,18 +199,16 @@ async def send_feed_messages(
     state: FSMContext,
     page: int = 0,
 ) -> None:
-    """Send feed from a plain message context (reply keyboard)."""
     from app.keyboards.main_menu import main_menu_kb
 
-    # Delete previous feed messages
     await _delete_previous_feed(message.chat.id, state, message.bot)
 
-    sent = await _send_feed(message, user, lang, session, state, page)
+    sent = await _show_card_new(message, user, lang, session, state, offset=page)
     if not sent:
         await message.answer(t("feed.empty", lang), reply_markup=main_menu_kb(lang))
 
 
-# --- List ---
+# --- Handlers ---
 
 
 @router.callback_query(FeedCb.filter(F.action == "list"))
@@ -171,20 +224,64 @@ async def feed_list(
     await callback.answer()
 
 
-@router.callback_query(PageCb.filter(F.target == "feed"))
-async def feed_page(
+@router.callback_query(FeedCb.filter(F.action == "card"))
+async def feed_card(
     callback: CallbackQuery,
-    callback_data: PageCb,
+    callback_data: FeedCb,
     user: User,
     lang: str,
     session: AsyncSession,
-    state: FSMContext,
 ) -> None:
-    await show_feed_list(callback, user, lang, session, state, page=callback_data.page)
+    total = await count_user_feed(session, user.id)
+    if total == 0:
+        await callback.answer(t("feed.empty", lang), show_alert=True)
+        return
+
+    offset = max(0, min(callback_data.page, total - 1))
+    items = await get_user_feed(session, user.id, offset=offset, limit=1)
+    if not items:
+        await callback.answer()
+        return
+
+    bd = items[0]
+    text, kb = await _build_card(bd, offset, total, lang, session, user.id)
+    await callback.message.edit_text(text, reply_markup=kb)  # type: ignore[union-attr]
     await callback.answer()
 
 
-# --- Share ---
+@router.callback_query(FeedCb.filter(F.action == "wishes"))
+async def feed_wishes(
+    callback: CallbackQuery,
+    callback_data: FeedCb,
+    lang: str,
+    session: AsyncSession,
+) -> None:
+    bd_id = uuid.UUID(callback_data.id)
+    result = await session.execute(
+        select(BeautifulDate)
+        .options(selectinload(BeautifulDate.event).selectinload(Event.tags))
+        .where(BeautifulDate.id == bd_id)
+    )
+    bd = result.scalar_one_or_none()
+
+    if bd is None or not bd.event.tags:
+        await callback.answer(t("feed.no_wishes", lang), show_alert=True)
+        return
+
+    tag_names = [tg.name for tg in bd.event.tags]
+    notes = await get_notes_by_tag_names(session, bd.event.user_id, tag_names, limit=20)
+
+    if not notes:
+        await callback.answer(t("feed.no_wishes", lang), show_alert=True)
+        return
+
+    label = bd.label_ru if lang == "ru" else bd.label_en
+    text = f"\U0001f4cb <b>{escape(label)}</b>\n\n"
+    for note in notes:
+        text += f"- {escape(note.text[:120])}\n"
+
+    await callback.message.answer(text)  # type: ignore[union-attr]
+    await callback.answer()
 
 
 @router.callback_query(FeedCb.filter(F.action == "share"))

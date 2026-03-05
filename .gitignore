@@ -62,6 +62,9 @@ logs/
 
 # Claude
 .claude/
+.agent-*.log
+.agent-runner.pid
+.agent-stop
 
 # Sentry
 .sentryclirc

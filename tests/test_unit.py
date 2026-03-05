@@ -60,6 +60,7 @@ def _make_tag_obj(**overrides) -> MagicMock:
 def _make_bd_obj(**overrides) -> MagicMock:
     bd = MagicMock()
     bd.id = overrides.get("id", uuid.uuid4())
+    bd.event_id = overrides.get("event_id", uuid.uuid4())
     bd.label_ru = overrides.get("label_ru", "1000 dney")
     bd.label_en = overrides.get("label_en", "1000 days")
     bd.target_date = overrides.get("target_date", date(2026, 6, 1))
@@ -339,27 +340,30 @@ class TestSettingsKeyboard:
 
 
 class TestFeedKeyboard:
-    """Test feed keyboard builders."""
 
-    def test_feed_list_kb_empty(self):
-        from app.keyboards.feed import feed_list_kb
-        kb = feed_list_kb([], 0, 0, "ru")
-        buttons = [btn for row in kb.inline_keyboard for btn in row]
-        assert len(buttons) >= 1  # at least back
-
-    def test_feed_list_kb_with_items(self):
-        from app.keyboards.feed import feed_list_kb
-        bds = [_make_bd_obj() for _ in range(3)]
-        kb = feed_list_kb(bds, 0, 3, "ru")
-        buttons = [btn for row in kb.inline_keyboard for btn in row]
-        assert len(buttons) == 4  # 3 items + back
-
-    def test_feed_item_kb(self):
-        from app.keyboards.feed import feed_item_kb
+    def test_feed_card_kb_first_page(self):
+        from app.keyboards.feed import feed_card_kb
         bd = _make_bd_obj()
-        kb = feed_item_kb(bd, "en")
+        kb = feed_card_kb(bd, 0, 5, "ru")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
         assert any("share" in cb for cb in all_cbs)
+        assert any("wishes" in cb for cb in all_cbs)
+        assert not any("page=-1" in cb for cb in all_cbs if cb)
+
+    def test_feed_card_kb_middle_page(self):
+        from app.keyboards.feed import feed_card_kb
+        bd = _make_bd_obj()
+        kb = feed_card_kb(bd, 2, 5, "en")
+        all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
+        assert any(cb and "card" in cb and cb.endswith(":1") for cb in all_cbs)
+        assert any(cb and "card" in cb and cb.endswith(":3") for cb in all_cbs)
+
+    def test_feed_card_kb_single_item(self):
+        from app.keyboards.feed import feed_card_kb
+        bd = _make_bd_obj()
+        kb = feed_card_kb(bd, 0, 1, "ru")
+        all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
+        assert not any(cb and "card" in cb for cb in all_cbs)
 
 
 class TestPagination:
