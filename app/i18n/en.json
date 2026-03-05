@@ -45,6 +45,10 @@
     "tags_label": "Tags: {tags}",
     "no_tags": "No tags",
     "related_notes": "Related notes",
+    "wishes": "Wishes",
+    "wishes_empty": "No wishes yet.",
+    "edit_wish": "Edit wish",
+    "choose_wish": "Choose a wish to edit:",
     "events_with_tag": "Events with \"{tag}\""
   },
 

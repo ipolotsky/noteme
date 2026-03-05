@@ -68,10 +68,9 @@ def event_view_kb(
         callback_data=EventCb(action="dates", id=eid).pack(),
     )])
 
-    # Row 3: Related notes (if any)
     if related_notes_count > 0:
         rows.append([InlineKeyboardButton(
-            text=f"\U0001f4dd {t('events.related_notes', lang)} ({related_notes_count})",
+            text=f"\U0001f4dd {t('events.wishes', lang)} ({related_notes_count})",
             callback_data=EventCb(action="related_notes", id=eid).pack(),
         )])
 
