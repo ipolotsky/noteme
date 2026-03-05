@@ -170,13 +170,7 @@ async def _build_event_card(
         tag_names = [tg.name for tg in event.tags]
         related = await get_notes_by_tag_names(session, user.id, tag_names, limit=5)
         related_count = len(related)
-        if related:
-            text += f"\n\n<b>{t('events.related_notes', lang)}:</b>"
-            for nt in related:
-                preview = escape(nt.text[:60]) + ("..." if len(nt.text) > 60 else "")
-                text += f"\n— {preview}"
 
-        # Count events per tag for buttons
         for tg in event.tags:
             evs = await get_events_by_tag_names(session, user.id, [tg.name], limit=50)
             tag_counts[tg.name] = (str(tg.id), len(evs))
@@ -192,9 +186,51 @@ async def event_related_notes(
     lang: str,
     session: AsyncSession,
 ) -> None:
-    """Show full list of related notes for an event."""
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+    from app.services.note_service import get_notes_by_tag_names
 
+    event = await get_event(session, uuid.UUID(callback_data.id), user_id=user.id)
+    if event is None:
+        await callback.answer(t("errors.not_found", lang), show_alert=True)
+        return
+
+    notes = []
+    if event.tags:
+        tag_names = [tg.name for tg in event.tags]
+        notes = await get_notes_by_tag_names(session, user.id, tag_names, limit=20)
+
+    text = f"<b>{t('events.wishes', lang)}: {escape(event.title)}</b>"
+    if notes:
+        text += "\n\n" + "\n\n".join(escape(nt.text) for nt in notes)
+    else:
+        text += f"\n\n{t('events.wishes_empty', lang)}"
+
+    rows: list[list[InlineKeyboardButton]] = []
+    if notes:
+        rows.append([InlineKeyboardButton(
+            text=f"\u270f\ufe0f {t('events.edit_wish', lang)}",
+            callback_data=EventCb(action="wish_list", id=callback_data.id).pack(),
+        )])
+    rows.append([InlineKeyboardButton(
+        text=f"\u25c0 {t('menu.back', lang)}",
+        callback_data=EventCb(action="view", id=callback_data.id).pack(),
+    )])
+
+    await callback.message.edit_text(  # type: ignore[union-attr]
+        text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows)
+    )
+    await callback.answer()
+
+
+@router.callback_query(EventCb.filter(F.action == "wish_list"))
+async def event_wish_list(
+    callback: CallbackQuery,
+    callback_data: EventCb,
+    user: User,
+    lang: str,
+    session: AsyncSession,
+) -> None:
+    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
     from app.keyboards.callbacks import NoteCb
     from app.services.note_service import get_notes_by_tag_names
 
@@ -208,7 +244,7 @@ async def event_related_notes(
         tag_names = [tg.name for tg in event.tags]
         notes = await get_notes_by_tag_names(session, user.id, tag_names, limit=20)
 
-    text = f"<b>{t('events.related_notes', lang)}: {escape(event.title)}</b>"
+    text = f"<b>{t('events.choose_wish', lang)}</b>"
     rows: list[list[InlineKeyboardButton]] = []
     for nt in notes:
         preview = nt.text[:40] + ("..." if len(nt.text) > 40 else "")
@@ -218,7 +254,7 @@ async def event_related_notes(
         )])
     rows.append([InlineKeyboardButton(
         text=f"\u25c0 {t('menu.back', lang)}",
-        callback_data=EventCb(action="view", id=callback_data.id).pack(),
+        callback_data=EventCb(action="related_notes", id=callback_data.id).pack(),
     )])
 
     await callback.message.edit_text(  # type: ignore[union-attr]
