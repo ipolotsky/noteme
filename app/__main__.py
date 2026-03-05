@@ -28,6 +28,7 @@ async def start_web() -> None:
         host=settings.app_host,
         port=settings.app_port,
         log_level=settings.log_level.lower(),
+        forwarded_allow_ips="*",
     )
     server = uvicorn.Server(config)
     logger.info("Starting FastAPI on %s:%s", settings.app_host, settings.app_port)
