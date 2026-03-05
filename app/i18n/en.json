@@ -98,7 +98,7 @@
   },
 
   "feed": {
-    "title": "Beautiful Dates Feed",
+    "title": "Beautiful Dates",
     "empty": "No beautiful dates yet. Add events to see the magic!",
     "today": "Today",
     "tomorrow": "Tomorrow",
@@ -106,9 +106,16 @@
     "in_week": "In a week",
     "share": "Share",
     "to_event": "To event",
+    "all_wishes": "All wishes",
     "when": "Coming on",
     "shared_link": "Link for friends:\n{url}",
-    "related_notes": "Related notes:"
+    "related_notes": "Related notes:",
+    "wish": "Wish:",
+    "counter": "{current} of {total}",
+    "next": "Next",
+    "prev": "Previous",
+    "wishes_title": "Wishes",
+    "no_wishes": "No wishes for this event."
   },
 
   "settings": {
