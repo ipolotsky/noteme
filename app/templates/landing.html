@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Noteme — {{ bot_name }}</title>
-    <meta name="description" content="Telegram-bot that tracks your important dates, discovers beautiful date milestones, and keeps your notes with smart tags.">
+    <meta name="description" content="Telegram-бот для важных дат, красивых числовых совпадений и желаний близких. Текстом или голосом.">
     <meta property="og:title" content="Noteme — {{ bot_name }}">
-    <meta property="og:description" content="Track dates. Discover milestones. Keep notes. All by voice.">
+    <meta property="og:description" content="Важные даты. Красивые числа. Желания близких. Текстом или голосом.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ base_url }}">
     <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet">
@@ -66,8 +66,8 @@
         </h1>
 
         <p class="fade-in fade-in-delay-2 max-w-2xl mx-auto text-lg sm:text-xl text-gray-400 mb-10 leading-relaxed">
-            Telegram-бот, который помнит важные даты, находит красивые числовые совпадения
-            и хранит заметки с умными тегами. Текстом или голосом — как удобно.
+            Telegram-бот для важных дат и желаний близких. Запишите событие с именем человека,
+            добавьте его желания — и к красивой дате вы будете знать, что подарить.
         </p>
 
         <div class="fade-in fade-in-delay-3 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -94,7 +94,7 @@
                     <div class="flex items-start gap-3 justify-end">
                         <div class="bg-brand-600/20 border border-brand-500/20 rounded-xl px-4 py-2.5">
                             <div class="text-brand-300 font-medium">&#x2728; Событие создано!</div>
-                            <div class="text-gray-400 text-xs mt-1">&#x1F3F7; Семья &middot; &#x1F4C5; 23.09.2019</div>
+                            <div class="text-gray-400 text-xs mt-1">&#x1F464; Семья &middot; &#x1F4C5; 23.09.2019</div>
                         </div>
                     </div>
                     <div class="flex items-start gap-3 justify-end">
@@ -112,7 +112,7 @@
 <section id="features" class="relative max-w-screen-xl mx-auto px-4 py-20 sm:py-28">
     <div class="text-center mb-16">
         <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Что умеет Noteme</h2>
-        <p class="text-gray-400 max-w-xl mx-auto">Один бот — для дат, заметок и красивых числовых совпадений</p>
+        <p class="text-gray-400 max-w-xl mx-auto">Четыре сущности — события, люди, желания и красивые даты — связываются автоматически</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -121,18 +121,18 @@
             <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-brand-600/20 text-2xl mb-4 group-hover:scale-110 transition-transform">&#x1F52E;</div>
             <h3 class="text-lg font-semibold text-white mb-2">Красивые даты</h3>
             <p class="text-gray-400 text-sm leading-relaxed">
-                Бот находит математические совпадения: 1000 дней, палиндромы, степени двойки,
-                круглые числа недель и месяцев. Для каждого вашего события — десятки поводов для радости.
+                Бот находит красивые совпадения: 1000 дней, палиндромы, степени двойки,
+                круглые числа недель и месяцев. К каждой красивой дате покажет желания связанных людей.
             </p>
         </div>
 
         <!-- Feature 2 -->
         <div class="glass-strong rounded-2xl p-6 hover:bg-white/[0.08] transition-all duration-300 group">
-            <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-blue-600/20 text-2xl mb-4 group-hover:scale-110 transition-transform">&#x1F3F7;</div>
-            <h3 class="text-lg font-semibold text-white mb-2">Умные теги</h3>
+            <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-blue-600/20 text-2xl mb-4 group-hover:scale-110 transition-transform">&#x1F464;</div>
+            <h3 class="text-lg font-semibold text-white mb-2">Люди</h3>
             <p class="text-gray-400 text-sm leading-relaxed">
-                ИИ сам определяет теги для заметок и событий. Упомянули имя — оно станет тегом.
-                Все связанное с Машей или с работой — легко найти в одном месте.
+                Упомянули имя — бот свяжет событие или желание с этим человеком автоматически.
+                «Свадьба с Машей» + «Маша хочет вазу» = к 1000 дням напомним про вазу.
             </p>
         </div>
 
@@ -142,7 +142,7 @@
             <h3 class="text-lg font-semibold text-white mb-2">Голосом</h3>
             <p class="text-gray-400 text-sm leading-relaxed">
                 Не хочется печатать? Запишите голосовое — бот распознает речь,
-                выделит даты, имена и создаст событие или заметку автоматически.
+                выделит даты, имена и создаст событие или желание автоматически.
             </p>
         </div>
 
@@ -151,8 +151,8 @@
             <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-amber-600/20 text-2xl mb-4 group-hover:scale-110 transition-transform">&#x1F4CE;</div>
             <h3 class="text-lg font-semibold text-white mb-2">Файлы и медиа</h3>
             <p class="text-gray-400 text-sm leading-relaxed">
-                Фото, видео, кружочки, документы — отправьте что угодно,
-                выберите тег, и файл сохранится как заметка с ссылкой на оригинал.
+                Фото, видео, кружочки, документы — отправьте что угодно
+                и выберите человека. Файл сохранится как желание и всплывет к красивой дате.
             </p>
         </div>
 
@@ -161,8 +161,8 @@
             <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-rose-600/20 text-2xl mb-4 group-hover:scale-110 transition-transform">&#x1F514;</div>
             <h3 class="text-lg font-semibold text-white mb-2">Утренний дайджест</h3>
             <p class="text-gray-400 text-sm leading-relaxed">
-                Каждое утро — карточки ближайших красивых дат с привязанными заметками.
-                Настройте время и количество. Или включите спойлеры, чтобы никто не подглядел.
+                Каждое утро — карточки ближайших красивых дат с желаниями людей.
+                Настройте время и количество. Включите спойлеры, чтобы никто не подглядел.
             </p>
         </div>
 
@@ -242,8 +242,8 @@
             <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-brand-600/30 to-brand-500/10 flex items-center justify-center text-3xl border border-brand-500/20">1</div>
             <h3 class="text-lg font-semibold text-white mb-2">Расскажите о дате</h3>
             <p class="text-gray-400 text-sm">
-                Напишите или наговорите: "День рождения Маши — 15 марта".
-                ИИ разберется сам.
+                Напишите или наговорите: «Свадьба с Машей — 15 марта 2022».
+                Бот разберется сам.
             </p>
         </div>
         <div class="text-center">
@@ -258,14 +258,14 @@
             <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-green-600/30 to-green-500/10 flex items-center justify-center text-3xl border border-green-500/20">3</div>
             <h3 class="text-lg font-semibold text-white mb-2">Получайте уведомления</h3>
             <p class="text-gray-400 text-sm">
-                Утренний дайджест напомнит о ближайших красивых датах.
-                С привязанными заметками и связанными событиями.
+                Утренний дайджест напомнит о ближайших красивых датах
+                и покажет, что хотят люди, связанные с событием.
             </p>
         </div>
     </div>
 </section>
 
-<!-- ===== NOTES SECTION ===== -->
+<!-- ===== WISHES SECTION ===== -->
 <section class="relative max-w-screen-xl mx-auto px-4 py-20 sm:py-28">
     <div class="glass-strong rounded-3xl p-8 sm:p-12">
         <div class="grid lg:grid-cols-2 gap-12 items-center">
@@ -278,9 +278,9 @@
                 </div>
                 <div class="glass rounded-xl px-5 py-3">
                     <div class="flex items-center gap-2 mb-1">
-                        <span class="text-xs px-2 py-0.5 bg-blue-600/30 text-blue-300 rounded-full">Личное</span>
+                        <span class="text-xs px-2 py-0.5 bg-blue-600/30 text-blue-300 rounded-full">Дима</span>
                     </div>
-                    <div class="text-gray-300 text-sm">Получил права 12 февраля 2024</div>
+                    <div class="text-gray-300 text-sm">Дима мечтает о наушниках Sony WH-1000</div>
                 </div>
                 <div class="glass rounded-xl px-5 py-3">
                     <div class="flex items-center gap-2 mb-1">
@@ -296,16 +296,16 @@
                 </div>
             </div>
             <div class="order-1 lg:order-2">
-                <span class="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-300 bg-blue-600/20 rounded-full mb-4">Заметки</span>
-                <h2 class="text-3xl sm:text-4xl font-bold text-white mb-6">Все в одном месте</h2>
+                <span class="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-300 bg-blue-600/20 rounded-full mb-4">Желания близких</span>
+                <h2 class="text-3xl sm:text-4xl font-bold text-white mb-6">Запоминайте, что хотят люди</h2>
                 <p class="text-gray-400 leading-relaxed mb-4">
-                    Голосовые заметки, текстовые записи, фотографии, файлы — все хранится
-                    с тегами и привязкой к людям. "Что хотела Маша на день рождения?" —
-                    и вы сразу найдете.
+                    Маша обмолвилась, что хочет вазу. Дима мечтает о наушниках.
+                    Запишите — текстом, голосом, фото или файлом. Бот свяжет желание
+                    с человеком автоматически.
                 </p>
                 <p class="text-gray-400 leading-relaxed">
-                    ИИ сам определяет теги по имени человека. А если имени нет —
-                    подберет подходящую категорию. Не нужно ничего сортировать вручную.
+                    Когда наступит красивая дата — 1000 дней со свадьбы с Машей —
+                    бот напомнит и покажет, что она хотела. Не нужно ничего сортировать вручную.
                 </p>
             </div>
         </div>

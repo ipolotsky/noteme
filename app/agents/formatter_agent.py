@@ -1,5 +1,3 @@
-"""Formatter agent — generates user-facing response text."""
-
 import logging
 
 from app.agents.state import AgentState
@@ -9,20 +7,13 @@ logger = logging.getLogger(__name__)
 
 
 async def formatter_node(state: AgentState) -> AgentState:
-    """LangGraph node: format response for the user.
-
-    Uses templates for standard operations (0 AI calls).
-    Only falls back to LLM for complex error messages.
-    """
     lang = state.user_language
 
-    # Handle errors
     if state.error:
         logger.warning("[formatter] user=%s error=%r → not_understood", state.user_id, state.error)
         state.response_text = t("ai.not_understood", lang)
         return state
 
-    # Handle invalid messages
     if not state.is_valid:
         logger.info("[formatter] user=%s invalid → off_topic", state.user_id)
         state.response_text = t("ai.off_topic", lang)
@@ -30,7 +21,6 @@ async def formatter_node(state: AgentState) -> AgentState:
 
     intent = state.intent
 
-    # Format based on intent (template-based, 0 AI calls)
     if intent == "create_event":
         if state.event_title and state.event_date:
             state.response_text = t(
@@ -45,18 +35,15 @@ async def formatter_node(state: AgentState) -> AgentState:
         else:
             state.response_text = t("events.create_title", lang)
 
-    elif intent == "create_note":
-        if state.note_text:
-            state.response_text = t("ai.confirm_create_note", lang)
+    elif intent == "create_wish":
+        if state.wish_text:
+            state.response_text = t("ai.confirm_create_wish", lang)
             state.needs_confirmation = True
         else:
-            state.response_text = t("notes.create_text", lang)
+            state.response_text = t("wishes.create_text", lang)
 
-    elif intent in ("view_events", "view_notes", "view_feed", "view_tags"):
-        state.response_text = ""  # Handler will show the appropriate list
-
-    elif intent == "settings":
-        state.response_text = ""  # Handler will show settings
+    elif intent in ("view_events", "view_wishes", "view_feed", "view_people") or intent == "settings":
+        state.response_text = ""
 
     elif intent == "help":
         state.response_text = t("ai.help", lang)

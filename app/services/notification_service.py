@@ -1,5 +1,3 @@
-"""Notification service — build daily digest, note reminders."""
-
 import logging
 from datetime import date
 
@@ -9,22 +7,21 @@ from sqlalchemy.orm import selectinload
 
 from app.models.beautiful_date import BeautifulDate
 from app.models.event import Event
-from app.models.note import Note
 from app.models.notification_log import NotificationLog
 from app.models.user import User
-from app.services.note_service import get_notes_by_tag_names
+from app.models.wish import Wish
+from app.services.wish_service import get_wishes_by_person_names
 
 logger = logging.getLogger(__name__)
 
 
 async def build_digest(session: AsyncSession, user: User) -> list[BeautifulDate]:
-    """Get upcoming beautiful dates for the user's daily digest."""
     today = date.today()
     result = await session.execute(
         select(BeautifulDate)
         .join(Event, BeautifulDate.event_id == Event.id)
         .options(
-            selectinload(BeautifulDate.event).selectinload(Event.tags),
+            selectinload(BeautifulDate.event).selectinload(Event.people),
             selectinload(BeautifulDate.strategy),
         )
         .where(
@@ -37,16 +34,15 @@ async def build_digest(session: AsyncSession, user: User) -> list[BeautifulDate]
     return list(result.scalars().unique().all())
 
 
-async def get_due_note_reminders(session: AsyncSession, user: User) -> list[Note]:
-    """Get notes with reminders due tomorrow."""
+async def get_due_wish_reminders(session: AsyncSession, user: User) -> list[Wish]:
     from datetime import timedelta
     tomorrow = date.today() + timedelta(days=1)
     result = await session.execute(
-        select(Note)
+        select(Wish)
         .where(
-            Note.user_id == user.id,
-            Note.reminder_date == tomorrow,
-            Note.reminder_sent.is_(False),
+            Wish.user_id == user.id,
+            Wish.reminder_date == tomorrow,
+            Wish.reminder_sent.is_(False),
         )
     )
     return list(result.scalars().all())
@@ -55,7 +51,6 @@ async def get_due_note_reminders(session: AsyncSession, user: User) -> list[Note
 async def format_digest_message(
     session: AsyncSession, user: User, dates: list[BeautifulDate]
 ) -> str:
-    """Format the daily digest message with beautiful dates and related notes."""
     from app.i18n.loader import t
     from app.utils.date_utils import format_relative_date
 
@@ -81,12 +76,11 @@ async def format_digest_message(
 
             lines.append(line)
 
-            # Related notes
-            if bd.event.tags:
-                tag_names = [tg.name for tg in bd.event.tags]
-                notes = await get_notes_by_tag_names(session, user.id, tag_names, limit=2)
-                for note in notes:
-                    preview = note.text[:60] + ("..." if len(note.text) > 60 else "")
+            if bd.event.people:
+                person_names = [x.name for x in bd.event.people]
+                wishes = await get_wishes_by_person_names(session, user.id, person_names, limit=2)
+                for wish in wishes:
+                    preview = wish.text[:60] + ("..." if len(wish.text) > 60 else "")
                     lines.append(f"   \U0001f4dd {preview}")
 
             lines.append("")
@@ -99,14 +93,13 @@ async def log_notification(
     user_id: int,
     notification_type: str,
     beautiful_date_id=None,
-    note_id=None,
+    wish_id=None,
 ) -> None:
-    """Log a sent notification."""
     log = NotificationLog(
         user_id=user_id,
         notification_type=notification_type,
         beautiful_date_id=beautiful_date_id,
-        note_id=note_id,
+        wish_id=wish_id,
     )
     session.add(log)
     await session.flush()
@@ -115,7 +108,6 @@ async def log_notification(
 async def get_users_for_notification(
     session: AsyncSession, notification_hour: int, notification_minute: int
 ) -> list[User]:
-    """Get active users whose notification_time matches the given hour:minute."""
     from datetime import time
 
     target_time = time(notification_hour, notification_minute)

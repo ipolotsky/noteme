@@ -13,9 +13,9 @@ class MediaLink(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    note_id: Mapped[uuid.UUID] = mapped_column(
+    wish_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("notes.id", ondelete="CASCADE"),
+        ForeignKey("wishes.id", ondelete="CASCADE"),
         unique=True,
         nullable=False,
     )
@@ -24,5 +24,4 @@ class MediaLink(Base):
     media_type: Mapped[str] = mapped_column(String(50), nullable=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    # Relationships
-    note: Mapped["Note"] = relationship(back_populates="media_link")  # type: ignore[name-defined]  # noqa: F821
+    wish: Mapped["Wish"] = relationship(back_populates="media_link")  # type: ignore[name-defined]  # noqa: F821

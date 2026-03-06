@@ -24,7 +24,7 @@ ai_latency_seconds = Histogram(
 
 # Entity metrics
 events_total = Gauge("noteme_events_total", "Total events in DB")
-notes_total = Gauge("noteme_notes_total", "Total notes in DB")
+wishes_total = Gauge("noteme_wishes_total", "Total wishes in DB")
 
 # Notification metrics
 notifications_sent_total = Counter(

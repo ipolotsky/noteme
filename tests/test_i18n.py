@@ -48,8 +48,8 @@ class TestI18nLoader:
             "language_set",
             "events.title",
             "events.empty",
-            "notes.title",
-            "notes.empty",
+            "wishes.title",
+            "wishes.empty",
             "settings.title",
             "feed.empty",
         ]

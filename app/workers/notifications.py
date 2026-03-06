@@ -1,5 +1,3 @@
-"""arq tasks for notifications — daily digest + note reminders."""
-
 import logging
 from datetime import UTC, datetime
 
@@ -8,7 +6,7 @@ from aiogram.exceptions import TelegramForbiddenError
 from app.database import async_session_factory
 from app.services.notification_service import (
     build_digest,
-    get_due_note_reminders,
+    get_due_wish_reminders,
     get_users_for_notification,
     log_notification,
 )
@@ -17,10 +15,6 @@ logger = logging.getLogger(__name__)
 
 
 async def send_digest_task(ctx: dict, user_id: int, force: bool = False) -> bool:
-    """Send daily digest to a single user as separate feed-style cards.
-
-    force=True bypasses notifications_enabled.
-    """
     from datetime import date as date_type
     from html import escape
 
@@ -29,7 +23,7 @@ async def send_digest_task(ctx: dict, user_id: int, force: bool = False) -> bool
     from app.bot import bot
     from app.i18n.loader import t
     from app.keyboards.callbacks import EventCb, FeedCb, MenuCb
-    from app.services.note_service import get_notes_by_tag_names
+    from app.services.wish_service import get_wishes_by_person_names
     from app.utils.date_utils import format_relative_date
 
     async with async_session_factory() as session:
@@ -43,7 +37,6 @@ async def send_digest_task(ctx: dict, user_id: int, force: bool = False) -> bool
         lang = user.language
         dates = await build_digest(session, user)
 
-        # 1. Greeting
         greeting = f"\u2600\ufe0f {t('notifications.morning_greeting', lang, name=user.first_name)}"
         if dates:
             greeting += f"\n{t('notifications.your_beautiful_dates', lang)}"
@@ -53,7 +46,6 @@ async def send_digest_task(ctx: dict, user_id: int, force: bool = False) -> bool
         try:
             await bot.send_message(user_id, greeting)
 
-            # 2. Individual cards for each beautiful date
             for bd in dates:
                 label = bd.label_ru if lang == "ru" else bd.label_en
                 delta_days = (bd.target_date - date_type.today()).days
@@ -64,13 +56,13 @@ async def send_digest_task(ctx: dict, user_id: int, force: bool = False) -> bool
                     text = f"\U0001f52e <b>{label}</b>\n"
                 text += f"\U0001f4c5 {t('feed.when', lang)} {bd.target_date.strftime('%d.%m.%Y')}"
 
-                if bd.event.tags:
-                    tag_names = [tg.name for tg in bd.event.tags]
-                    notes = await get_notes_by_tag_names(session, user.id, tag_names, limit=50)
-                    if notes:
-                        text += f"\n\n{t('feed.related_notes', lang)}"
-                        for note in notes:
-                            preview = escape(note.text[:60]) + ("..." if len(note.text) > 60 else "")
+                if bd.event.people:
+                    person_names = [x.name for x in bd.event.people]
+                    wishes = await get_wishes_by_person_names(session, user.id, person_names, limit=50)
+                    if wishes:
+                        text += f"\n\n{t('feed.related_wishes', lang)}"
+                        for x in wishes:
+                            preview = escape(x.text[:60]) + ("..." if len(x.text) > 60 else "")
                             text += f"\n\u2014 {preview}"
 
                 if user.spoiler_enabled:
@@ -88,7 +80,6 @@ async def send_digest_task(ctx: dict, user_id: int, force: bool = False) -> bool
                 ]])
                 await bot.send_message(user_id, text, reply_markup=kb)
 
-            # 3. Closing message with "Open feed" button
             closing_kb = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(
                     text=f"\U0001f4c5 {t('notifications.open_feed', lang)}",
@@ -114,8 +105,7 @@ async def send_digest_task(ctx: dict, user_id: int, force: bool = False) -> bool
             return False
 
 
-async def send_note_reminders_task(ctx: dict, user_id: int, force: bool = False) -> int:
-    """Send note reminders for a user. force=True bypasses is_active check."""
+async def send_wish_reminders_task(ctx: dict, user_id: int, force: bool = False) -> int:
     from app.bot import bot
     from app.i18n.loader import t
 
@@ -127,27 +117,26 @@ async def send_note_reminders_task(ctx: dict, user_id: int, force: bool = False)
             return 0
 
         lang = user.language
-        notes = await get_due_note_reminders(session, user)
+        wishes = await get_due_wish_reminders(session, user)
 
-        for note in notes:
+        for wish in wishes:
             try:
-                text = f"\U0001f514 {t('notifications.note_reminder', lang)}\n\n{note.text}"
+                text = f"\U0001f514 {t('notifications.wish_reminder', lang)}\n\n{wish.text}"
                 await bot.send_message(user_id, text)
-                note.reminder_sent = True
-                await log_notification(session, user_id, "note_reminder", note_id=note.id)
+                wish.reminder_sent = True
+                await log_notification(session, user_id, "wish_reminder", wish_id=wish.id)
                 sent += 1
             except TelegramForbiddenError:
                 user.is_active = False
                 break
             except Exception:
-                logger.exception("Failed to send note reminder to user %s", user_id)
+                logger.exception("Failed to send wish reminder to user %s", user_id)
 
         await session.commit()
     return sent
 
 
 async def check_and_send_notifications(ctx: dict) -> int:
-    """Cron job: check current minute and send notifications to matching users."""
     now = datetime.now(tz=UTC)
     total_sent = 0
 
@@ -158,8 +147,7 @@ async def check_and_send_notifications(ctx: dict) -> int:
         success = await send_digest_task(ctx, user.id)
         if success:
             total_sent += 1
-        # Also check note reminders
-        await send_note_reminders_task(ctx, user.id)
+        await send_wish_reminders_task(ctx, user.id)
 
     logger.info(
         "Notification check at %s: sent %d digests to %d eligible users",

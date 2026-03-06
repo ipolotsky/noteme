@@ -1,5 +1,3 @@
-"""/start + onboarding handler."""
-
 import logging
 from html import escape
 
@@ -25,7 +23,6 @@ router = Router(name="start")
 
 
 async def _transcribe_voice(message: Message, lang: str, user_id: int = 0) -> str | None:
-    """Transcribe a voice message. Returns text or None on failure."""
     from app.agents.whisper import transcribe_audio
 
     if message.voice.duration > 60:  # type: ignore[union-attr]
@@ -60,14 +57,12 @@ async def cmd_start(
     await log_user_action(user.id, "start")
 
     if user.onboarding_completed:
-        # Send persistent reply keyboard first, then inline menu
         await message.answer(
             t("welcome_back", lang, name=user.first_name),
             reply_markup=persistent_menu_kb(lang),
         )
         return
 
-    # Start onboarding: language selection
     await message.answer(
         t("welcome", lang, name=user.first_name)
         + "\n\n"
@@ -95,11 +90,9 @@ async def onboarding_language(
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("language_set", lang),
     )
-    # Send intro explaining what the bot does
     await callback.message.answer(  # type: ignore[union-attr]
         t("onboarding.intro", lang),
     )
-    # Then prompt for first event with examples
     await callback.message.answer(  # type: ignore[union-attr]
         t("onboarding.step1", lang),
         reply_markup=onboarding_skip_kb(lang),
@@ -109,9 +102,6 @@ async def onboarding_language(
     await callback.answer()
 
 
-# --- Step 1: first event (text or skip) ---
-
-
 @router.message(OnboardingStates.waiting_first_event, F.text)
 async def onboarding_first_event_text(
     message: Message,
@@ -119,7 +109,6 @@ async def onboarding_first_event_text(
     user: User,
     session: AsyncSession,
 ) -> None:
-    """User typed text during onboarding step 1 — create event via AI, then advance."""
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
@@ -140,7 +129,7 @@ async def onboarding_first_event_text(
                 EventCreate(
                     title=result.event_title,
                     event_date=result.event_date,
-                    tag_names=result.tag_names or [],
+                    person_names=result.person_names or [],
                 ),
             )
             from app.services.beautiful_dates.engine import recalculate_for_event
@@ -153,7 +142,7 @@ async def onboarding_first_event_text(
                 t("ai.not_understood", lang),
                 reply_markup=onboarding_skip_kb(lang),
             )
-            return  # Stay in state, let user try again or skip
+            return
     except Exception:
         await message.answer(
             t("ai.not_understood", lang),
@@ -161,12 +150,11 @@ async def onboarding_first_event_text(
         )
         return
 
-    # Advance to step 2
     await message.answer(
         t("onboarding.step2", lang),
         reply_markup=onboarding_skip_kb(lang),
     )
-    await state.set_state(OnboardingStates.waiting_first_note)
+    await state.set_state(OnboardingStates.waiting_first_wish)
 
 
 @router.message(OnboardingStates.waiting_first_event, F.voice)
@@ -176,7 +164,6 @@ async def onboarding_first_event_voice(
     user: User,
     session: AsyncSession,
 ) -> None:
-    """User sent voice during onboarding step 1 — transcribe, create event, advance."""
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
@@ -197,7 +184,7 @@ async def onboarding_first_event_voice(
                 EventCreate(
                     title=result.event_title,
                     event_date=result.event_date,
-                    tag_names=result.tag_names or [],
+                    person_names=result.person_names or [],
                 ),
             )
             from app.services.beautiful_dates.engine import recalculate_for_event
@@ -214,7 +201,7 @@ async def onboarding_first_event_voice(
         return
 
     await message.answer(t("onboarding.step2", lang), reply_markup=onboarding_skip_kb(lang))
-    await state.set_state(OnboardingStates.waiting_first_note)
+    await state.set_state(OnboardingStates.waiting_first_wish)
 
 
 @router.callback_query(
@@ -235,7 +222,7 @@ async def onboarding_skip_event(
         t("onboarding.step2", lang),
         reply_markup=onboarding_skip_kb(lang),
     )
-    await state.set_state(OnboardingStates.waiting_first_note)
+    await state.set_state(OnboardingStates.waiting_first_wish)
     await callback.answer()
 
 
@@ -246,7 +233,6 @@ async def _finish_onboarding(
     lang: str,
     session: AsyncSession,
 ) -> None:
-    """Complete onboarding, show menu, and optionally show feed."""
     data = await state.get_data()
     event_created = data.get("event_created", False)
 
@@ -265,51 +251,46 @@ async def _finish_onboarding(
         await send_feed_messages(message, user, lang, session, state)
 
 
-# --- Step 2: first note (text or skip) ---
-
-
-async def _create_note_via_ai(
+async def _create_wish_via_ai(
     text: str, user: User, lang: str, session: AsyncSession,
 ) -> bool:
-    """Create a note via AI pipeline (extracts tags). Returns True on success."""
     from app.agents.graph import process_message
-    from app.schemas.note import NoteCreate
-    from app.services.note_service import create_note
+    from app.schemas.wish import WishCreate
+    from app.services.wish_service import create_wish
 
     result = await process_message(text=text, user_id=user.id, user_language=lang)
 
-    tag_names = (result.tag_names or [])[:2]
-    if not tag_names:
-        tag_names = ["Личное" if lang == "ru" else "Personal"]
+    person_names = (result.person_names or [])[:2]
+    if not person_names:
+        person_names = ["Личное" if lang == "ru" else "Personal"]
 
-    note_text = result.note_text if result.intent == "create_note" and result.note_text else text
+    wish_text = result.wish_text if result.intent == "create_wish" and result.wish_text else text
 
-    await create_note(
+    await create_wish(
         session, user.id,
-        NoteCreate(
-            text=note_text,
-            tag_names=tag_names,
-            reminder_date=result.note_reminder_date,
+        WishCreate(
+            text=wish_text,
+            person_names=person_names,
+            reminder_date=result.wish_reminder_date,
         ),
     )
     return True
 
 
-@router.message(OnboardingStates.waiting_first_note, F.text)
-async def onboarding_first_note_text(
+@router.message(OnboardingStates.waiting_first_wish, F.text)
+async def onboarding_first_wish_text(
     message: Message,
     state: FSMContext,
     user: User,
     session: AsyncSession,
 ) -> None:
-    """User typed text during onboarding step 2 — create note via AI, then finish."""
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
     try:
-        await _create_note_via_ai(message.text or "", user, lang, session)
-        await message.answer(t("notes.created", lang))
-        await log_user_action(user.id, "onboarding_create_note")
+        await _create_wish_via_ai(message.text or "", user, lang, session)
+        await message.answer(t("wishes.created", lang))
+        await log_user_action(user.id, "onboarding_create_wish")
     except Exception:
         await message.answer(
             t("ai.not_understood", lang),
@@ -320,14 +301,13 @@ async def onboarding_first_note_text(
     await _finish_onboarding(message, state, user, lang, session)
 
 
-@router.message(OnboardingStates.waiting_first_note, F.voice)
-async def onboarding_first_note_voice(
+@router.message(OnboardingStates.waiting_first_wish, F.voice)
+async def onboarding_first_wish_voice(
     message: Message,
     state: FSMContext,
     user: User,
     session: AsyncSession,
 ) -> None:
-    """User sent voice during onboarding step 2 — transcribe, create note via AI, finish."""
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
@@ -336,11 +316,11 @@ async def onboarding_first_note_voice(
         return
 
     try:
-        await _create_note_via_ai(text, user, lang, session)
-        await message.answer(t("notes.created", lang))
-        await log_user_action(user.id, "onboarding_create_note_voice")
+        await _create_wish_via_ai(text, user, lang, session)
+        await message.answer(t("wishes.created", lang))
+        await log_user_action(user.id, "onboarding_create_wish_voice")
     except Exception:
-        logger.exception("Onboarding voice note failed for user %s", user.id)
+        logger.exception("Onboarding voice wish failed for user %s", user.id)
         await message.answer(t("ai.not_understood", lang), reply_markup=onboarding_skip_kb(lang))
         return
 
@@ -348,10 +328,10 @@ async def onboarding_first_note_voice(
 
 
 @router.callback_query(
-    OnboardingStates.waiting_first_note,
+    OnboardingStates.waiting_first_wish,
     OnboardCb.filter(F.action == "skip"),
 )
-async def onboarding_skip_note(
+async def onboarding_skip_wish(
     callback: CallbackQuery,
     state: FSMContext,
     user: User,
@@ -360,7 +340,7 @@ async def onboarding_skip_note(
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
-    await log_user_action(user.id, "onboarding_skip_note")
+    await log_user_action(user.id, "onboarding_skip_wish")
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("onboarding.step2", lang).split("\n")[0] + " \u2714",
     )

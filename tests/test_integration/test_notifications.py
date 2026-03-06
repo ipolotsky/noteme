@@ -5,11 +5,11 @@ from datetime import date, time, timedelta
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.note import Note
 from app.models.user import User
+from app.models.wish import Wish
 from app.services.notification_service import (
     build_digest,
-    get_due_note_reminders,
+    get_due_wish_reminders,
     get_users_for_notification,
     log_notification,
 )
@@ -88,48 +88,48 @@ class TestBuildDigest:
         assert dates == []
 
 
-class TestDueNoteReminders:
+class TestDueWishReminders:
     async def test_reminder_due_tomorrow(self, session, active_user):
         tomorrow = date.today() + timedelta(days=1)
-        note = Note(
+        wish = Wish(
             user_id=active_user.id,
-            text="Reminder note",
+            text="Reminder wish",
             reminder_date=tomorrow,
             reminder_sent=False,
         )
-        session.add(note)
+        session.add(wish)
         await session.flush()
 
-        reminders = await get_due_note_reminders(session, active_user)
+        reminders = await get_due_wish_reminders(session, active_user)
         assert len(reminders) == 1
-        assert reminders[0].text == "Reminder note"
+        assert reminders[0].text == "Reminder wish"
 
     async def test_already_sent_excluded(self, session, active_user):
         tomorrow = date.today() + timedelta(days=1)
-        note = Note(
+        wish = Wish(
             user_id=active_user.id,
-            text="Sent note",
+            text="Sent wish",
             reminder_date=tomorrow,
             reminder_sent=True,
         )
-        session.add(note)
+        session.add(wish)
         await session.flush()
 
-        reminders = await get_due_note_reminders(session, active_user)
+        reminders = await get_due_wish_reminders(session, active_user)
         assert len(reminders) == 0
 
     async def test_reminder_not_due_yet(self, session, active_user):
         far_future = date.today() + timedelta(days=30)
-        note = Note(
+        wish = Wish(
             user_id=active_user.id,
-            text="Future note",
+            text="Future wish",
             reminder_date=far_future,
             reminder_sent=False,
         )
-        session.add(note)
+        session.add(wish)
         await session.flush()
 
-        reminders = await get_due_note_reminders(session, active_user)
+        reminders = await get_due_wish_reminders(session, active_user)
         assert len(reminders) == 0
 
 

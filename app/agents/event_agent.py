@@ -1,5 +1,3 @@
-"""Event agent — extracts event details from user message."""
-
 import json
 import logging
 from datetime import date, datetime
@@ -15,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 async def event_agent_node(state: AgentState) -> AgentState:
-    """LangGraph node: extract event data from message."""
     text = state.transcribed_text or state.raw_text
 
     llm = ChatOpenAI(
@@ -54,7 +51,6 @@ async def event_agent_node(state: AgentState) -> AgentState:
     await al.flush()
 
     try:
-        # Extract JSON from response (may be wrapped in markdown)
         if "```" in content:
             content = content.split("```")[1]
             if content.startswith("json"):
@@ -65,11 +61,11 @@ async def event_agent_node(state: AgentState) -> AgentState:
         if data.get("date"):
             state.event_date = datetime.strptime(data["date"], "%Y-%m-%d").date()
         state.event_description = data.get("description", "")
-        state.tag_names = data.get("tags", [])
+        state.person_names = data.get("people", [])
         state.needs_confirmation = True
         logger.info(
-            "[event_agent] user=%s title=%r date=%s tags=%r desc=%r",
-            state.user_id, state.event_title, state.event_date, state.tag_names, state.event_description,
+            "[event_agent] user=%s title=%r date=%s people=%r desc=%r",
+            state.user_id, state.event_title, state.event_date, state.person_names, state.event_description,
         )
     except (json.JSONDecodeError, ValueError, KeyError) as e:
         logger.warning("[event_agent] user=%s PARSE ERROR: %s content=%r", state.user_id, e, content)

@@ -17,11 +17,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
 
-class Note(Base):
-    __tablename__ = "notes"
+class Wish(Base):
+    __tablename__ = "wishes"
     __table_args__ = (
-        Index("ix_notes_user_id", "user_id"),
-        Index("ix_notes_reminder_lookup", "user_id", "reminder_date", "reminder_sent"),
+        Index("ix_wishes_user_id", "user_id"),
+        Index("ix_wishes_reminder_lookup", "user_id", "reminder_date", "reminder_sent"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -41,26 +41,25 @@ class Note(Base):
         DateTime(timezone=True), onupdate=func.now(), nullable=True
     )
 
-    # Relationships
-    user: Mapped["User"] = relationship(back_populates="notes")  # type: ignore[name-defined]  # noqa: F821
-    tags: Mapped[list["Tag"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
-        secondary="note_tags", back_populates="notes"
+    user: Mapped["User"] = relationship(back_populates="wishes")  # type: ignore[name-defined]  # noqa: F821
+    people: Mapped[list["Person"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
+        secondary="wish_people", back_populates="wishes"
     )
     media_link: Mapped["MediaLink | None"] = relationship(  # type: ignore[name-defined]  # noqa: F821
-        back_populates="note", uselist=False, cascade="all, delete-orphan"
+        back_populates="wish", uselist=False, cascade="all, delete-orphan"
     )
 
 
-class NoteTag(Base):
-    __tablename__ = "note_tags"
+class WishPerson(Base):
+    __tablename__ = "wish_people"
 
-    note_id: Mapped[uuid.UUID] = mapped_column(
+    wish_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("notes.id", ondelete="CASCADE"),
+        ForeignKey("wishes.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    tag_id: Mapped[uuid.UUID] = mapped_column(
+    person_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("tags.id", ondelete="CASCADE"),
+        ForeignKey("people.id", ondelete="CASCADE"),
         primary_key=True,
     )

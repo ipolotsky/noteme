@@ -11,7 +11,7 @@ class EventBase(BaseModel):
 
 
 class EventCreate(EventBase):
-    tag_names: list[str] = []
+    person_names: list[str] = []
     is_system: bool = False
 
 
@@ -19,7 +19,7 @@ class EventUpdate(BaseModel):
     title: str | None = None
     event_date: date | None = None
     description: str | None = None
-    tag_names: list[str] | None = None
+    person_names: list[str] | None = None
 
 
 class EventRead(EventBase):
@@ -28,12 +28,12 @@ class EventRead(EventBase):
     is_system: bool
     created_at: datetime
     updated_at: datetime | None
-    tags: list["TagBrief"] = []
+    people: list["PersonBrief"] = []
 
     model_config = {"from_attributes": True}
 
 
-class TagBrief(BaseModel):
+class PersonBrief(BaseModel):
     id: uuid.UUID
     name: str
 

@@ -42,26 +42,25 @@ class Event(Base):
         DateTime(timezone=True), onupdate=func.now(), nullable=True
     )
 
-    # Relationships
     user: Mapped["User"] = relationship(back_populates="events")  # type: ignore[name-defined]  # noqa: F821
-    tags: Mapped[list["Tag"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
-        secondary="event_tags", back_populates="events"
+    people: Mapped[list["Person"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
+        secondary="event_people", back_populates="events"
     )
     beautiful_dates: Mapped[list["BeautifulDate"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
         back_populates="event", cascade="all, delete-orphan"
     )
 
 
-class EventTag(Base):
-    __tablename__ = "event_tags"
+class EventPerson(Base):
+    __tablename__ = "event_people"
 
     event_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("events.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    tag_id: Mapped[uuid.UUID] = mapped_column(
+    person_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("tags.id", ondelete="CASCADE"),
+        ForeignKey("people.id", ondelete="CASCADE"),
         primary_key=True,
     )

@@ -48,8 +48,8 @@ class Settings(BaseSettings):
 
     # Default User Limits (future monetization)
     default_max_events: int = 10
-    default_max_notes: int = 10
-    default_max_tags_per_entity: int = 3
+    default_max_wishes: int = 10
+    default_max_people_per_entity: int = 3
 
     # AI Rate Limits
     ai_rate_limit_per_minute: int = 30

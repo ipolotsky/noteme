@@ -171,7 +171,7 @@ def setup_admin(app: FastAPI) -> Admin:
         try:
             pool = await create_pool(parse_redis_url())
             await pool.enqueue_job("app.workers.notifications.send_digest_task", user_id, True)
-            await pool.enqueue_job("app.workers.notifications.send_note_reminders_task", user_id, True)
+            await pool.enqueue_job("app.workers.notifications.send_wish_reminders_task", user_id, True)
             await pool.close()
             status = f"Jobs enqueued for user <b>{user_id}</b>. Check bot chat for results."
         except Exception:
@@ -203,17 +203,17 @@ def setup_admin(app: FastAPI) -> Admin:
         BeautifulDateAdmin,
         BeautifulDateStrategyAdmin,
         EventAdmin,
-        NoteAdmin,
         NotificationLogAdmin,
-        TagAdmin,
+        PersonAdmin,
         UserActionLogAdmin,
         UserAdmin,
+        WishAdmin,
     )
 
     admin.add_view(UserAdmin)
     admin.add_view(EventAdmin)
-    admin.add_view(NoteAdmin)
-    admin.add_view(TagAdmin)
+    admin.add_view(WishAdmin)
+    admin.add_view(PersonAdmin)
     admin.add_view(BeautifulDateStrategyAdmin)
     admin.add_view(BeautifulDateAdmin)
     admin.add_view(NotificationLogAdmin)

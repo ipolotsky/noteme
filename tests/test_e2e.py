@@ -12,8 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.beautiful_date_strategy import BeautifulDateStrategy
 from app.models.user import User
 from app.schemas.event import EventCreate, EventUpdate
-from app.schemas.note import NoteCreate
 from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.wish import WishCreate
 from app.services.event_service import (
     EventLimitError,
     count_user_events,
@@ -22,18 +22,18 @@ from app.services.event_service import (
     get_event,
     update_event,
 )
-from app.services.note_service import (
-    NoteLimitError,
-    create_note,
-    get_notes_by_tag_names,
-    get_user_notes,
-)
-from app.services.tag_service import (
-    create_tag,
-    get_or_create_tags,
-    get_user_tags,
+from app.services.person_service import (
+    create_person,
+    get_or_create_people,
+    get_user_people,
 )
 from app.services.user_service import get_or_create_user, update_user
+from app.services.wish_service import (
+    WishLimitError,
+    create_wish,
+    get_user_wishes,
+    get_wishes_by_person_names,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -83,7 +83,7 @@ class TestUserLifecycle:
         assert user.notifications_enabled is True
         assert user.notification_count == 3
         assert user.max_events == 10
-        assert user.max_notes == 10
+        assert user.max_wishes == 10
         assert user.onboarding_completed is False
 
     async def test_update_user_language_and_timezone(self, session: AsyncSession):
@@ -238,67 +238,67 @@ class TestEventToFeedFlow:
 
 
 # =====================================================================
-# E2E FLOW 3: Notes + Tags Cross-linking
+# E2E FLOW 3: Wishes + People Cross-linking
 # =====================================================================
 
 
-class TestNotesTagsCrosslinking:
-    """Notes and events share tags, enabling related notes in feed."""
+class TestWishesPeopleCrosslinking:
+    """Wishes and events share people, enabling related wishes in feed."""
 
-    async def test_tag_links_event_and_note(self, session: AsyncSession):
-        """Create event with tag 'Max', note with tag 'Max' -> notes_by_tag_names finds it."""
+    async def test_person_links_event_and_wish(self, session: AsyncSession):
+        """Create event with person 'Max', wish with person 'Max' -> wishes_by_person_names finds it."""
         user = await _user(session, uid=700)
 
         await create_event(session, user.id, EventCreate(
             title="Wedding with Max", event_date=date(2022, 8, 17),
-            tag_names=["Max"],
+            person_names=["Max"],
         ))
-        note = await create_note(session, user.id, NoteCreate(
+        wish = await create_wish(session, user.id, WishCreate(
             text="Max wants Sony headphones",
-            tag_names=["Max"],
+            person_names=["Max"],
         ))
 
-        related = await get_notes_by_tag_names(session, user.id, ["Max"])
+        related = await get_wishes_by_person_names(session, user.id, ["Max"])
         assert len(related) >= 1
-        assert any(n.id == note.id for n in related)
+        assert any(x.id == wish.id for x in related)
 
-    async def test_case_insensitive_tag_match(self, session: AsyncSession):
-        """Tags 'max' and 'Max' should resolve to same tag."""
+    async def test_case_insensitive_person_match(self, session: AsyncSession):
+        """People 'max' and 'Max' should resolve to same person."""
         user = await _user(session, uid=800)
 
-        tags = await get_or_create_tags(session, user.id, ["Max", "max", "MAX"])
-        assert len(tags) == 1
-        assert tags[0].name == "Max"  # keeps first casing
+        people = await get_or_create_people(session, user.id, ["Max", "max", "MAX"])
+        assert len(people) == 1
+        assert people[0].name == "Max"
 
-    async def test_note_with_multiple_tags(self, session: AsyncSession):
-        """Note with multiple tags found via any of them."""
+    async def test_wish_with_multiple_people(self, session: AsyncSession):
+        """Wish with multiple people found via any of them."""
         user = await _user(session, uid=900)
 
-        await create_note(session, user.id, NoteCreate(
-            text="Gift idea", tag_names=["Family", "Birthday"],
+        await create_wish(session, user.id, WishCreate(
+            text="Gift idea", person_names=["Family", "Birthday"],
         ))
 
-        found_by_family = await get_notes_by_tag_names(session, user.id, ["Family"])
-        found_by_birthday = await get_notes_by_tag_names(session, user.id, ["Birthday"])
+        found_by_family = await get_wishes_by_person_names(session, user.id, ["Family"])
+        found_by_birthday = await get_wishes_by_person_names(session, user.id, ["Birthday"])
 
         assert len(found_by_family) == 1
         assert len(found_by_birthday) == 1
 
-    async def test_delete_tag_leaves_notes(self, session: AsyncSession):
-        """Deleting a tag doesn't delete the note itself."""
-        from app.services.tag_service import delete_tag
+    async def test_delete_person_leaves_wishes(self, session: AsyncSession):
+        """Deleting a person doesn't delete the wish itself."""
+        from app.services.person_service import delete_person
 
         user = await _user(session, uid=1000)
-        note = await create_note(session, user.id, NoteCreate(
-            text="Important", tag_names=["Work"],
+        wish = await create_wish(session, user.id, WishCreate(
+            text="Important", person_names=["Work"],
         ))
-        tags = await get_user_tags(session, user.id)
-        assert len(tags) == 1
+        people = await get_user_people(session, user.id)
+        assert len(people) == 1
 
-        await delete_tag(session, tags[0].id, user_id=user.id)
-        notes = await get_user_notes(session, user.id)
-        assert len(notes) == 1  # note still exists
-        assert notes[0].id == note.id
+        await delete_person(session, people[0].id, user_id=user.id)
+        wishes = await get_user_wishes(session, user.id)
+        assert len(wishes) == 1
+        assert wishes[0].id == wish.id
 
 
 # =====================================================================
@@ -307,7 +307,7 @@ class TestNotesTagsCrosslinking:
 
 
 class TestLimitsEnforcement:
-    """User limits (max_events, max_notes) enforced across services."""
+    """User limits (max_events, max_wishes) enforced across services."""
 
     async def test_event_limit_enforced(self, session: AsyncSession):
         """Cannot create more events than max_events."""
@@ -325,19 +325,19 @@ class TestLimitsEnforcement:
         except EventLimitError as e:
             assert e.max_events == 2
 
-    async def test_note_limit_enforced(self, session: AsyncSession):
-        """Cannot create more notes than max_notes."""
+    async def test_wish_limit_enforced(self, session: AsyncSession):
+        """Cannot create more wishes than max_wishes."""
         user = await _user(session, uid=1200)
-        user.max_notes = 1
+        user.max_wishes = 1
         await session.flush()
 
-        await create_note(session, user.id, NoteCreate(text="Note 1"))
+        await create_wish(session, user.id, WishCreate(text="Wish 1"))
 
         try:
-            await create_note(session, user.id, NoteCreate(text="Note 2"))
-            raise AssertionError("Should raise NoteLimitError")
-        except NoteLimitError as e:
-            assert e.max_notes == 1
+            await create_wish(session, user.id, WishCreate(text="Wish 2"))
+            raise AssertionError("Should raise WishLimitError")
+        except WishLimitError as e:
+            assert e.max_wishes == 1
 
     async def test_event_count_accurate(self, session: AsyncSession):
         """count_user_events matches actual events."""
@@ -406,7 +406,7 @@ class TestSharingFlow:
 
 
 class TestNotificationFlow:
-    """Build digest and check note reminders."""
+    """Build digest and check wish reminders."""
 
     async def test_build_digest_with_dates(self, session: AsyncSession):
         """Digest contains upcoming beautiful dates."""
@@ -474,38 +474,38 @@ class TestNotificationFlow:
 
         assert "<tg-spoiler>" in message
 
-    async def test_note_reminders_due_tomorrow(self, session: AsyncSession):
-        """Notes with reminder_date = tomorrow are found."""
-        from app.services.notification_service import get_due_note_reminders
+    async def test_wish_reminders_due_tomorrow(self, session: AsyncSession):
+        """Wishes with reminder_date = tomorrow are found."""
+        from app.services.notification_service import get_due_wish_reminders
 
         user = await _user(session, uid=1900)
         tomorrow = date.today() + timedelta(days=1)
 
-        await create_note(session, user.id, NoteCreate(
+        await create_wish(session, user.id, WishCreate(
             text="Remind me!", reminder_date=tomorrow,
         ))
-        await create_note(session, user.id, NoteCreate(
+        await create_wish(session, user.id, WishCreate(
             text="No reminder",
         ))
 
-        reminders = await get_due_note_reminders(session, user)
+        reminders = await get_due_wish_reminders(session, user)
         assert len(reminders) == 1
         assert reminders[0].text == "Remind me!"
 
-    async def test_note_reminder_not_sent_twice(self, session: AsyncSession):
-        """Once reminder_sent=True, note is not returned again."""
-        from app.services.notification_service import get_due_note_reminders
+    async def test_wish_reminder_not_sent_twice(self, session: AsyncSession):
+        """Once reminder_sent=True, wish is not returned again."""
+        from app.services.notification_service import get_due_wish_reminders
 
         user = await _user(session, uid=2000)
         tomorrow = date.today() + timedelta(days=1)
 
-        note = await create_note(session, user.id, NoteCreate(
+        wish = await create_wish(session, user.id, WishCreate(
             text="Once only", reminder_date=tomorrow,
         ))
-        note.reminder_sent = True
+        wish.reminder_sent = True
         await session.flush()
 
-        reminders = await get_due_note_reminders(session, user)
+        reminders = await get_due_wish_reminders(session, user)
         assert len(reminders) == 0
 
     async def test_notification_users_filter(self, session: AsyncSession):
@@ -700,33 +700,33 @@ class TestOwnershipSecurity:
         result = await update_event(session, event.id, EventUpdate(title="Hacked"), user_id=u2.id)
         assert result is None
 
-    async def test_tags_scoped_to_user(self, session: AsyncSession):
-        """Two users can have tags with same name independently."""
+    async def test_people_scoped_to_user(self, session: AsyncSession):
+        """Two users can have people with same name independently."""
         u1 = await _user(session, uid=3800)
         u2 = await _user(session, uid=3900)
 
-        t1 = await create_tag(session, u1.id, "Shared Name")
-        t2 = await create_tag(session, u2.id, "Shared Name")
+        p1 = await create_person(session, u1.id, "Shared Name")
+        p2 = await create_person(session, u2.id, "Shared Name")
 
-        assert t1.id != t2.id
-        assert t1.user_id == u1.id
-        assert t2.user_id == u2.id
+        assert p1.id != p2.id
+        assert p1.user_id == u1.id
+        assert p2.user_id == u2.id
 
-    async def test_notes_scoped_to_user(self, session: AsyncSession):
-        """get_notes_by_tag_names only returns current user's notes."""
+    async def test_wishes_scoped_to_user(self, session: AsyncSession):
+        """get_wishes_by_person_names only returns current user's wishes."""
         u1 = await _user(session, uid=4000)
         u2 = await _user(session, uid=4100)
 
-        await create_note(session, u1.id, NoteCreate(text="U1 note", tag_names=["Work"]))
-        await create_note(session, u2.id, NoteCreate(text="U2 note", tag_names=["Work"]))
+        await create_wish(session, u1.id, WishCreate(text="U1 wish", person_names=["Work"]))
+        await create_wish(session, u2.id, WishCreate(text="U2 wish", person_names=["Work"]))
 
-        u1_notes = await get_notes_by_tag_names(session, u1.id, ["Work"])
-        u2_notes = await get_notes_by_tag_names(session, u2.id, ["Work"])
+        u1_wishes = await get_wishes_by_person_names(session, u1.id, ["Work"])
+        u2_wishes = await get_wishes_by_person_names(session, u2.id, ["Work"])
 
-        assert len(u1_notes) == 1
-        assert u1_notes[0].text == "U1 note"
-        assert len(u2_notes) == 1
-        assert u2_notes[0].text == "U2 note"
+        assert len(u1_wishes) == 1
+        assert u1_wishes[0].text == "U1 wish"
+        assert len(u2_wishes) == 1
+        assert u2_wishes[0].text == "U2 wish"
 
 
 # =====================================================================
@@ -751,8 +751,8 @@ class TestWorkerTasks:
         count = await recalculate_for_event(session, event, [strategy])
         assert count > 0
 
-    async def test_digest_format_includes_related_notes(self, session: AsyncSession):
-        """Digest message includes related notes for tagged events."""
+    async def test_digest_format_includes_related_wishes(self, session: AsyncSession):
+        """Digest message includes related wishes for events with people."""
         from app.services.beautiful_dates.engine import recalculate_for_event
         from app.services.notification_service import build_digest, format_digest_message
 
@@ -761,18 +761,17 @@ class TestWorkerTasks:
 
         event = await create_event(session, user.id, EventCreate(
             title="Tagged Event", event_date=date(2020, 1, 1),
-            tag_names=["Gift"],
+            person_names=["Gift"],
         ))
-        await create_note(session, user.id, NoteCreate(
+        await create_wish(session, user.id, WishCreate(
             text="Buy flowers for the event",
-            tag_names=["Gift"],
+            person_names=["Gift"],
         ))
         await recalculate_for_event(session, event, [strategy])
 
         digest = await build_digest(session, user)
         message = await format_digest_message(session, user, digest)
 
-        # Message should contain the note text
         assert "Buy flowers" in message
 
 

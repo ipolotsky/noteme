@@ -34,8 +34,8 @@ class UserRead(UserBase):
     id: int
     username: str | None
     max_events: int
-    max_notes: int
-    max_tags_per_entity: int
+    max_wishes: int
+    max_people_per_entity: int
     onboarding_completed: bool
     is_active: bool
     created_at: datetime

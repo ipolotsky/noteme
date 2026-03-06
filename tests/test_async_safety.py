@@ -1,7 +1,7 @@
 """Tests for async safety — no lazy loading in async context.
 
 Covers:
-- Tag view: COUNT queries instead of relationship lazy load
+- Person view: COUNT queries instead of relationship lazy load
 - Graph process_message: dict→AgentState conversion
 - Sharing: eager-loaded event access
 """
@@ -15,16 +15,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.graph import process_message
 from app.agents.state import AgentState
-from app.models.event import EventTag
-from app.models.note import NoteTag
+from app.models.event import EventPerson
+from app.models.wish import WishPerson
 from app.schemas.event import EventCreate
-from app.schemas.note import NoteCreate
 from app.schemas.user import UserCreate
+from app.schemas.wish import WishCreate
 from app.services.beautiful_date_service import generate_share_uuid, get_by_share_uuid
 from app.services.beautiful_dates.engine import recalculate_for_event
 from app.services.event_service import create_event
-from app.services.note_service import create_note
 from app.services.user_service import get_or_create_user
+from app.services.wish_service import create_wish
 
 
 async def _make_user(session: AsyncSession, user_id: int = 123456789):
@@ -34,107 +34,106 @@ async def _make_user(session: AsyncSession, user_id: int = 123456789):
 
 
 # ---------------------------------------------------------------------------
-# Tag view: COUNT queries work in async context
+# Person view: COUNT queries work in async context
 # ---------------------------------------------------------------------------
 
 
-class TestTagCountQueries:
-    """Verify that tag event/note counts work via explicit COUNT queries
+class TestPersonCountQueries:
+    """Verify that person event/wish counts work via explicit COUNT queries
     (not relationship lazy load, which fails in async).
     """
 
     @pytest.mark.asyncio
-    async def test_tag_counts_zero_when_no_associations(self, session: AsyncSession, user_id: int):
+    async def test_person_counts_zero_when_no_associations(self, session: AsyncSession, user_id: int):
         await _make_user(session, user_id)
-        from app.services.tag_service import create_tag
+        from app.services.person_service import create_person
 
-        tag = await create_tag(session, user_id, "Orphan")
+        person = await create_person(session, user_id, "Orphan")
 
         events_count = (await session.execute(
-            select(func.count()).where(EventTag.tag_id == tag.id)
+            select(func.count()).where(EventPerson.person_id == person.id)
         )).scalar_one()
-        notes_count = (await session.execute(
-            select(func.count()).where(NoteTag.tag_id == tag.id)
+        wishes_count = (await session.execute(
+            select(func.count()).where(WishPerson.person_id == person.id)
         )).scalar_one()
 
         assert events_count == 0
-        assert notes_count == 0
+        assert wishes_count == 0
 
     @pytest.mark.asyncio
-    async def test_tag_counts_with_event(self, session: AsyncSession, user_id: int):
+    async def test_person_counts_with_event(self, session: AsyncSession, user_id: int):
         await _make_user(session, user_id)
 
         await create_event(
             session, user_id,
-            EventCreate(title="Wedding", event_date=date(2022, 8, 17), tag_names=["Max"]),
+            EventCreate(title="Wedding", event_date=date(2022, 8, 17), person_names=["Max"]),
         )
-        # Find the tag
-        from app.services.tag_service import get_tag_by_name
+        from app.services.person_service import get_person_by_name
 
-        tag = await get_tag_by_name(session, user_id, "Max")
-        assert tag is not None
+        person = await get_person_by_name(session, user_id, "Max")
+        assert person is not None
 
         events_count = (await session.execute(
-            select(func.count()).where(EventTag.tag_id == tag.id)
+            select(func.count()).where(EventPerson.person_id == person.id)
         )).scalar_one()
         assert events_count == 1
 
     @pytest.mark.asyncio
-    async def test_tag_counts_with_note(self, session: AsyncSession, user_id: int):
+    async def test_person_counts_with_wish(self, session: AsyncSession, user_id: int):
         await _make_user(session, user_id)
 
-        await create_note(
+        await create_wish(
             session, user_id,
-            NoteCreate(text="Buy headphones", tag_names=["Max"]),
+            WishCreate(text="Buy headphones", person_names=["Max"]),
         )
-        from app.services.tag_service import get_tag_by_name
+        from app.services.person_service import get_person_by_name
 
-        tag = await get_tag_by_name(session, user_id, "Max")
-        assert tag is not None
+        person = await get_person_by_name(session, user_id, "Max")
+        assert person is not None
 
-        notes_count = (await session.execute(
-            select(func.count()).where(NoteTag.tag_id == tag.id)
+        wishes_count = (await session.execute(
+            select(func.count()).where(WishPerson.person_id == person.id)
         )).scalar_one()
-        assert notes_count == 1
+        assert wishes_count == 1
 
     @pytest.mark.asyncio
-    async def test_tag_counts_with_multiple_associations(self, session: AsyncSession, user_id: int):
+    async def test_person_counts_with_multiple_associations(self, session: AsyncSession, user_id: int):
         await _make_user(session, user_id)
 
         await create_event(
             session, user_id,
-            EventCreate(title="Wedding", event_date=date(2022, 8, 17), tag_names=["Max"]),
+            EventCreate(title="Wedding", event_date=date(2022, 8, 17), person_names=["Max"]),
         )
         await create_event(
             session, user_id,
-            EventCreate(title="Birthday", event_date=date(2023, 1, 1), tag_names=["Max"]),
+            EventCreate(title="Birthday", event_date=date(2023, 1, 1), person_names=["Max"]),
         )
-        await create_note(
+        await create_wish(
             session, user_id,
-            NoteCreate(text="Headphones", tag_names=["Max"]),
+            WishCreate(text="Headphones", person_names=["Max"]),
         )
-        await create_note(
+        await create_wish(
             session, user_id,
-            NoteCreate(text="Restaurant", tag_names=["Max"]),
+            WishCreate(text="Restaurant", person_names=["Max"]),
         )
-        await create_note(
+        await create_wish(
             session, user_id,
-            NoteCreate(text="Book", tag_names=["Max"]),
+            WishCreate(text="Book", person_names=["Max"]),
         )
 
-        from app.services.tag_service import get_tag_by_name
+        from app.services.person_service import get_person_by_name
 
-        tag = await get_tag_by_name(session, user_id, "Max")
+        person = await get_person_by_name(session, user_id, "Max")
 
         events_count = (await session.execute(
-            select(func.count()).where(EventTag.tag_id == tag.id)
+            select(func.count()).where(EventPerson.person_id == person.id)
         )).scalar_one()
-        notes_count = (await session.execute(
-            select(func.count()).where(NoteTag.tag_id == tag.id)
+        wishes_count = (await session.execute(
+            select(func.count()).where(WishPerson.person_id == person.id)
         )).scalar_one()
 
         assert events_count == 2
-        assert notes_count == 3
+        assert wishes_count == 3
 
 
 # ---------------------------------------------------------------------------
@@ -163,9 +162,9 @@ class TestProcessMessageDictConversion:
             "event_title": "Свадьба",
             "event_date": date(2022, 8, 17),
             "event_description": "",
-            "tag_names": ["Макс"],
-            "note_text": "",
-            "note_reminder_date": None,
+            "person_names": ["Макс"],
+            "wish_text": "",
+            "wish_reminder_date": None,
             "query_type": "",
             "target_entity_id": "",
             "response_text": "Создать событие?",
@@ -180,7 +179,7 @@ class TestProcessMessageDictConversion:
         assert result.intent == "create_event"
         assert result.event_title == "Свадьба"
         assert result.event_date == date(2022, 8, 17)
-        assert result.tag_names == ["Макс"]
+        assert result.person_names == ["Макс"]
         assert result.response_text == "Создать событие?"
 
     @patch("app.agents.graph.get_graph")
@@ -188,9 +187,9 @@ class TestProcessMessageDictConversion:
         """If graph.ainvoke() already returns AgentState, it's preserved."""
         expected = AgentState(
             user_id=123,
-            intent="create_note",
-            note_text="Buy milk",
-            response_text="Save note?",
+            intent="create_wish",
+            wish_text="Buy milk",
+            response_text="Save wish?",
         )
         mock_graph = AsyncMock()
         mock_graph.ainvoke = AsyncMock(return_value=expected)
@@ -199,8 +198,8 @@ class TestProcessMessageDictConversion:
         result = await process_message("Buy milk", user_id=123)
 
         assert isinstance(result, AgentState)
-        assert result.intent == "create_note"
-        assert result.note_text == "Buy milk"
+        assert result.intent == "create_wish"
+        assert result.wish_text == "Buy milk"
 
     @patch("app.agents.graph.get_graph")
     async def test_handler_can_access_all_fields(self, mock_get_graph):
@@ -218,9 +217,9 @@ class TestProcessMessageDictConversion:
             "event_title": "Test Event",
             "event_date": date(2024, 1, 1),
             "event_description": "desc",
-            "tag_names": ["tag1", "tag2"],
-            "note_text": "",
-            "note_reminder_date": None,
+            "person_names": ["tag1", "tag2"],
+            "wish_text": "",
+            "wish_reminder_date": None,
             "query_type": "",
             "target_entity_id": "",
             "response_text": "",
@@ -236,9 +235,9 @@ class TestProcessMessageDictConversion:
         assert state.event_title == "Test Event"
         assert state.event_date == date(2024, 1, 1)
         assert state.event_description == "desc"
-        assert state.tag_names == ["tag1", "tag2"]
-        assert state.note_text == ""
-        assert state.note_reminder_date is None
+        assert state.person_names == ["tag1", "tag2"]
+        assert state.wish_text == ""
+        assert state.wish_reminder_date is None
         assert state.response_text == ""
         assert state.error == ""
 

@@ -1,5 +1,3 @@
-"""Feed handler — beautiful dates gallery (single card with navigation)."""
-
 import contextlib
 import logging
 import uuid
@@ -23,7 +21,7 @@ from app.services.beautiful_date_service import (
     generate_share_uuid,
     get_user_feed,
 )
-from app.services.note_service import get_notes_by_tag_names
+from app.services.wish_service import get_wishes_by_person_names
 from app.utils.date_utils import format_date, format_relative_date
 
 router = Router(name="feed")
@@ -33,13 +31,13 @@ logger = logging.getLogger(__name__)
 _FSM_KEY = "feed_message_ids"
 
 
-async def _select_best_wish(notes, label: str) -> str | None:
-    if not notes:
+async def _select_best_wish(wishes, label: str) -> str | None:
+    if not wishes:
         return None
-    if len(notes) == 1:
-        return notes[0].text
+    if len(wishes) == 1:
+        return wishes[0].text
     if not settings.openai_api_key:
-        return notes[0].text
+        return wishes[0].text
     try:
         from langchain_openai import ChatOpenAI
 
@@ -49,7 +47,7 @@ async def _select_best_wish(notes, label: str) -> str | None:
             temperature=0,
             max_tokens=10,
         )
-        notes_list = "\n".join(f"{i + 1}. {n.text[:100]}" for i, n in enumerate(notes))
+        wishes_list = "\n".join(f"{i + 1}. {x.text[:100]}" for i, x in enumerate(wishes))
         messages = [
             {
                 "role": "system",
@@ -57,16 +55,16 @@ async def _select_best_wish(notes, label: str) -> str | None:
             },
             {
                 "role": "user",
-                "content": f"Milestone: {label}\n\nWishes:\n{notes_list}\n\nBest wish number?",
+                "content": f"Milestone: {label}\n\nWishes:\n{wishes_list}\n\nBest wish number?",
             },
         ]
         response = await llm.ainvoke(messages)
         idx = int(str(response.content).strip()) - 1
-        if 0 <= idx < len(notes):
-            return notes[idx].text
+        if 0 <= idx < len(wishes):
+            return wishes[idx].text
     except Exception:
-        logger.debug("wish selector fallback to first note")
-    return notes[0].text
+        logger.debug("wish selector fallback to first wish")
+    return wishes[0].text
 
 
 async def _build_card(
@@ -85,10 +83,10 @@ async def _build_card(
     text += f"\U0001f4c5 {calendar}\n"
     text += f"\u23f3 {relative}"
 
-    if bd.event.tags:
-        tag_names = [tg.name for tg in bd.event.tags]
-        notes = await get_notes_by_tag_names(session, user_id, tag_names, limit=10)
-        wish = await _select_best_wish(notes, label)
+    if bd.event.people:
+        person_names = [x.name for x in bd.event.people]
+        wishes = await get_wishes_by_person_names(session, user_id, person_names, limit=10)
+        wish = await _select_best_wish(wishes, label)
         if wish:
             text += f"\n\n{t('feed.wish', lang)}\n{escape(wish)}"
 
@@ -208,9 +206,6 @@ async def send_feed_messages(
         await message.answer(t("feed.empty", lang), reply_markup=main_menu_kb(lang))
 
 
-# --- Handlers ---
-
-
 @router.callback_query(FeedCb.filter(F.action == "list"))
 async def feed_list(
     callback: CallbackQuery,
@@ -259,26 +254,26 @@ async def feed_wishes(
     bd_id = uuid.UUID(callback_data.id)
     result = await session.execute(
         select(BeautifulDate)
-        .options(selectinload(BeautifulDate.event).selectinload(Event.tags))
+        .options(selectinload(BeautifulDate.event).selectinload(Event.people))
         .where(BeautifulDate.id == bd_id)
     )
     bd = result.scalar_one_or_none()
 
-    if bd is None or not bd.event.tags:
+    if bd is None or not bd.event.people:
         await callback.answer(t("feed.no_wishes", lang), show_alert=True)
         return
 
-    tag_names = [tg.name for tg in bd.event.tags]
-    notes = await get_notes_by_tag_names(session, bd.event.user_id, tag_names, limit=20)
+    person_names = [x.name for x in bd.event.people]
+    wishes = await get_wishes_by_person_names(session, bd.event.user_id, person_names, limit=20)
 
-    if not notes:
+    if not wishes:
         await callback.answer(t("feed.no_wishes", lang), show_alert=True)
         return
 
     label = bd.label_ru if lang == "ru" else bd.label_en
     text = f"\U0001f4cb <b>{escape(label)}</b>\n\n"
-    for note in notes:
-        text += f"- {escape(note.text[:120])}\n"
+    for x in wishes:
+        text += f"- {escape(x.text[:120])}\n"
 
     await callback.message.answer(text)  # type: ignore[union-attr]
     await callback.answer()

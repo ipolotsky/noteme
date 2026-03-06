@@ -1,5 +1,3 @@
-"""Query agent — handles view/list requests."""
-
 import json
 import logging
 
@@ -14,11 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 async def query_agent_node(state: AgentState) -> AgentState:
-    """LangGraph node: determine query type for view requests."""
     text = state.transcribed_text or state.raw_text
 
-    # Simple keyword-based routing for common queries (0 AI calls)
-    # Feed checked first — "красив" and "лент" are unambiguous feed keywords
     lower = text.lower()
     if any(w in lower for w in ["лент", "feed", "красив"]):
         state.query_type = "feed"
@@ -26,14 +21,13 @@ async def query_agent_node(state: AgentState) -> AgentState:
     if any(w in lower for w in ["событи", "event", "дат"]):
         state.query_type = "events"
         return state
-    if any(w in lower for w in ["замет", "note", "запис"]):
-        state.query_type = "notes"
+    if any(w in lower for w in ["желан", "wish", "запис"]):
+        state.query_type = "wishes"
         return state
-    if any(w in lower for w in ["тег", "tag", "метк"]):
-        state.query_type = "tags"
+    if any(w in lower for w in ["люд", "человек", "people"]):
+        state.query_type = "people"
         return state
 
-    # Fallback to LLM
     llm = ChatOpenAI(
         model=settings.openai_model,
         api_key=settings.openai_api_key,

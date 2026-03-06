@@ -26,7 +26,7 @@ async def get_user_feed(
         select(BeautifulDate)
         .join(Event, BeautifulDate.event_id == Event.id)
         .options(
-            selectinload(BeautifulDate.event).selectinload(Event.tags),
+            selectinload(BeautifulDate.event).selectinload(Event.people),
             selectinload(BeautifulDate.strategy),
         )
         .where(

@@ -1,21 +1,20 @@
 """initial schema
 
-Revision ID: 972b79f10c29
-Revises:
-Create Date: 2026-02-07 21:55:47.193516
+Revision ID: 23ff32e98e49
+Revises: 
+Create Date: 2026-03-05 23:33:55.268436
 """
-from collections.abc import Sequence
+from typing import Sequence, Union
 
+from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-from alembic import op
-
 # revision identifiers, used by Alembic.
-revision: str = '972b79f10c29'
-down_revision: str | None = None
-branch_labels: str | Sequence[str] | None = None
-depends_on: str | Sequence[str] | None = None
+revision: str = '23ff32e98e49'
+down_revision: Union[str, None] = None
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
@@ -40,8 +39,8 @@ def upgrade() -> None:
     sa.Column('notifications_enabled', sa.Boolean(), nullable=False),
     sa.Column('notification_count', sa.Integer(), nullable=False),
     sa.Column('max_events', sa.Integer(), nullable=False),
-    sa.Column('max_notes', sa.Integer(), nullable=False),
-    sa.Column('max_tags_per_entity', sa.Integer(), nullable=False),
+    sa.Column('max_wishes', sa.Integer(), nullable=False),
+    sa.Column('max_people_per_entity', sa.Integer(), nullable=False),
     sa.Column('spoiler_enabled', sa.Boolean(), nullable=False),
     sa.Column('onboarding_completed', sa.Boolean(), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
@@ -50,6 +49,27 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index('ix_users_notification_filter', 'users', ['is_active', 'notifications_enabled', 'notification_time'], unique=False)
+    op.create_table('ai_logs',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('user_id', sa.BigInteger(), nullable=False),
+    sa.Column('agent_name', sa.String(length=50), nullable=False),
+    sa.Column('model', sa.String(length=50), nullable=False),
+    sa.Column('request_messages', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('request_text', sa.Text(), nullable=True),
+    sa.Column('response_text', sa.Text(), nullable=True),
+    sa.Column('tokens_prompt', sa.Integer(), nullable=True),
+    sa.Column('tokens_completion', sa.Integer(), nullable=True),
+    sa.Column('tokens_total', sa.Integer(), nullable=True),
+    sa.Column('latency_ms', sa.Integer(), nullable=True),
+    sa.Column('error', sa.Text(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index('ix_ai_logs_agent_name', 'ai_logs', ['agent_name'], unique=False)
+    op.create_index('ix_ai_logs_created_at', 'ai_logs', ['created_at'], unique=False)
+    op.create_index('ix_ai_logs_user_id', 'ai_logs', ['user_id'], unique=False)
     op.create_table('events',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('user_id', sa.BigInteger(), nullable=False),
@@ -62,7 +82,29 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('notes',
+    op.create_index('ix_events_user_id', 'events', ['user_id'], unique=False)
+    op.create_table('people',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('user_id', sa.BigInteger(), nullable=False),
+    sa.Column('name', sa.String(length=100), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id', 'name', name='uq_people_user_name')
+    )
+    op.create_table('user_action_logs',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('user_id', sa.BigInteger(), nullable=False),
+    sa.Column('action', sa.String(length=50), nullable=False),
+    sa.Column('detail', sa.Text(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index('ix_user_action_logs_action', 'user_action_logs', ['action'], unique=False)
+    op.create_index('ix_user_action_logs_created_at', 'user_action_logs', ['created_at'], unique=False)
+    op.create_index('ix_user_action_logs_user_id', 'user_action_logs', ['user_id'], unique=False)
+    op.create_table('wishes',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('text', sa.Text(), nullable=False),
@@ -73,15 +115,8 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('tags',
-    sa.Column('id', sa.UUID(), nullable=False),
-    sa.Column('user_id', sa.BigInteger(), nullable=False),
-    sa.Column('name', sa.String(length=100), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('user_id', 'name', name='uq_tags_user_name')
-    )
+    op.create_index('ix_wishes_reminder_lookup', 'wishes', ['user_id', 'reminder_date', 'reminder_sent'], unique=False)
+    op.create_index('ix_wishes_user_id', 'wishes', ['user_id'], unique=False)
     op.create_table('beautiful_dates',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('event_id', sa.UUID(), nullable=False),
@@ -100,58 +135,72 @@ def upgrade() -> None:
     )
     op.create_index('ix_beautiful_dates_event_target', 'beautiful_dates', ['event_id', 'target_date'], unique=False)
     op.create_index('ix_beautiful_dates_target', 'beautiful_dates', ['target_date'], unique=False)
-    op.create_table('event_tags',
+    op.create_table('event_people',
     sa.Column('event_id', sa.UUID(), nullable=False),
-    sa.Column('tag_id', sa.UUID(), nullable=False),
+    sa.Column('person_id', sa.UUID(), nullable=False),
     sa.ForeignKeyConstraint(['event_id'], ['events.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['tag_id'], ['tags.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('event_id', 'tag_id')
+    sa.ForeignKeyConstraint(['person_id'], ['people.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('event_id', 'person_id')
     )
     op.create_table('media_links',
     sa.Column('id', sa.UUID(), nullable=False),
-    sa.Column('note_id', sa.UUID(), nullable=False),
+    sa.Column('wish_id', sa.UUID(), nullable=False),
     sa.Column('chat_id', sa.BigInteger(), nullable=False),
     sa.Column('message_id', sa.Integer(), nullable=False),
     sa.Column('media_type', sa.String(length=50), nullable=False),
     sa.Column('is_deleted', sa.Boolean(), nullable=False),
-    sa.ForeignKeyConstraint(['note_id'], ['notes.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['wish_id'], ['wishes.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('note_id')
+    sa.UniqueConstraint('wish_id')
     )
-    op.create_table('note_tags',
-    sa.Column('note_id', sa.UUID(), nullable=False),
-    sa.Column('tag_id', sa.UUID(), nullable=False),
-    sa.ForeignKeyConstraint(['note_id'], ['notes.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['tag_id'], ['tags.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('note_id', 'tag_id')
+    op.create_table('wish_people',
+    sa.Column('wish_id', sa.UUID(), nullable=False),
+    sa.Column('person_id', sa.UUID(), nullable=False),
+    sa.ForeignKeyConstraint(['person_id'], ['people.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['wish_id'], ['wishes.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('wish_id', 'person_id')
     )
     op.create_table('notification_log',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('beautiful_date_id', sa.UUID(), nullable=True),
-    sa.Column('note_id', sa.UUID(), nullable=True),
+    sa.Column('wish_id', sa.UUID(), nullable=True),
     sa.Column('sent_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('notification_type', sa.String(length=50), nullable=False),
     sa.ForeignKeyConstraint(['beautiful_date_id'], ['beautiful_dates.id'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['note_id'], ['notes.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['wish_id'], ['wishes.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index('ix_notification_log_user_id', 'notification_log', ['user_id'], unique=False)
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_index('ix_notification_log_user_id', table_name='notification_log')
     op.drop_table('notification_log')
-    op.drop_table('note_tags')
+    op.drop_table('wish_people')
     op.drop_table('media_links')
-    op.drop_table('event_tags')
+    op.drop_table('event_people')
     op.drop_index('ix_beautiful_dates_target', table_name='beautiful_dates')
     op.drop_index('ix_beautiful_dates_event_target', table_name='beautiful_dates')
     op.drop_table('beautiful_dates')
-    op.drop_table('tags')
-    op.drop_table('notes')
+    op.drop_index('ix_wishes_user_id', table_name='wishes')
+    op.drop_index('ix_wishes_reminder_lookup', table_name='wishes')
+    op.drop_table('wishes')
+    op.drop_index('ix_user_action_logs_user_id', table_name='user_action_logs')
+    op.drop_index('ix_user_action_logs_created_at', table_name='user_action_logs')
+    op.drop_index('ix_user_action_logs_action', table_name='user_action_logs')
+    op.drop_table('user_action_logs')
+    op.drop_table('people')
+    op.drop_index('ix_events_user_id', table_name='events')
     op.drop_table('events')
+    op.drop_index('ix_ai_logs_user_id', table_name='ai_logs')
+    op.drop_index('ix_ai_logs_created_at', table_name='ai_logs')
+    op.drop_index('ix_ai_logs_agent_name', table_name='ai_logs')
+    op.drop_table('ai_logs')
+    op.drop_index('ix_users_notification_filter', table_name='users')
     op.drop_table('users')
     op.drop_table('beautiful_date_strategies')
     # ### end Alembic commands ###

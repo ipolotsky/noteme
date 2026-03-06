@@ -1,5 +1,3 @@
-"""Main menu handler — navigation hub + cancel."""
-
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -13,15 +11,11 @@ from app.models.user import User
 
 router = Router(name="common")
 
-# Emoji prefixes for persistent reply keyboard button matching
-_EMOJI_FEED = "\U0001f4c5"      # 📅
-_EMOJI_EVENTS = "\U0001f4cb"    # 📋
-_EMOJI_NOTES = "\U0001f4dd"     # 📝
-_EMOJI_TAGS = "\U0001f3f7"      # 🏷
-_EMOJI_SETTINGS = "\u2699"      # ⚙
-
-
-# --- Cancel (universal escape from any FSM state) ---
+_EMOJI_FEED = "\U0001f4c5"
+_EMOJI_EVENTS = "\U0001f4cb"
+_EMOJI_WISHES = "\U0001f381"
+_EMOJI_PEOPLE = "\U0001f464"
+_EMOJI_SETTINGS = "\u2699"
 
 
 @router.message(Command("cancel"))
@@ -60,9 +54,6 @@ async def cancel_callback(
     await callback.answer()
 
 
-# --- Main menu ---
-
-
 @router.callback_query(MenuCb.filter(F.action == "main"))
 async def show_main_menu(
     callback: CallbackQuery,
@@ -88,27 +79,27 @@ async def menu_events(
     await callback.answer()
 
 
-@router.callback_query(MenuCb.filter(F.action == "notes"))
-async def menu_notes(
+@router.callback_query(MenuCb.filter(F.action == "wishes"))
+async def menu_wishes(
     callback: CallbackQuery,
     user: User,
     lang: str,
     session: AsyncSession,
 ) -> None:
-    from app.handlers.notes import show_notes_list
-    await show_notes_list(callback, user, lang, session, page=0)
+    from app.handlers.wishes import show_wishes_list
+    await show_wishes_list(callback, user, lang, session, page=0)
     await callback.answer()
 
 
-@router.callback_query(MenuCb.filter(F.action == "tags"))
-async def menu_tags(
+@router.callback_query(MenuCb.filter(F.action == "people"))
+async def menu_people(
     callback: CallbackQuery,
     user: User,
     lang: str,
     session: AsyncSession,
 ) -> None:
-    from app.handlers.tags import show_tags_list
-    await show_tags_list(callback, user, lang, session, page=0)
+    from app.handlers.people import show_people_list
+    await show_people_list(callback, user, lang, session, page=0)
     await callback.answer()
 
 
@@ -141,15 +132,10 @@ async def handle_noop(callback: CallbackQuery) -> None:
     await callback.answer()
 
 
-# --- Persistent reply keyboard button handlers ---
-# These match text messages sent when user presses the reply keyboard buttons.
-
-
 def _is_reply_menu_button(text: str | None) -> bool:
-    """Check if message text matches a persistent keyboard button."""
     if not text:
         return False
-    return text.startswith((_EMOJI_FEED, _EMOJI_EVENTS, _EMOJI_NOTES, _EMOJI_TAGS, _EMOJI_SETTINGS))
+    return text.startswith((_EMOJI_FEED, _EMOJI_EVENTS, _EMOJI_WISHES, _EMOJI_PEOPLE, _EMOJI_SETTINGS))
 
 
 @router.message(F.text.startswith(_EMOJI_FEED))
@@ -184,8 +170,8 @@ async def reply_kb_events(
     await message.answer(text, reply_markup=events_list_kb(events, 0, total, lang))
 
 
-@router.message(F.text.startswith(_EMOJI_NOTES))
-async def reply_kb_notes(
+@router.message(F.text.startswith(_EMOJI_WISHES))
+async def reply_kb_wishes(
     message: Message,
     state: FSMContext,
     user: User,
@@ -193,17 +179,17 @@ async def reply_kb_notes(
     session: AsyncSession,
 ) -> None:
     await state.clear()
-    from app.keyboards.notes import PAGE_SIZE, notes_list_kb
-    from app.services.note_service import count_user_notes, get_user_notes
+    from app.keyboards.wishes import PAGE_SIZE, wishes_list_kb
+    from app.services.wish_service import count_user_wishes, get_user_wishes
 
-    total = await count_user_notes(session, user.id)
-    notes = await get_user_notes(session, user.id, offset=0, limit=PAGE_SIZE)
-    text = t("notes.empty", lang) if not notes and total == 0 else t("notes.title", lang)
-    await message.answer(text, reply_markup=notes_list_kb(notes, 0, total, lang))
+    total = await count_user_wishes(session, user.id)
+    wishes = await get_user_wishes(session, user.id, offset=0, limit=PAGE_SIZE)
+    text = t("wishes.empty", lang) if not wishes and total == 0 else t("wishes.title", lang)
+    await message.answer(text, reply_markup=wishes_list_kb(wishes, 0, total, lang))
 
 
-@router.message(F.text.startswith(_EMOJI_TAGS))
-async def reply_kb_tags(
+@router.message(F.text.startswith(_EMOJI_PEOPLE))
+async def reply_kb_people(
     message: Message,
     state: FSMContext,
     user: User,
@@ -211,14 +197,14 @@ async def reply_kb_tags(
     session: AsyncSession,
 ) -> None:
     await state.clear()
-    from app.keyboards.tags import PAGE_SIZE, tags_list_kb
-    from app.services.tag_service import get_user_tags
+    from app.keyboards.people import PAGE_SIZE, people_list_kb
+    from app.services.person_service import get_user_people
 
-    all_tags = await get_user_tags(session, user.id)
-    total = len(all_tags)
-    tags = all_tags[:PAGE_SIZE]
-    text = t("tags.empty", lang) if not tags and total == 0 else t("tags.title", lang)
-    await message.answer(text, reply_markup=tags_list_kb(tags, 0, total, lang))
+    all_people = await get_user_people(session, user.id)
+    total = len(all_people)
+    people = all_people[:PAGE_SIZE]
+    text = t("people.empty", lang) if not people and total == 0 else t("people.title", lang)
+    await message.answer(text, reply_markup=people_list_kb(people, 0, total, lang))
 
 
 @router.message(F.text.startswith(_EMOJI_SETTINGS))

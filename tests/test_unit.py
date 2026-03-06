@@ -41,8 +41,8 @@ def _make_event_obj(**overrides) -> MagicMock:
     return ev
 
 
-def _make_note_obj(**overrides) -> MagicMock:
-    """Lightweight mock Note for keyboard functions."""
+def _make_wish_obj(**overrides) -> MagicMock:
+    """Lightweight mock Wish for keyboard functions."""
     n = MagicMock()
     n.id = overrides.get("id", uuid.uuid4())
     n.text = overrides.get("text", "Buy headphones")
@@ -50,7 +50,7 @@ def _make_note_obj(**overrides) -> MagicMock:
     return n
 
 
-def _make_tag_obj(**overrides) -> MagicMock:
+def _make_person_obj(**overrides) -> MagicMock:
     tg = MagicMock()
     tg.id = overrides.get("id", uuid.uuid4())
     tg.name = overrides.get("name", "Family")
@@ -100,15 +100,15 @@ class TestCallbackData:
         assert unpacked.id == test_id
         assert unpacked.page == 3
 
-    def test_note_cb_roundtrip(self):
-        from app.keyboards.callbacks import NoteCb
-        cb = NoteCb(action="create")
-        assert NoteCb.unpack(cb.pack()).action == "create"
+    def test_wish_cb_roundtrip(self):
+        from app.keyboards.callbacks import WishCb
+        cb = WishCb(action="create")
+        assert WishCb.unpack(cb.pack()).action == "create"
 
-    def test_tag_cb_roundtrip(self):
-        from app.keyboards.callbacks import TagCb
-        cb = TagCb(action="view", id="abc-123")
-        unpacked = TagCb.unpack(cb.pack())
+    def test_person_cb_roundtrip(self):
+        from app.keyboards.callbacks import PersonCb
+        cb = PersonCb(action="view", id="abc-123")
+        unpacked = PersonCb.unpack(cb.pack())
         assert unpacked.id == "abc-123"
 
     def test_settings_cb_roundtrip(self):
@@ -154,14 +154,13 @@ class TestMainMenuKeyboard:
         from app.keyboards.main_menu import main_menu_kb
         kb = main_menu_kb("ru")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
-        assert len(buttons) == 5  # feed, events, notes, tags, settings
+        assert len(buttons) == 5  # feed, events, wishes, people, settings
 
     def test_main_menu_en(self):
         from app.keyboards.main_menu import main_menu_kb
         kb = main_menu_kb("en")
         all_text = " ".join(btn.text for row in kb.inline_keyboard for btn in row)
-        # English menu should contain English words
-        assert any(word in all_text.lower() for word in ["feed", "events", "notes", "tags", "settings"])
+        assert any(word in all_text.lower() for word in ["feed", "events", "wishes", "people", "settings"])
 
     def test_cancel_kb_has_cancel_button(self):
         from app.keyboards.main_menu import cancel_kb
@@ -183,7 +182,6 @@ class TestEventsKeyboard:
         from app.keyboards.events import events_list_kb
         kb = events_list_kb([], 0, 0, "ru")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
-        # Should have "Create" and "Back" buttons
         assert len(buttons) >= 2
         assert any("ev:" in btn.callback_data for btn in buttons)
 
@@ -192,7 +190,6 @@ class TestEventsKeyboard:
         evs = [_make_event_obj(title=f"Event {i}") for i in range(3)]
         kb = events_list_kb(evs, 0, 3, "ru")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
-        # 3 event rows + create + back = 5
         assert len(buttons) == 5
 
     def test_events_list_pagination_appears(self):
@@ -200,7 +197,6 @@ class TestEventsKeyboard:
         evs = [_make_event_obj() for _ in range(PAGE_SIZE)]
         kb = events_list_kb(evs, 0, PAGE_SIZE + 5, "ru")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
-        # Should contain pagination callbacks
         assert any("pg:" in cb for cb in all_cbs)
 
     def test_event_view_kb_has_edit_delete_dates(self):
@@ -219,13 +215,13 @@ class TestEventsKeyboard:
         assert any("title" in cb for cb in all_cbs)
         assert any("date" in cb for cb in all_cbs)
         assert any("description" in cb for cb in all_cbs)
-        assert any("tags" in cb for cb in all_cbs)
+        assert any("people" in cb for cb in all_cbs)
 
     def test_event_delete_confirm_kb(self):
         from app.keyboards.events import event_delete_confirm_kb
         kb = event_delete_confirm_kb("test-id", "ru")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
-        assert len(buttons) == 2  # yes + no
+        assert len(buttons) == 2
 
     def test_event_skip_kb_has_cancel(self):
         from app.keyboards.events import event_skip_kb
@@ -235,65 +231,65 @@ class TestEventsKeyboard:
         assert "cancel" in all_cbs
 
 
-class TestNotesKeyboard:
-    """Test note keyboard builders."""
+class TestWishesKeyboard:
+    """Test wish keyboard builders."""
 
-    def test_notes_list_empty(self):
-        from app.keyboards.notes import notes_list_kb
-        kb = notes_list_kb([], 0, 0, "en")
+    def test_wishes_list_empty(self):
+        from app.keyboards.wishes import wishes_list_kb
+        kb = wishes_list_kb([], 0, 0, "en")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
         assert len(buttons) >= 2  # create + back
 
-    def test_notes_list_text_preview_truncation(self):
-        from app.keyboards.notes import notes_list_kb
-        long_note = _make_note_obj(text="A" * 100)
-        kb = notes_list_kb([long_note], 0, 1, "ru")
+    def test_wishes_list_text_preview_truncation(self):
+        from app.keyboards.wishes import wishes_list_kb
+        long_wish = _make_wish_obj(text="A" * 100)
+        kb = wishes_list_kb([long_wish], 0, 1, "ru")
         first_btn = kb.inline_keyboard[0][0]
         assert "..." in first_btn.text
 
-    def test_note_view_kb(self):
-        from app.keyboards.notes import note_view_kb
-        n = _make_note_obj()
-        kb = note_view_kb(n, "ru")
+    def test_wish_view_kb(self):
+        from app.keyboards.wishes import wish_view_kb
+        n = _make_wish_obj()
+        kb = wish_view_kb(n, "ru")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
         assert any("edit" in cb for cb in all_cbs)
         assert any("delete" in cb for cb in all_cbs)
 
-    def test_note_skip_kb_has_cancel(self):
-        from app.keyboards.notes import note_skip_kb
-        kb = note_skip_kb("en")
+    def test_wish_skip_kb_has_cancel(self):
+        from app.keyboards.wishes import wish_skip_kb
+        kb = wish_skip_kb("en")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
         assert "skip" in all_cbs
         assert "cancel" in all_cbs
 
 
-class TestTagsKeyboard:
-    """Test tag keyboard builders."""
+class TestPeopleKeyboard:
+    """Test person keyboard builders."""
 
-    def test_tags_list_empty(self):
-        from app.keyboards.tags import tags_list_kb
-        kb = tags_list_kb([], 0, 0, "ru")
+    def test_people_list_empty(self):
+        from app.keyboards.people import people_list_kb
+        kb = people_list_kb([], 0, 0, "ru")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
         assert len(buttons) >= 2  # create + back
 
-    def test_tags_list_with_items(self):
-        from app.keyboards.tags import tags_list_kb
-        tags = [_make_tag_obj(name=f"Tag{i}") for i in range(3)]
-        kb = tags_list_kb(tags, 0, 3, "en")
+    def test_people_list_with_items(self):
+        from app.keyboards.people import people_list_kb
+        people_items = [_make_person_obj(name=f"Person{i}") for i in range(3)]
+        kb = people_list_kb(people_items, 0, 3, "en")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
-        assert len(buttons) == 5  # 3 tags + create + back
+        assert len(buttons) == 5  # 3 people + create + back
 
-    def test_tag_view_kb(self):
-        from app.keyboards.tags import tag_view_kb
-        tg = _make_tag_obj()
-        kb = tag_view_kb(tg, "ru")
+    def test_person_view_kb(self):
+        from app.keyboards.people import person_view_kb
+        tg = _make_person_obj()
+        kb = person_view_kb(tg, "ru")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
         assert any("rename" in cb for cb in all_cbs)
         assert any("delete" in cb for cb in all_cbs)
 
-    def test_tag_delete_confirm_kb(self):
-        from app.keyboards.tags import tag_delete_confirm_kb
-        kb = tag_delete_confirm_kb("test-id", "en")
+    def test_person_delete_confirm_kb(self):
+        from app.keyboards.people import person_delete_confirm_kb
+        kb = person_delete_confirm_kb("test-id", "en")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
         assert len(buttons) == 2
 
@@ -380,19 +376,17 @@ class TestPagination:
         from app.keyboards.pagination import pagination_row
         row = pagination_row("events", 3, 20, 5, "ru")
         texts = [btn.text for btn in row]
-        # Page 4/4 — should have prev but no next
         assert "4/4" in texts
-        # Should have prev
         assert len(row) == 2  # prev + counter
 
     def test_middle_page_both_arrows(self):
         from app.keyboards.pagination import pagination_row
-        row = pagination_row("notes", 1, 15, 5, "ru")
+        row = pagination_row("wishes", 1, 15, 5, "ru")
         assert len(row) == 3  # prev + counter + next
 
     def test_single_page_no_arrows(self):
         from app.keyboards.pagination import pagination_row
-        row = pagination_row("tags", 0, 3, 5, "ru")
+        row = pagination_row("people", 0, 3, 5, "ru")
         assert len(row) == 1  # just counter
 
     def test_page_counter_text(self):
@@ -414,38 +408,38 @@ class TestFSMStates:
         from app.handlers.states import OnboardingStates
         assert OnboardingStates.waiting_language
         assert OnboardingStates.waiting_first_event
-        assert OnboardingStates.waiting_first_note
+        assert OnboardingStates.waiting_first_wish
 
     def test_event_create_states(self):
         from app.handlers.states import EventCreateStates
         assert EventCreateStates.waiting_title
         assert EventCreateStates.waiting_date
         assert EventCreateStates.waiting_description
-        assert EventCreateStates.waiting_tags
+        assert EventCreateStates.waiting_people
 
     def test_event_edit_states(self):
         from app.handlers.states import EventEditStates
         assert EventEditStates.waiting_title
         assert EventEditStates.waiting_date
         assert EventEditStates.waiting_description
-        assert EventEditStates.waiting_tags
+        assert EventEditStates.waiting_people
 
-    def test_note_create_states(self):
-        from app.handlers.states import NoteCreateStates
-        assert NoteCreateStates.waiting_text
-        assert NoteCreateStates.waiting_reminder
-        assert NoteCreateStates.waiting_tags
+    def test_wish_create_states(self):
+        from app.handlers.states import WishCreateStates
+        assert WishCreateStates.waiting_text
+        assert WishCreateStates.waiting_reminder
+        assert WishCreateStates.waiting_people
 
-    def test_note_edit_states(self):
-        from app.handlers.states import NoteEditStates
-        assert NoteEditStates.waiting_text
-        assert NoteEditStates.waiting_reminder
-        assert NoteEditStates.waiting_tags
+    def test_wish_edit_states(self):
+        from app.handlers.states import WishEditStates
+        assert WishEditStates.waiting_text
+        assert WishEditStates.waiting_reminder
+        assert WishEditStates.waiting_people
 
-    def test_tag_states(self):
-        from app.handlers.states import TagCreateStates, TagRenameStates
-        assert TagCreateStates.waiting_name
-        assert TagRenameStates.waiting_name
+    def test_person_states(self):
+        from app.handlers.states import PersonCreateStates, PersonRenameStates
+        assert PersonCreateStates.waiting_name
+        assert PersonRenameStates.waiting_name
 
     def test_settings_states(self):
         from app.handlers.states import SettingsStates
@@ -489,36 +483,36 @@ class TestSchemas:
         except ValidationError:
             pass
 
-    def test_event_create_tag_names_default_empty(self):
+    def test_event_create_person_names_default_empty(self):
         from app.schemas.event import EventCreate
         e = EventCreate(title="Test", event_date=date(2023, 1, 1))
-        assert e.tag_names == []
+        assert e.person_names == []
 
     def test_event_update_all_optional(self):
         from app.schemas.event import EventUpdate
         u = EventUpdate()
         assert u.title is None
-        assert u.tag_names is None
+        assert u.person_names is None
 
-    def test_note_create_requires_text(self):
+    def test_wish_create_requires_text(self):
         from pydantic import ValidationError
 
-        from app.schemas.note import NoteCreate
+        from app.schemas.wish import WishCreate
         try:
-            NoteCreate()  # type: ignore[call-arg]
+            WishCreate()  # type: ignore[call-arg]
             raise AssertionError("Should require text")
         except ValidationError:
             pass
 
-    def test_note_create_tag_names_default_empty(self):
-        from app.schemas.note import NoteCreate
-        n = NoteCreate(text="Hello")
-        assert n.tag_names == []
-        assert n.reminder_date is None
+    def test_wish_create_person_names_default_empty(self):
+        from app.schemas.wish import WishCreate
+        w = WishCreate(text="Hello")
+        assert w.person_names == []
+        assert w.reminder_date is None
 
-    def test_note_update_all_optional(self):
-        from app.schemas.note import NoteUpdate
-        u = NoteUpdate()
+    def test_wish_update_all_optional(self):
+        from app.schemas.wish import WishUpdate
+        u = WishUpdate()
         assert u.text is None
 
     def test_user_update_all_optional(self):
@@ -677,21 +671,17 @@ class TestRateLimitMiddleware:
         msg.from_user = MagicMock()
         msg.from_user.id = 42
         msg.answer = AsyncMock()
-        # isinstance check needs to pass for Message
         msg.__class__ = type("Message", (), {})
 
-        # Monkey-patch isinstance to make our mock pass
         from aiogram.types import Message
 
         data: dict = {"lang": "ru"}
 
-        # Use real Message-like mock
         real_msg = MagicMock(spec=Message)
         real_msg.from_user = MagicMock()
         real_msg.from_user.id = 42
         real_msg.answer = AsyncMock()
 
-        # Send 3 requests (limit = 2)
         for _ in range(2):
             await mw(mock_handler, real_msg, data)
         result = await mw(mock_handler, real_msg, data)
@@ -788,7 +778,6 @@ class TestConfig:
 
     def test_app_debug_default(self):
         from app.config import settings
-        # app_debug should default to False (from memory)
         assert isinstance(settings.app_debug, bool)
 
 
@@ -876,9 +865,9 @@ class TestMetrics:
         assert ai_latency_seconds is not None
 
     def test_entity_gauges_exist(self):
-        from app.utils.metrics import events_total, notes_total
+        from app.utils.metrics import events_total, wishes_total
         assert events_total is not None
-        assert notes_total is not None
+        assert wishes_total is not None
 
     def test_notification_counter_exists(self):
         from app.utils.metrics import notifications_sent_total

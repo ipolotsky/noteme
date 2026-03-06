@@ -28,7 +28,7 @@ class WorkerSettings:
         "app.workers.beautiful_dates.recalculate_event_task",
         "app.workers.beautiful_dates.recalculate_all_task",
         "app.workers.notifications.send_digest_task",
-        "app.workers.notifications.send_note_reminders_task",
+        "app.workers.notifications.send_wish_reminders_task",
         "app.workers.notifications.check_and_send_notifications",
         "app.workers.ai_logs.persist_ai_logs_task",
         "app.workers.action_logs.persist_action_logs_task",
