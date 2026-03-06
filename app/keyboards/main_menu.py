@@ -18,11 +18,27 @@ def cancel_kb(lang: str) -> InlineKeyboardMarkup:
     ])
 
 
+def onboarding_event_kb(lang: str) -> InlineKeyboardMarkup:
+    from app.keyboards.callbacks import OnboardCb
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text=t("onboarding.quick_event", lang),
+                callback_data=OnboardCb(action="quick_event").pack(),
+            ),
+            InlineKeyboardButton(
+                text="\u23ed",
+                callback_data=OnboardCb(action="skip").pack(),
+            ),
+        ],
+    ])
+
+
 def onboarding_skip_kb(lang: str) -> InlineKeyboardMarkup:
     from app.keyboards.callbacks import OnboardCb
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
-            text=f"\u23ed {t('onboarding.skip', lang)}",
+            text="\u23ed",
             callback_data=OnboardCb(action="skip").pack(),
         )],
     ])

@@ -120,7 +120,7 @@ class TestOnboarding:
         assert "reply_markup" in msg.answer.call_args.kwargs
 
     async def test_03_onboarding_language_advances_to_step1(self, session: AsyncSession):
-        """S03: Language selection → step1 prompt with skip button."""
+        """S03: Language selection -> step1 prompt with event keyboard."""
         from app.handlers.start import onboarding_language
 
         user = await _make_user(session, onboarding_completed=False)
@@ -131,12 +131,11 @@ class TestOnboarding:
         await onboarding_language(cb, cd, state, user, session)
 
         cb.message.edit_text.assert_called_once()
-        # Intro and step1 are sent as separate answer messages
         assert cb.message.answer.call_count >= 2
         state.set_state.assert_called_once()
 
-    async def test_04_onboarding_skip_event_advances_to_step2(self, session: AsyncSession):
-        """S04: Skip event step → step2 prompt."""
+    async def test_04_onboarding_skip_event_finishes(self, session: AsyncSession):
+        """S04: Skip event step -> show skipped message and finish onboarding."""
         from app.handlers.start import onboarding_skip_event
 
         user = await _make_user(session, onboarding_completed=False)
@@ -146,7 +145,7 @@ class TestOnboarding:
         await onboarding_skip_event(cb, state, user, session)
 
         cb.message.edit_text.assert_called_once()
-        state.set_state.assert_called_once()
+        state.clear.assert_called_once()
 
     async def test_05_onboarding_skip_wish_completes(self, session: AsyncSession):
         """S05: Skip wish step → onboarding complete, main menu shown."""

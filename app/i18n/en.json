@@ -5,11 +5,14 @@
   "language_set": "Language set: English",
 
   "onboarding": {
-    "intro": "I remember important dates and find beautiful number coincidences.\n\n<b>How it works:</b>\n\n1. Tell me about an event — voice or text:\n\"Wedding with Maria on July 17, 2022\"\nI'll understand the date, create the event, and link it to Maria.\n\n2. Write down what someone close wants:\n\"Maria wants a hot air balloon ride\"\nI'll link the wish to Maria automatically.\n\n3. Get notifications:\n<i>\"In 10 days — exactly 777 days since the wedding with Maria\n\uD83D\uDCDD Maria wants a hot air balloon ride\"</i>\n\nYou'll know what to give when a beautiful date comes. Notifications are spoiler-protected — no one will peek.\n\nWorks for everyone: friends, parents, colleagues. Photos, videos, files — I'll save those too.",
-    "step1": "Tell me about an important event — text or voice.\n\nExamples:\n\uD83D\uDC8D \"Wedding with Maria on July 17, 2022\"\n\uD83D\uDE97 \"Mike got his driver's license two days ago\"",
-    "step2": "Now write down what someone close to you wants.\n\nExamples:\n\uD83D\uDC8D \"Maria wants a hot air balloon ride\"\n\uD83D\uDE97 \"Mike dreams of Sony headphones\"",
+    "intro": "I remember important dates and find beautiful number coincidences - 100 days, 777 days, 1 year. Add an event, write down wishes, and I'll remind you what to give when a beautiful date comes.",
+    "step1": "Tell me about an important event - text or voice.\n\nExamples:\n\"Wedding with Maria on July 17, 2022\"\n\"Mike got his driver's license two days ago\"",
+    "step2_personal": "Let's save your wishes. Say or type:\n\"I want big headphones with noise cancellation\"",
+    "step2_with_person": "Let's remember what {name} loves or wants. Say:\n\"{name} really wanted a beige purse\"",
     "step3": "All set! Use the menu below to navigate.",
-    "skip": "Skip"
+    "skipped": "OK, when you add an event - the magic begins, waiting for you!",
+    "skip": "Skip",
+    "quick_event": "I registered"
   },
 
   "menu": {
