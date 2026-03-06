@@ -724,7 +724,24 @@ class TestWorkerTasks:
 
 
 # =====================================================================
-# E2E FLOW 10: Date Utils
+# E2E FLOW 10: Strategy Seeding
+# =====================================================================
+
+
+class TestStrategySeeding:
+    """Test automatic strategy seeding on startup."""
+
+    async def test_seed_strategies_idempotent(self, session: AsyncSession):
+        """Second call returns 0 when all strategies already exist."""
+        from app.utils.seed import seed_strategies
+
+        await seed_strategies()
+        second = await seed_strategies()
+        assert second == 0
+
+
+# =====================================================================
+# E2E FLOW 11: Date Utils
 # =====================================================================
 
 

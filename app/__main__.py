@@ -6,6 +6,7 @@ import uvicorn
 
 from app.bot import bot, dp
 from app.config import settings
+from app.utils.seed import seed_strategies
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,10 @@ async def main() -> None:
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, _signal_handler)
+
+    count = await seed_strategies()
+    if count:
+        logger.info("Seeded %d strategies", count)
 
     try:
         await asyncio.gather(
