@@ -1,6 +1,6 @@
 """Tests for AI handler — text/voice processing + _handle_agent_result.
 
-Covers the tag_names bug fix ([] or None → ValidationError), voice handler,
+Covers the person_names bug fix ([] or None → ValidationError), voice handler,
 and all intent paths in _handle_agent_result.
 """
 
@@ -15,7 +15,7 @@ from pydantic import ValidationError
 from app.agents.state import AgentState
 from app.handlers.ai import _format_user_text
 from app.schemas.event import EventCreate
-from app.schemas.note import NoteCreate
+from app.schemas.wish import WishCreate
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -27,7 +27,7 @@ def mock_user():
     user = MagicMock()
     user.id = 123456789
     user.max_events = 10
-    user.max_notes = 10
+    user.max_wishes = 10
     return user
 
 
@@ -66,12 +66,10 @@ def mock_voice_message():
     msg.answer = AsyncMock()
     msg.bot = AsyncMock()
 
-    # bot.get_file returns a file object with file_path
     mock_file = MagicMock()
     mock_file.file_path = "voice/file_0.oga"
     msg.bot.get_file = AsyncMock(return_value=mock_file)
 
-    # bot.download_file returns BytesIO with audio data
     audio_data = b"\x00" * 1024  # dummy audio bytes
     msg.bot.download_file = AsyncMock(return_value=BytesIO(audio_data))
 
@@ -83,45 +81,45 @@ def mock_voice_message():
 # =====================================================================
 
 
-class TestTagNamesSchemaValidation:
-    """Verify that tag_names=None causes ValidationError (the original bug)."""
+class TestPersonNamesSchemaValidation:
+    """Verify that person_names=None causes ValidationError (the original bug)."""
 
-    def test_note_create_with_empty_list_ok(self):
-        """NoteCreate accepts empty list for tag_names."""
-        note = NoteCreate(text="test", tag_names=[])
-        assert note.tag_names == []
+    def test_wish_create_with_empty_list_ok(self):
+        """WishCreate accepts empty list for person_names."""
+        wish = WishCreate(text="test", person_names=[])
+        assert wish.person_names == []
 
-    def test_note_create_with_tags_ok(self):
-        """NoteCreate accepts a populated list."""
-        note = NoteCreate(text="test", tag_names=["Max", "gifts"])
-        assert note.tag_names == ["Max", "gifts"]
+    def test_wish_create_with_people_ok(self):
+        """WishCreate accepts a populated list."""
+        wish = WishCreate(text="test", person_names=["Max", "gifts"])
+        assert wish.person_names == ["Max", "gifts"]
 
-    def test_note_create_with_none_fails(self):
-        """NoteCreate rejects None for tag_names — the original bug."""
+    def test_wish_create_with_none_fails(self):
+        """WishCreate rejects None for person_names — the original bug."""
         with pytest.raises(ValidationError):
-            NoteCreate(text="test", tag_names=None)
+            WishCreate(text="test", person_names=None)
 
     def test_event_create_with_empty_list_ok(self):
-        """EventCreate accepts empty list for tag_names."""
-        event = EventCreate(title="test", event_date=date(2024, 1, 1), tag_names=[])
-        assert event.tag_names == []
+        """EventCreate accepts empty list for person_names."""
+        event = EventCreate(title="test", event_date=date(2024, 1, 1), person_names=[])
+        assert event.person_names == []
 
     def test_event_create_with_none_fails(self):
-        """EventCreate rejects None for tag_names."""
+        """EventCreate rejects None for person_names."""
         with pytest.raises(ValidationError):
-            EventCreate(title="test", event_date=date(2024, 1, 1), tag_names=None)
+            EventCreate(title="test", event_date=date(2024, 1, 1), person_names=None)
 
     def test_or_none_vs_or_empty_list(self):
         """Demonstrate the bug: [] or None == None, [] or [] == []."""
-        empty_tags = []
-        assert (empty_tags or None) is None  # BUG pattern
-        assert (empty_tags or []) == []  # FIX pattern
+        empty_people = []
+        assert (empty_people or None) is None  # BUG pattern
+        assert (empty_people or []) == []  # FIX pattern
 
-    def test_populated_tags_or_patterns_equivalent(self):
-        """When tags are populated, both patterns work the same."""
-        tags = ["Max"]
-        assert (tags or None) == ["Max"]
-        assert (tags or []) == ["Max"]
+    def test_populated_people_or_patterns_equivalent(self):
+        """When people are populated, both patterns work the same."""
+        people = ["Max"]
+        assert (people or None) == ["Max"]
+        assert (people or []) == ["Max"]
 
 
 # =====================================================================
@@ -184,11 +182,11 @@ class TestHandleAgentResult:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
     @patch("app.handlers.ai.create_event", new_callable=AsyncMock)
-    async def test_create_event_with_empty_tags(
+    async def test_create_event_with_empty_people(
         self, mock_create, mock_recalc, mock_log,
         mock_message, mock_processing_msg, mock_user, mock_session,
     ):
-        """create_event with empty tag_names should work (was the bug)."""
+        """create_event with empty person_names should work (was the bug)."""
         from app.handlers.ai import _handle_agent_result
 
         mock_event = MagicMock()
@@ -202,7 +200,7 @@ class TestHandleAgentResult:
             event_title="Wedding",
             event_date=date(2022, 8, 17),
             raw_text="свадьба 17 августа 2022",
-            tag_names=[],  # Empty tags — was causing the bug
+            person_names=[],  # Empty people — was causing the bug
             user_language="ru",
         )
 
@@ -211,22 +209,20 @@ class TestHandleAgentResult:
         )
 
         mock_create.assert_called_once()
-        # Verify tag_names is [] not None
         call_args = mock_create.call_args
         event_data = call_args[0][2]  # 3rd positional arg: EventCreate
         assert isinstance(event_data, EventCreate)
-        assert event_data.tag_names == ["Личное"]
-        # Verify raw_text saved as formatted description
+        assert event_data.person_names == ["Личное"]
         assert event_data.description == "Свадьба 17 августа 2022."
 
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
     @patch("app.handlers.ai.create_event", new_callable=AsyncMock)
-    async def test_create_event_with_tags(
+    async def test_create_event_with_people(
         self, mock_create, mock_recalc, mock_log,
         mock_message, mock_processing_msg, mock_user, mock_session,
     ):
-        """create_event with populated tags works."""
+        """create_event with populated people works."""
         mock_event = MagicMock()
         mock_event.id = uuid.uuid4()
         mock_event.title = "Wedding with Max"
@@ -239,7 +235,7 @@ class TestHandleAgentResult:
             intent="create_event",
             event_title="Wedding with Max",
             event_date=date(2022, 8, 17),
-            tag_names=["Max", "relationships"],
+            person_names=["Max", "relationships"],
             user_language="ru",
         )
 
@@ -249,26 +245,26 @@ class TestHandleAgentResult:
 
         mock_create.assert_called_once()
         event_data = mock_create.call_args[0][2]
-        assert event_data.tag_names == ["Max", "relationships"]
+        assert event_data.person_names == ["Max", "relationships"]
 
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
-    @patch("app.handlers.ai.create_note", new_callable=AsyncMock)
-    async def test_create_note_with_empty_tags(
+    @patch("app.handlers.ai.create_wish", new_callable=AsyncMock)
+    async def test_create_wish_with_empty_people(
         self, mock_create, mock_log,
         mock_message, mock_processing_msg, mock_user, mock_session,
     ):
-        """create_note with empty tag_names should work (was the bug)."""
+        """create_wish with empty person_names should work (was the bug)."""
         from app.handlers.ai import _handle_agent_result
 
-        mock_note = MagicMock()
-        mock_note.id = uuid.uuid4()
-        mock_create.return_value = mock_note
+        mock_wish = MagicMock()
+        mock_wish.id = uuid.uuid4()
+        mock_create.return_value = mock_wish
 
         state = AgentState(
-            intent="create_note",
-            note_text="Я хочу книгу От нуля до единицы",
+            intent="create_wish",
+            wish_text="Я хочу книгу От нуля до единицы",
             raw_text="я хочу книгу От нуля до единицы",
-            tag_names=[],  # Empty tags — was causing the bug
+            person_names=[],  # Empty people — was causing the bug
             user_language="ru",
         )
 
@@ -277,29 +273,28 @@ class TestHandleAgentResult:
         )
 
         mock_create.assert_called_once()
-        note_data = mock_create.call_args[0][2]
-        assert isinstance(note_data, NoteCreate)
-        assert note_data.tag_names == ["Личное"]
-        # Note text should be formatted original text
-        assert note_data.text == "Я хочу книгу От нуля до единицы."
+        wish_data = mock_create.call_args[0][2]
+        assert isinstance(wish_data, WishCreate)
+        assert wish_data.person_names == ["Личное"]
+        assert wish_data.text == "Я хочу книгу От нуля до единицы."
 
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
-    @patch("app.handlers.ai.create_note", new_callable=AsyncMock)
-    async def test_create_note_with_tags(
+    @patch("app.handlers.ai.create_wish", new_callable=AsyncMock)
+    async def test_create_wish_with_people(
         self, mock_create, mock_log,
         mock_message, mock_processing_msg, mock_user, mock_session,
     ):
-        """create_note with populated tags works."""
+        """create_wish with populated people works."""
         from app.handlers.ai import _handle_agent_result
 
-        mock_note = MagicMock()
-        mock_note.id = uuid.uuid4()
-        mock_create.return_value = mock_note
+        mock_wish = MagicMock()
+        mock_wish.id = uuid.uuid4()
+        mock_create.return_value = mock_wish
 
         state = AgentState(
-            intent="create_note",
-            note_text="Лева хочет в подарок сникерс",
-            tag_names=["Лева", "подарки"],
+            intent="create_wish",
+            wish_text="Лева хочет в подарок сникерс",
+            person_names=["Лева", "подарки"],
             user_language="ru",
         )
 
@@ -308,27 +303,27 @@ class TestHandleAgentResult:
         )
 
         mock_create.assert_called_once()
-        note_data = mock_create.call_args[0][2]
-        assert note_data.tag_names == ["Лева", "подарки"]
+        wish_data = mock_create.call_args[0][2]
+        assert wish_data.person_names == ["Лева", "подарки"]
 
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
-    @patch("app.handlers.ai.create_note", new_callable=AsyncMock)
-    async def test_create_note_with_reminder(
+    @patch("app.handlers.ai.create_wish", new_callable=AsyncMock)
+    async def test_create_wish_with_reminder(
         self, mock_create, mock_log,
         mock_message, mock_processing_msg, mock_user, mock_session,
     ):
-        """create_note with reminder_date passes it correctly."""
+        """create_wish with reminder_date passes it correctly."""
         from app.handlers.ai import _handle_agent_result
 
-        mock_note = MagicMock()
-        mock_note.id = uuid.uuid4()
-        mock_create.return_value = mock_note
+        mock_wish = MagicMock()
+        mock_wish.id = uuid.uuid4()
+        mock_create.return_value = mock_wish
 
         state = AgentState(
-            intent="create_note",
-            note_text="Buy present",
-            tag_names=["Max"],
-            note_reminder_date=date(2026, 12, 25),
+            intent="create_wish",
+            wish_text="Buy present",
+            person_names=["Max"],
+            wish_reminder_date=date(2026, 12, 25),
             user_language="en",
         )
 
@@ -336,8 +331,8 @@ class TestHandleAgentResult:
             mock_message, mock_processing_msg, state, mock_user, "en", mock_session,
         )
 
-        note_data = mock_create.call_args[0][2]
-        assert note_data.reminder_date == date(2026, 12, 25)
+        wish_data = mock_create.call_args[0][2]
+        assert wish_data.reminder_date == date(2026, 12, 25)
 
     async def test_create_event_missing_date_no_db_call(
         self, mock_message, mock_processing_msg, mock_user, mock_session,
@@ -356,18 +351,17 @@ class TestHandleAgentResult:
             mock_message, mock_processing_msg, state, mock_user, "ru", mock_session,
         )
 
-        # Should show fallthrough response, no DB call
         mock_processing_msg.edit_text.assert_called_once()
 
-    async def test_create_note_empty_text_no_db_call(
+    async def test_create_wish_empty_text_no_db_call(
         self, mock_message, mock_processing_msg, mock_user, mock_session,
     ):
-        """create_note without text falls through to default response."""
+        """create_wish without text falls through to default response."""
         from app.handlers.ai import _handle_agent_result
 
         state = AgentState(
-            intent="create_note",
-            note_text="",  # Empty text
+            intent="create_wish",
+            wish_text="",  # Empty text
             user_language="ru",
         )
 
@@ -383,7 +377,7 @@ class TestHandleAgentResult:
         """View intents just show a response and return."""
         from app.handlers.ai import _handle_agent_result
 
-        for intent in ("view_events", "view_notes", "view_feed", "view_tags"):
+        for intent in ("view_events", "view_wishes", "view_feed", "view_people"):
             mock_processing_msg.reset_mock()
             state = AgentState(intent=intent, user_language="ru")
 
@@ -434,7 +428,7 @@ class TestHandleAgentResult:
             event_title="Met Leva",
             event_date=date(2026, 2, 6),
             raw_text="позавчера я познакомился с Левой",
-            tag_names=["Лева"],
+            person_names=["Лева"],
             user_language="ru",
         )
 
@@ -446,23 +440,23 @@ class TestHandleAgentResult:
         assert event_data.description == "Позавчера я познакомился с Левой."
 
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
-    @patch("app.handlers.ai.create_note", new_callable=AsyncMock)
-    async def test_note_saves_formatted_raw_text(
+    @patch("app.handlers.ai.create_wish", new_callable=AsyncMock)
+    async def test_wish_saves_formatted_raw_text(
         self, mock_create, mock_log,
         mock_message, mock_processing_msg, mock_user, mock_session,
     ):
-        """Note text is the formatted original user text."""
+        """Wish text is the formatted original user text."""
         from app.handlers.ai import _handle_agent_result
 
-        mock_note = MagicMock()
-        mock_note.id = uuid.uuid4()
-        mock_create.return_value = mock_note
+        mock_wish = MagicMock()
+        mock_wish.id = uuid.uuid4()
+        mock_create.return_value = mock_wish
 
         state = AgentState(
-            intent="create_note",
-            note_text="Лева хочет в подарок сникерс",
+            intent="create_wish",
+            wish_text="Лева хочет в подарок сникерс",
             raw_text="лева хочет в подарок сникерс",
-            tag_names=["Лева"],
+            person_names=["Лева"],
             user_language="ru",
         )
 
@@ -470,8 +464,8 @@ class TestHandleAgentResult:
             mock_message, mock_processing_msg, state, mock_user, "ru", mock_session,
         )
 
-        note_data = mock_create.call_args[0][2]
-        assert note_data.text == "Лева хочет в подарок сникерс."
+        wish_data = mock_create.call_args[0][2]
+        assert wish_data.text == "Лева хочет в подарок сникерс."
 
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
@@ -490,7 +484,7 @@ class TestHandleAgentResult:
             intent="create_event",
             event_title="Too Many",
             event_date=date(2024, 1, 1),
-            tag_names=[],
+            person_names=[],
             user_language="ru",
         )
 
@@ -502,21 +496,21 @@ class TestHandleAgentResult:
         assert "10" in call_text  # limit number in message
 
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
-    @patch("app.handlers.ai.create_note", new_callable=AsyncMock)
-    async def test_note_limit_error(
+    @patch("app.handlers.ai.create_wish", new_callable=AsyncMock)
+    async def test_wish_limit_error(
         self, mock_create, mock_log,
         mock_message, mock_processing_msg, mock_user, mock_session,
     ):
-        """NoteLimitError shows limit_reached message."""
+        """WishLimitError shows limit_reached message."""
         from app.handlers.ai import _handle_agent_result
-        from app.services.note_service import NoteLimitError
+        from app.services.wish_service import WishLimitError
 
-        mock_create.side_effect = NoteLimitError(10)
+        mock_create.side_effect = WishLimitError(10)
 
         state = AgentState(
-            intent="create_note",
-            note_text="Too Many Notes",
-            tag_names=[],
+            intent="create_wish",
+            wish_text="Too Many Wishes",
+            person_names=[],
             user_language="ru",
         )
 
@@ -551,7 +545,7 @@ class TestHandleText:
         processing_msg = AsyncMock()
         mock_message.answer = AsyncMock(return_value=processing_msg)
 
-        mock_state = AgentState(intent="create_note", note_text="test")
+        mock_state = AgentState(intent="create_wish", wish_text="test")
         mock_process.return_value = mock_state
 
         await handle_text(mock_message, mock_user, "ru", mock_session)
@@ -582,7 +576,6 @@ class TestHandleText:
         await handle_text(mock_message, mock_user, "ru", mock_session)
 
         processing_msg.edit_text.assert_called_once()
-        # Should contain the error message from i18n
         call_text = processing_msg.edit_text.call_args[0][0]
         assert len(call_text) > 0  # Has some error text
 
@@ -646,16 +639,13 @@ class TestHandleVoice:
 
         await handle_voice(mock_voice_message, mock_user, "ru", mock_session)
 
-        # Verify file download via message.bot
         mock_voice_message.bot.get_file.assert_called_once_with("AgACAgIAAx0CZ")
         mock_voice_message.bot.download_file.assert_called_once()
 
-        # Verify transcription called with real filename from Telegram
         mock_transcribe.assert_called_once()
         assert mock_transcribe.call_args[1]["user_id"] == mock_user.id
         assert mock_transcribe.call_args[1]["filename"] == "file_0.oga"
 
-        # Verify pipeline called with transcribed text
         mock_process.assert_called_once_with(
             text="позавчера я познакомился с Левой",
             user_id=mock_user.id,
@@ -757,11 +747,10 @@ class TestHandleVoice:
         processing_msg = AsyncMock()
         mock_voice_message.answer = AsyncMock(return_value=processing_msg)
         mock_transcribe.return_value = "test"
-        mock_process.return_value = AgentState(intent="create_note", note_text="test")
+        mock_process.return_value = AgentState(intent="create_wish", wish_text="test")
 
         await handle_voice(mock_voice_message, mock_user, "ru", mock_session)
 
-        # Ensure message.bot was used (not a module-level import)
         mock_voice_message.bot.get_file.assert_called_once()
         mock_voice_message.bot.download_file.assert_called_once()
 
@@ -772,14 +761,13 @@ class TestHandleVoice:
 
 
 class TestAIHandlerIntegrationWithDB:
-    """Integration tests using real DB session to verify note/event creation."""
+    """Integration tests using real DB session to verify wish/event creation."""
 
-    async def test_create_note_empty_tags_with_db(self, session):
-        """Create a note via _handle_agent_result with empty tags — uses real DB."""
+    async def test_create_wish_empty_people_with_db(self, session):
+        """Create a wish via _handle_agent_result with empty people — uses real DB."""
         from app.models.user import User
-        from app.services.note_service import get_user_notes
+        from app.services.wish_service import get_user_wishes
 
-        # Create user in DB
         user = User(id=99001, first_name="TestUser", username="test_user")
         session.add(user)
         await session.flush()
@@ -788,9 +776,9 @@ class TestAIHandlerIntegrationWithDB:
         mock_processing_msg = AsyncMock()
 
         state = AgentState(
-            intent="create_note",
-            note_text="Я хочу книгу От нуля до единицы",
-            tag_names=[],  # Empty tags — was causing the bug
+            intent="create_wish",
+            wish_text="Я хочу книгу От нуля до единицы",
+            person_names=[],  # Empty people — was causing the bug
             user_language="ru",
         )
 
@@ -800,16 +788,16 @@ class TestAIHandlerIntegrationWithDB:
                 mock_message, mock_processing_msg, state, user, "ru", session,
             )
 
-        notes = await get_user_notes(session, user.id)
-        assert len(notes) == 1
-        assert notes[0].text == "Я хочу книгу От нуля до единицы"
-        assert len(notes[0].tags) == 1
-        assert notes[0].tags[0].name == "Личное"
+        wishes = await get_user_wishes(session, user.id)
+        assert len(wishes) == 1
+        assert wishes[0].text == "Я хочу книгу От нуля до единицы"
+        assert len(wishes[0].people) == 1
+        assert wishes[0].people[0].name == "Личное"
 
-    async def test_create_note_with_tags_with_db(self, session):
-        """Create a note with tags — uses real DB."""
+    async def test_create_wish_with_people_with_db(self, session):
+        """Create a wish with people — uses real DB."""
         from app.models.user import User
-        from app.services.note_service import get_user_notes
+        from app.services.wish_service import get_user_wishes
 
         user = User(id=99002, first_name="TestUser2", username="test2")
         session.add(user)
@@ -819,9 +807,9 @@ class TestAIHandlerIntegrationWithDB:
         mock_processing_msg = AsyncMock()
 
         state = AgentState(
-            intent="create_note",
-            note_text="Лева хочет в подарок сникерс",
-            tag_names=["Лева", "подарки"],
+            intent="create_wish",
+            wish_text="Лева хочет в подарок сникерс",
+            person_names=["Лева", "подарки"],
             user_language="ru",
         )
 
@@ -831,14 +819,14 @@ class TestAIHandlerIntegrationWithDB:
                 mock_message, mock_processing_msg, state, user, "ru", session,
             )
 
-        notes = await get_user_notes(session, user.id)
-        assert len(notes) == 1
-        assert notes[0].text == "Лева хочет в подарок сникерс"
-        tag_names = sorted([t.name for t in notes[0].tags])
-        assert tag_names == ["Лева", "подарки"]
+        wishes = await get_user_wishes(session, user.id)
+        assert len(wishes) == 1
+        assert wishes[0].text == "Лева хочет в подарок сникерс"
+        person_names = sorted([x.name for x in wishes[0].people])
+        assert person_names == ["Лева", "подарки"]
 
-    async def test_create_event_empty_tags_with_db(self, session):
-        """Create an event with empty tags — uses real DB."""
+    async def test_create_event_empty_people_with_db(self, session):
+        """Create an event with empty people — uses real DB."""
         from app.models.user import User
         from app.services.event_service import get_user_events
 
@@ -853,7 +841,7 @@ class TestAIHandlerIntegrationWithDB:
             intent="create_event",
             event_title="Concert",
             event_date=date(2025, 3, 15),
-            tag_names=[],
+            person_names=[],
             user_language="en",
         )
 
@@ -870,11 +858,11 @@ class TestAIHandlerIntegrationWithDB:
         assert len(events) == 1
         assert events[0].title == "Concert"
         assert events[0].event_date == date(2025, 3, 15)
-        assert len(events[0].tags) == 1
-        assert events[0].tags[0].name == "Personal"
+        assert len(events[0].people) == 1
+        assert events[0].people[0].name == "Personal"
 
-    async def test_create_event_with_tags_with_db(self, session):
-        """Create an event with tags — uses real DB."""
+    async def test_create_event_with_people_with_db(self, session):
+        """Create an event with people — uses real DB."""
         from app.models.user import User
         from app.services.event_service import get_user_events
 
@@ -889,7 +877,7 @@ class TestAIHandlerIntegrationWithDB:
             intent="create_event",
             event_title="Met Leva",
             event_date=date(2026, 2, 6),
-            tag_names=["Лева"],
+            person_names=["Лева"],
             user_language="ru",
         )
 
@@ -905,5 +893,5 @@ class TestAIHandlerIntegrationWithDB:
         events = await get_user_events(session, user.id)
         assert len(events) == 1
         assert events[0].title == "Met Leva"
-        tag_names = [t.name for t in events[0].tags]
-        assert "Лева" in tag_names
+        person_names = [x.name for x in events[0].people]
+        assert "Лева" in person_names

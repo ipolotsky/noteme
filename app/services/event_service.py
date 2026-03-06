@@ -1,16 +1,14 @@
-"""Event service — CRUD with tags and limit checking."""
-
 import uuid
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.event import Event, EventTag
-from app.models.tag import Tag
+from app.models.event import Event, EventPerson
+from app.models.person import Person
 from app.models.user import User
 from app.schemas.event import EventCreate, EventUpdate
-from app.services.tag_service import get_or_create_tags
+from app.services.person_service import get_or_create_people
 
 
 class EventLimitError(Exception):
@@ -22,7 +20,7 @@ class EventLimitError(Exception):
 async def get_event(
     session: AsyncSession, event_id: uuid.UUID, user_id: int | None = None
 ) -> Event | None:
-    stmt = select(Event).options(selectinload(Event.tags)).where(Event.id == event_id)
+    stmt = select(Event).options(selectinload(Event.people)).where(Event.id == event_id)
     if user_id is not None:
         stmt = stmt.where(Event.user_id == user_id)
     result = await session.execute(stmt)
@@ -34,7 +32,7 @@ async def get_user_events(
 ) -> list[Event]:
     result = await session.execute(
         select(Event)
-        .options(selectinload(Event.tags))
+        .options(selectinload(Event.people))
         .where(Event.user_id == user_id)
         .order_by(Event.event_date.desc())
         .offset(offset)
@@ -53,7 +51,6 @@ async def count_user_events(session: AsyncSession, user_id: int) -> int:
 async def create_event(
     session: AsyncSession, user_id: int, data: EventCreate
 ) -> Event:
-    # Check limit
     user = await session.get(User, user_id)
     if user is None:
         raise ValueError("User not found")
@@ -62,10 +59,9 @@ async def create_event(
     if count >= user.max_events:
         raise EventLimitError(user.max_events)
 
-    # Resolve tags first (before creating event to avoid lazy-load issues)
-    tags = []
-    if data.tag_names:
-        tags = await get_or_create_tags(session, user_id, data.tag_names)
+    people = []
+    if data.person_names:
+        people = await get_or_create_people(session, user_id, data.person_names)
 
     event = Event(
         user_id=user_id,
@@ -73,7 +69,7 @@ async def create_event(
         event_date=data.event_date,
         description=data.description,
         is_system=data.is_system,
-        tags=tags,
+        people=people,
     )
     session.add(event)
     await session.flush()
@@ -89,15 +85,14 @@ async def update_event(
         return None
 
     update_data = data.model_dump(exclude_unset=True)
-    tag_names = update_data.pop("tag_names", None)
+    person_names = update_data.pop("person_names", None)
 
     for field, value in update_data.items():
         setattr(event, field, value)
 
-    if tag_names is not None:
-        tags = await get_or_create_tags(session, event.user_id, tag_names)
-        # event.tags is already loaded via selectinload in get_event
-        event.tags = tags
+    if person_names is not None:
+        people = await get_or_create_people(session, event.user_id, person_names)
+        event.people = people
 
     await session.flush()
     return event
@@ -110,24 +105,23 @@ async def delete_event(
     if event is None:
         return False
     if event.is_system:
-        return False  # Cannot delete system events
+        return False
     await session.delete(event)
     await session.flush()
     return True
 
 
-async def get_events_by_tag_names(
-    session: AsyncSession, user_id: int, tag_names: list[str], limit: int = 10
+async def get_events_by_person_names(
+    session: AsyncSession, user_id: int, person_names: list[str], limit: int = 10
 ) -> list[Event]:
-    """Find events matching any of the given tag names."""
     result = await session.execute(
         select(Event)
-        .options(selectinload(Event.tags))
-        .join(EventTag, Event.id == EventTag.event_id)
-        .join(Tag, EventTag.tag_id == Tag.id)
+        .options(selectinload(Event.people))
+        .join(EventPerson, Event.id == EventPerson.event_id)
+        .join(Person, EventPerson.person_id == Person.id)
         .where(
             Event.user_id == user_id,
-            func.lower(Tag.name).in_([n.lower() for n in tag_names]),
+            func.lower(Person.name).in_([n.lower() for n in person_names]),
         )
         .distinct()
         .order_by(Event.event_date.desc())

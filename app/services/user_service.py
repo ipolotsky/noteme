@@ -35,8 +35,8 @@ async def get_or_create_user(session: AsyncSession, data: UserCreate) -> tuple[U
         first_name=data.first_name,
         language=data.language,
         max_events=settings.default_max_events,
-        max_notes=settings.default_max_notes,
-        max_tags_per_entity=settings.default_max_tags_per_entity,
+        max_wishes=settings.default_max_wishes,
+        max_people_per_entity=settings.default_max_people_per_entity,
     )
     session.add(user)
     await session.flush()

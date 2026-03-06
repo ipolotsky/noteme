@@ -3,31 +3,31 @@ from datetime import date, datetime
 
 from pydantic import BaseModel
 
-from app.schemas.event import TagBrief
+from app.schemas.event import PersonBrief
 
 
-class NoteBase(BaseModel):
+class WishBase(BaseModel):
     text: str
     reminder_date: date | None = None
 
 
-class NoteCreate(NoteBase):
-    tag_names: list[str] = []
+class WishCreate(WishBase):
+    person_names: list[str] = []
 
 
-class NoteUpdate(BaseModel):
+class WishUpdate(BaseModel):
     text: str | None = None
     reminder_date: date | None = None
-    tag_names: list[str] | None = None
+    person_names: list[str] | None = None
 
 
-class NoteRead(NoteBase):
+class WishRead(WishBase):
     id: uuid.UUID
     user_id: int
     reminder_sent: bool
     created_at: datetime
     updated_at: datetime | None
-    tags: list[TagBrief] = []
+    people: list[PersonBrief] = []
     has_media: bool = False
 
     model_config = {"from_attributes": True}

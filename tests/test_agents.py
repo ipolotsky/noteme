@@ -7,12 +7,12 @@ import pytest
 
 from app.agents.event_agent import event_agent_node
 from app.agents.formatter_agent import formatter_node
-from app.agents.note_agent import note_agent_node
 from app.agents.query_agent import query_agent_node
 from app.agents.router_agent import VALID_INTENTS, router_node
 from app.agents.state import AgentState
 from app.agents.validation_agent import validation_node
 from app.agents.whisper import whisper_node
+from app.agents.wish_agent import wish_agent_node
 
 # --- Whisper node ---
 
@@ -88,7 +88,7 @@ class TestRouterNode:
         assert result.intent == intent
 
     @patch("app.agents.router_agent.ChatOpenAI")
-    async def test_unknown_intent_defaults_to_create_note(self, mock_llm_cls):
+    async def test_unknown_intent_defaults_to_create_wish(self, mock_llm_cls):
         mock_response = AsyncMock()
         mock_response.content = "completely_unknown_intent"
         mock_llm = AsyncMock()
@@ -97,7 +97,7 @@ class TestRouterNode:
 
         state = AgentState(raw_text="test message")
         result = await router_node(state)
-        assert result.intent == "create_note"
+        assert result.intent == "create_wish"
 
 
 # --- Event agent node ---
@@ -107,7 +107,7 @@ class TestEventAgentNode:
     @patch("app.agents.event_agent.ChatOpenAI")
     async def test_extract_event(self, mock_llm_cls):
         mock_response = AsyncMock()
-        mock_response.content = '{"title": "Свадьба", "date": "2022-08-17", "description": "", "tags": ["Макс"]}'
+        mock_response.content = '{"title": "Свадьба", "date": "2022-08-17", "description": "", "people": ["Макс"]}'
         mock_llm = AsyncMock()
         mock_llm.ainvoke = AsyncMock(return_value=mock_response)
         mock_llm_cls.return_value = mock_llm
@@ -116,13 +116,13 @@ class TestEventAgentNode:
         result = await event_agent_node(state)
         assert result.event_title == "Свадьба"
         assert result.event_date == date(2022, 8, 17)
-        assert result.tag_names == ["Макс"]
+        assert result.person_names == ["Макс"]
         assert result.needs_confirmation
 
     @patch("app.agents.event_agent.ChatOpenAI")
     async def test_extract_event_markdown_wrapped(self, mock_llm_cls):
         mock_response = AsyncMock()
-        mock_response.content = '```json\n{"title": "Birthday", "date": "2000-01-15", "description": "", "tags": []}\n```'
+        mock_response.content = '```json\n{"title": "Birthday", "date": "2000-01-15", "description": "", "people": []}\n```'
         mock_llm = AsyncMock()
         mock_llm.ainvoke = AsyncMock(return_value=mock_response)
         mock_llm_cls.return_value = mock_llm
@@ -145,26 +145,26 @@ class TestEventAgentNode:
         assert result.error == "parse_error"
 
 
-# --- Note agent node ---
+# --- Wish agent node ---
 
 
-class TestNoteAgentNode:
-    @patch("app.agents.note_agent.ChatOpenAI")
-    async def test_extract_note(self, mock_llm_cls):
+class TestWishAgentNode:
+    @patch("app.agents.wish_agent.ChatOpenAI")
+    async def test_extract_wish(self, mock_llm_cls):
         mock_response = AsyncMock()
-        mock_response.content = '{"text": "Хочет наушники Sony", "tags": ["Макс"], "reminder_date": "2025-12-25"}'
+        mock_response.content = '{"text": "Хочет наушники Sony", "people": ["Макс"], "reminder_date": "2025-12-25"}'
         mock_llm = AsyncMock()
         mock_llm.ainvoke = AsyncMock(return_value=mock_response)
         mock_llm_cls.return_value = mock_llm
 
         state = AgentState(raw_text="Макс хочет наушники Sony, напомнить 25 декабря")
-        result = await note_agent_node(state)
-        assert result.note_text == "Хочет наушники Sony"
-        assert result.tag_names == ["Макс"]
-        assert result.note_reminder_date == date(2025, 12, 25)
+        result = await wish_agent_node(state)
+        assert result.wish_text == "Хочет наушники Sony"
+        assert result.person_names == ["Макс"]
+        assert result.wish_reminder_date == date(2025, 12, 25)
         assert result.needs_confirmation
 
-    @patch("app.agents.note_agent.ChatOpenAI")
+    @patch("app.agents.wish_agent.ChatOpenAI")
     async def test_fallback_uses_raw_text(self, mock_llm_cls):
         mock_response = AsyncMock()
         mock_response.content = "not valid json at all"
@@ -173,8 +173,8 @@ class TestNoteAgentNode:
         mock_llm_cls.return_value = mock_llm
 
         state = AgentState(raw_text="купить молоко")
-        result = await note_agent_node(state)
-        assert result.note_text == "купить молоко"
+        result = await wish_agent_node(state)
+        assert result.wish_text == "купить молоко"
         assert result.needs_confirmation
 
 
@@ -187,30 +187,30 @@ class TestQueryAgentNode:
         result = await query_agent_node(state)
         assert result.query_type == "events"
 
-    async def test_keyword_notes(self):
-        state = AgentState(raw_text="покажи мои заметки")
+    async def test_keyword_wishes(self):
+        state = AgentState(raw_text="покажи мои желания")
         result = await query_agent_node(state)
-        assert result.query_type == "notes"
+        assert result.query_type == "wishes"
 
     async def test_keyword_feed(self):
         state = AgentState(raw_text="открой ленту красивых дат")
         result = await query_agent_node(state)
         assert result.query_type == "feed"
 
-    async def test_keyword_tags(self):
-        state = AgentState(raw_text="покажи теги")
+    async def test_keyword_people(self):
+        state = AgentState(raw_text="покажи людей")
         result = await query_agent_node(state)
-        assert result.query_type == "tags"
+        assert result.query_type == "people"
 
     async def test_keyword_events_english(self):
         state = AgentState(raw_text="show my events")
         result = await query_agent_node(state)
         assert result.query_type == "events"
 
-    async def test_keyword_notes_english(self):
-        state = AgentState(raw_text="my notes")
+    async def test_keyword_wishes_english(self):
+        state = AgentState(raw_text="my wishes")
         result = await query_agent_node(state)
-        assert result.query_type == "notes"
+        assert result.query_type == "wishes"
 
 
 # --- Formatter node ---
@@ -247,10 +247,10 @@ class TestFormatterNode:
         result = await formatter_node(state)
         assert result.response_text  # Should ask for date
 
-    async def test_format_create_note_with_text(self):
+    async def test_format_create_wish_with_text(self):
         state = AgentState(
-            intent="create_note",
-            note_text="Купить наушники",
+            intent="create_wish",
+            wish_text="Купить наушники",
             user_language="ru",
         )
         result = await formatter_node(state)
@@ -258,7 +258,7 @@ class TestFormatterNode:
         assert result.needs_confirmation
 
     async def test_format_view_intents(self):
-        for intent in ("view_events", "view_notes", "view_feed", "view_tags"):
+        for intent in ("view_events", "view_wishes", "view_feed", "view_people"):
             state = AgentState(intent=intent, user_language="ru")
             result = await formatter_node(state)
             assert result.response_text == ""  # Handler shows list

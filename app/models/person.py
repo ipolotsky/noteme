@@ -8,10 +8,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
 
-class Tag(Base):
-    __tablename__ = "tags"
+class Person(Base):
+    __tablename__ = "people"
     __table_args__ = (
-        UniqueConstraint("user_id", "name", name="uq_tags_user_name"),
+        UniqueConstraint("user_id", "name", name="uq_people_user_name"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -25,11 +25,10 @@ class Tag(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
-    # Relationships
-    user: Mapped["User"] = relationship(back_populates="tags")  # type: ignore[name-defined]  # noqa: F821
+    user: Mapped["User"] = relationship(back_populates="people")  # type: ignore[name-defined]  # noqa: F821
     events: Mapped[list["Event"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
-        secondary="event_tags", back_populates="tags"
+        secondary="event_people", back_populates="people"
     )
-    notes: Mapped[list["Note"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
-        secondary="note_tags", back_populates="tags"
+    wishes: Mapped[list["Wish"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
+        secondary="wish_people", back_populates="people"
     )

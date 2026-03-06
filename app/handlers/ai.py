@@ -1,5 +1,3 @@
-"""AI text/voice handler — processes free-form messages through LangGraph."""
-
 import logging
 from html import escape
 
@@ -13,13 +11,13 @@ from app.agents.whisper import transcribe_audio
 from app.i18n.loader import t
 from app.keyboards.events import event_view_kb
 from app.keyboards.main_menu import main_menu_kb
-from app.keyboards.notes import note_view_kb
+from app.keyboards.wishes import wish_view_kb
 from app.models.user import User
 from app.schemas.event import EventCreate
-from app.schemas.note import NoteCreate
+from app.schemas.wish import WishCreate
 from app.services.action_logger import log_user_action
 from app.services.event_service import EventLimitError, create_event
-from app.services.note_service import NoteLimitError, create_note
+from app.services.wish_service import WishLimitError, create_wish
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +25,7 @@ router = Router(name="ai")
 
 
 def _format_user_text(text: str) -> str:
-    """Clean up user input for saving as description/note text.
-
-    - Strip whitespace
-    - Capitalize first letter
-    - Ensure sentence-ending punctuation
-    """
-    text = " ".join(text.split())  # collapse multiple spaces/newlines
+    text = " ".join(text.split())
     if not text:
         return text
     text = text[0].upper() + text[1:]
@@ -49,13 +41,10 @@ async def handle_voice(
     lang: str,
     session: AsyncSession,
 ) -> None:
-    """Handle voice messages — transcribe then process."""
-    # Check audio duration (max 1 minute)
     if message.voice.duration > 60:
         await message.answer(t("ai.audio_too_long", lang))
         return
 
-    # Check rate limit
     if not await check_ai_rate_limit(user.id):
         await message.answer(t("ai.rate_limit", lang))
         return
@@ -64,7 +53,6 @@ async def handle_voice(
     processing_msg = await message.answer(t("ai.processing", lang))
 
     try:
-        # Download voice file
         logger.info("[voice] user=%s downloading file_id=%s", user.id, message.voice.file_id)
         file = await message.bot.get_file(message.voice.file_id)
         logger.info("[voice] user=%s file_path=%s", user.id, file.file_path)
@@ -72,7 +60,6 @@ async def handle_voice(
         audio_bytes = bio.read()
         logger.info("[voice] user=%s downloaded %d bytes", user.id, len(audio_bytes))
 
-        # Transcribe — pass the real filename from Telegram
         filename = file.file_path.rsplit("/", 1)[-1] if file.file_path else "voice.oga"
         text = await transcribe_audio(audio_bytes, filename=filename, user_id=user.id)
         if not text.strip():
@@ -80,7 +67,6 @@ async def handle_voice(
             return
         logger.info("[voice] user=%s transcribed: %r", user.id, text[:200])
 
-        # Process through agent pipeline
         state = await process_message(
             text=text,
             user_id=user.id,
@@ -102,15 +88,12 @@ async def handle_text(
     lang: str,
     session: AsyncSession,
 ) -> None:
-    """Handle text messages — process through agent pipeline."""
     if not message.text:
         return
 
-    # Skip commands (handled by other routers)
     if message.text.startswith("/"):
         return
 
-    # Check rate limit
     if not await check_ai_rate_limit(user.id):
         await message.answer(t("ai.rate_limit", lang))
         return
@@ -140,23 +123,19 @@ async def _handle_agent_result(
     lang: str,
     session: AsyncSession,
 ) -> None:
-    """Handle the result from the agent pipeline."""
     intent = state.intent
     logger.info(
-        "[handler] user=%s intent=%s title=%r date=%s note=%r error=%r",
+        "[handler] user=%s intent=%s title=%r date=%s wish=%r error=%r",
         user.id, intent, state.event_title, state.event_date,
-        state.note_text[:80] if state.note_text else "", state.error,
+        state.wish_text[:80] if state.wish_text else "", state.error,
     )
 
-    # Original user text — save as description (formatted)
     raw_text = state.raw_text or ""
 
-    # Limit AI-extracted tags to 2; fallback to "Личное"/"Personal" if none
-    tag_names = (state.tag_names or [])[:2]
-    if not tag_names:
-        tag_names = ["Личное" if lang == "ru" else "Personal"]
+    person_names = (state.person_names or [])[:2]
+    if not person_names:
+        person_names = ["Личное" if lang == "ru" else "Personal"]
 
-    # If the agent wants to create an event
     if intent == "create_event" and state.event_title and state.event_date:
         try:
             description = _format_user_text(raw_text) if raw_text else (state.event_description or None)
@@ -168,24 +147,22 @@ async def _handle_agent_result(
                     title=state.event_title,
                     event_date=state.event_date,
                     description=description,
-                    tag_names=tag_names,
+                    person_names=person_names,
                 ),
             )
             logger.info("[handler] user=%s → event created id=%s", user.id, event.id)
             await log_user_action(user.id, "create_event", f"{event.title} ({event.event_date})")
-            # Trigger beautiful dates recalculation
             from app.services.beautiful_dates.engine import recalculate_for_event
             await recalculate_for_event(session, event)
 
-            # Build full event card using shared helper
             from app.handlers.events import _build_event_card
-            card, related_count, tag_counts = await _build_event_card(event, user, lang, session)
+            card, related_count, person_counts = await _build_event_card(event, user, lang, session)
             await processing_msg.edit_text(
                 card,
                 reply_markup=event_view_kb(
                     event, lang,
-                    related_notes_count=related_count,
-                    tag_event_counts=tag_counts,
+                    related_wishes_count=related_count,
+                    person_event_counts=person_counts,
                 ),
             )
         except EventLimitError:
@@ -198,44 +175,41 @@ async def _handle_agent_result(
             await processing_msg.edit_text(t("errors.unknown", lang))
         return
 
-    # If the agent wants to create a note
-    if intent == "create_note" and state.note_text:
+    if intent == "create_wish" and state.wish_text:
         try:
-            note_text = _format_user_text(raw_text) if raw_text else state.note_text
-            logger.info("[handler] user=%s → creating note", user.id)
-            note = await create_note(
+            wish_text = _format_user_text(raw_text) if raw_text else state.wish_text
+            logger.info("[handler] user=%s → creating wish", user.id)
+            wish = await create_wish(
                 session,
                 user.id,
-                NoteCreate(
-                    text=note_text,
-                    reminder_date=state.note_reminder_date,
-                    tag_names=tag_names,
+                WishCreate(
+                    text=wish_text,
+                    reminder_date=state.wish_reminder_date,
+                    person_names=person_names,
                 ),
             )
-            logger.info("[handler] user=%s → note created id=%s", user.id, note.id)
-            await log_user_action(user.id, "create_note", state.note_text[:100])
-            # Build full note card
-            tags_str = ", ".join(escape(tg.name) for tg in note.tags) if note.tags else t("notes.no_tags", lang)
+            logger.info("[handler] user=%s → wish created id=%s", user.id, wish.id)
+            await log_user_action(user.id, "create_wish", state.wish_text[:100])
+            people_str = ", ".join(escape(x.name) for x in wish.people) if wish.people else t("wishes.no_people", lang)
             card = (
-                f"<b>{t('notes.view_title', lang)}</b>\n\n"
-                f"{escape(note.text)}\n\n"
-                f"{t('notes.tags_label', lang, tags=tags_str)}"
+                f"<b>{t('wishes.view_title', lang)}</b>\n\n"
+                f"{escape(wish.text)}\n\n"
+                f"{t('wishes.people_label', lang, people=people_str)}"
             )
-            if note.reminder_date:
-                card += f"\n{t('notes.reminder_set', lang, date=note.reminder_date.strftime('%d.%m.%Y'))}"
-            await processing_msg.edit_text(card, reply_markup=note_view_kb(note, lang))
-        except NoteLimitError:
-            logger.warning("[handler] user=%s → note limit reached", user.id)
+            if wish.reminder_date:
+                card += f"\n{t('wishes.reminder_set', lang, date=wish.reminder_date.strftime('%d.%m.%Y'))}"
+            await processing_msg.edit_text(card, reply_markup=wish_view_kb(wish, lang))
+        except WishLimitError:
+            logger.warning("[handler] user=%s → wish limit reached", user.id)
             await processing_msg.edit_text(
-                t("notes.limit_reached", lang, max=str(user.max_notes))
+                t("wishes.limit_reached", lang, max=str(user.max_wishes))
             )
         except Exception:
-            logger.exception("[handler] user=%s → note creation failed", user.id)
+            logger.exception("[handler] user=%s → wish creation failed", user.id)
             await processing_msg.edit_text(t("errors.unknown", lang))
         return
 
-    # View requests — redirect to appropriate screen
-    if intent in ("view_events", "view_notes", "view_feed", "view_tags"):
+    if intent in ("view_events", "view_wishes", "view_feed", "view_people"):
         logger.info("[handler] user=%s → view %s", user.id, intent)
         await processing_msg.edit_text(
             state.response_text or t("menu.events", lang),
@@ -243,7 +217,6 @@ async def _handle_agent_result(
         )
         return
 
-    # Default: show response text
     logger.warning("[handler] user=%s → FALLTHROUGH intent=%s, showing response_text", user.id, intent)
     text = state.response_text or t("ai.not_understood", lang)
     await processing_msg.edit_text(text)

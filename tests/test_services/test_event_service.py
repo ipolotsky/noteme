@@ -32,14 +32,14 @@ async def test_create_event(session: AsyncSession, user_id: int):
     data = EventCreate(
         title="Wedding",
         event_date=date(2022, 8, 17),
-        tag_names=["Max", "Love"],
+        person_names=["Max", "Love"],
     )
     event = await create_event(session, user_id, data)
 
     assert event.title == "Wedding"
     assert event.event_date == date(2022, 8, 17)
-    assert len(event.tags) == 2
-    assert {t.name for t in event.tags} == {"Max", "Love"}
+    assert len(event.people) == 2
+    assert {p.name for p in event.people} == {"Max", "Love"}
 
 
 @pytest.mark.asyncio

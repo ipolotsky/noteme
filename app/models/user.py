@@ -16,7 +16,6 @@ class User(Base):
         ),
     )
 
-    # Telegram user_id as PK (BIGINT, not UUID)
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
 
     username: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -24,24 +23,20 @@ class User(Base):
     language: Mapped[str] = mapped_column(String(5), default="ru")
     timezone: Mapped[str] = mapped_column(String(50), default="Europe/Moscow")
 
-    # Notification settings
     notification_time: Mapped[time] = mapped_column(
         Time, default=time(9, 0)
     )
     notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     notification_count: Mapped[int] = mapped_column(Integer, default=3)
 
-    # Limits (future monetization)
     max_events: Mapped[int] = mapped_column(Integer, default=10)
-    max_notes: Mapped[int] = mapped_column(Integer, default=10)
-    max_tags_per_entity: Mapped[int] = mapped_column(Integer, default=3)
+    max_wishes: Mapped[int] = mapped_column(Integer, default=10)
+    max_people_per_entity: Mapped[int] = mapped_column(Integer, default=3)
 
-    # Features
     spoiler_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     onboarding_completed: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    # Shared access (list of user_ids who can see this user's data)
     shared_with: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
@@ -51,7 +46,6 @@ class User(Base):
         DateTime(timezone=True), onupdate=func.now(), nullable=True
     )
 
-    # Relationships
-    tags: Mapped[list["Tag"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]  # noqa: F821
+    people: Mapped[list["Person"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]  # noqa: F821
     events: Mapped[list["Event"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]  # noqa: F821
-    notes: Mapped[list["Note"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]  # noqa: F821
+    wishes: Mapped[list["Wish"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]  # noqa: F821

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 from app.schemas.event import EventCreate
-from app.schemas.note import NoteCreate
+from app.schemas.wish import WishCreate
 from app.services.event_service import (
     EventLimitError,
     create_event,
@@ -15,18 +15,18 @@ from app.services.event_service import (
     get_event,
     get_user_events,
 )
-from app.services.note_service import (
-    NoteLimitError,
-    create_note,
+from app.services.person_service import create_person, delete_person, get_or_create_people
+from app.services.wish_service import (
+    WishLimitError,
+    create_wish,
 )
-from app.services.tag_service import create_tag, delete_tag, get_or_create_tags
 from app.utils.date_utils import format_date, format_relative_date, parse_date
 
 
 @pytest.fixture
 async def user(session: AsyncSession) -> User:
     """Create a test user with standard limits."""
-    u = User(id=111222333, first_name="Test", language="ru", max_events=10, max_notes=10)
+    u = User(id=111222333, first_name="Test", language="ru", max_events=10, max_wishes=10)
     session.add(u)
     await session.flush()
     return u
@@ -112,55 +112,55 @@ class TestEventEdgeCases:
             EventCreate(
                 title="Multi-tag",
                 event_date=date.today(),
-                tag_names=["Love", "Family", "Important"],
+                person_names=["Love", "Family", "Important"],
             ),
         )
-        assert len(event.tags) == 3
+        assert len(event.people) == 3
 
 
-class TestNoteEdgeCases:
-    async def test_note_limit_enforcement(self, session):
-        """Exceeding max_notes raises NoteLimitError."""
-        u = User(id=999888776, first_name="NoteLim", max_notes=1)
+class TestWishEdgeCases:
+    async def test_wish_limit_enforcement(self, session):
+        """Exceeding max_wishes raises WishLimitError."""
+        u = User(id=999888776, first_name="WishLim", max_wishes=1)
         session.add(u)
         await session.flush()
 
-        await create_note(session, u.id, NoteCreate(text="Note 1"))
-        with pytest.raises(NoteLimitError):
-            await create_note(session, u.id, NoteCreate(text="Note 2"))
+        await create_wish(session, u.id, WishCreate(text="Wish 1"))
+        with pytest.raises(WishLimitError):
+            await create_wish(session, u.id, WishCreate(text="Wish 2"))
 
-    async def test_note_with_reminder_date(self, session, user):
-        """Notes with reminder dates are stored correctly."""
+    async def test_wish_with_reminder_date(self, session, user):
+        """Wishes with reminder dates are stored correctly."""
         reminder = date.today() + timedelta(days=7)
-        note = await create_note(
-            session, user.id, NoteCreate(text="Remind me", reminder_date=reminder)
+        wish = await create_wish(
+            session, user.id, WishCreate(text="Remind me", reminder_date=reminder)
         )
-        assert note.reminder_date == reminder
+        assert wish.reminder_date == reminder
 
-    async def test_note_without_tags(self, session, user):
-        """Notes without tags work fine."""
-        note = await create_note(session, user.id, NoteCreate(text="Plain note"))
-        assert note.tags == []
+    async def test_wish_without_people(self, session, user):
+        """Wishes without people work fine."""
+        wish = await create_wish(session, user.id, WishCreate(text="Plain wish"))
+        assert wish.people == []
 
 
-class TestTagEdgeCases:
-    async def test_case_insensitive_tag_dedup(self, session, user):
-        """Tags with same name different case are deduplicated."""
-        tags = await get_or_create_tags(session, user.id, ["Max", "max", "MAX"])
-        assert len(tags) == 1
-        assert tags[0].name == "Max"  # First one wins
+class TestPersonEdgeCases:
+    async def test_case_insensitive_person_dedup(self, session, user):
+        """People with same name different case are deduplicated."""
+        people = await get_or_create_people(session, user.id, ["Max", "max", "MAX"])
+        assert len(people) == 1
+        assert people[0].name == "Max"
 
-    async def test_tag_deletion(self, session, user):
-        """Deleting a tag works."""
-        tag = await create_tag(session, user.id, "ToDelete")
-        result = await delete_tag(session, tag.id)
+    async def test_person_deletion(self, session, user):
+        """Deleting a person works."""
+        person = await create_person(session, user.id, "ToDelete")
+        result = await delete_person(session, person.id)
         assert result is True
 
-    async def test_empty_tag_names_filtered(self, session, user):
-        """Empty strings in tag list are filtered out."""
-        tags = await get_or_create_tags(session, user.id, ["", "  ", "Valid"])
-        assert len(tags) == 1
-        assert tags[0].name == "Valid"
+    async def test_empty_person_names_filtered(self, session, user):
+        """Empty strings in person list are filtered out."""
+        people = await get_or_create_people(session, user.id, ["", "  ", "Valid"])
+        assert len(people) == 1
+        assert people[0].name == "Valid"
 
 
 class TestDateUtilsEdgeCases:

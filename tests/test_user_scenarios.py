@@ -16,12 +16,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 from app.schemas.event import EventCreate
-from app.schemas.note import NoteCreate
 from app.schemas.user import UserCreate
+from app.schemas.wish import WishCreate
 from app.services.event_service import create_event
-from app.services.note_service import create_note
-from app.services.tag_service import create_tag
+from app.services.person_service import create_person
 from app.services.user_service import get_or_create_user
+from app.services.wish_service import create_wish
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -148,15 +148,15 @@ class TestOnboarding:
         cb.message.edit_text.assert_called_once()
         state.set_state.assert_called_once()
 
-    async def test_05_onboarding_skip_note_completes(self, session: AsyncSession):
-        """S05: Skip note step → onboarding complete, main menu shown."""
-        from app.handlers.start import onboarding_skip_note
+    async def test_05_onboarding_skip_wish_completes(self, session: AsyncSession):
+        """S05: Skip wish step → onboarding complete, main menu shown."""
+        from app.handlers.start import onboarding_skip_wish
 
         user = await _make_user(session, onboarding_completed=False)
         cb = _mock_callback()
         state = _mock_state(data={"lang": "ru"})
 
-        await onboarding_skip_note(cb, state, user, session)
+        await onboarding_skip_wish(cb, state, user, session)
 
         state.clear.assert_called_once()
         # Should show step3 message + main menu
@@ -241,7 +241,7 @@ class TestEventCRUD:
         state.set_state.assert_not_called()  # stays in same state
 
     async def test_11_event_create_skip_description(self, session: AsyncSession):
-        """S11: Skip description → advances to tags."""
+        """S11: Skip description → advances to people."""
         from app.handlers.events import event_create_skip_description
 
         cb = _mock_callback()
@@ -325,228 +325,228 @@ class TestEventCRUD:
 
 
 # =====================================================================
-# 16-23: NOTE CRUD
+# 16-23: WISH CRUD
 # =====================================================================
 
 
-class TestNoteCRUD:
-    """Scenarios 16-23: Note create, read, update, delete."""
+class TestWishCRUD:
+    """Scenarios 16-23: Wish create, read, update, delete."""
 
-    async def test_16_note_list_empty(self, session: AsyncSession):
-        """S16: Notes list with 0 notes → 'empty' message."""
-        from app.handlers.notes import show_notes_list
+    async def test_16_wish_list_empty(self, session: AsyncSession):
+        """S16: Wishes list with 0 wishes → 'empty' message."""
+        from app.handlers.wishes import show_wishes_list
 
         user = await _make_user(session)
         cb = _mock_callback()
 
-        await show_notes_list(cb, user, "ru", session, page=0)
+        await show_wishes_list(cb, user, "ru", session, page=0)
 
         text = cb.message.edit_text.call_args.args[0]
         assert "пока нет" in text.lower() or "empty" in text.lower()
 
-    async def test_17_note_create_starts_fsm(self, session: AsyncSession):
-        """S17: Press 'create note' → waiting_text state with cancel button."""
-        from app.handlers.notes import note_create_start
+    async def test_17_wish_create_starts_fsm(self, session: AsyncSession):
+        """S17: Press 'create wish' → waiting_text state with cancel button."""
+        from app.handlers.wishes import wish_create_start
 
         cb = _mock_callback()
         state = _mock_state()
 
-        await note_create_start(cb, state, "ru")
+        await wish_create_start(cb, state, "ru")
 
         state.set_state.assert_called_once()
         kw = cb.message.edit_text.call_args.kwargs
         assert "reply_markup" in kw
 
-    async def test_18_note_create_text_advances_to_reminder(self, session: AsyncSession):
-        """S18: Enter note text → advances to waiting_reminder with skip+cancel."""
-        from app.handlers.notes import note_create_text
+    async def test_18_wish_create_text_advances_to_reminder(self, session: AsyncSession):
+        """S18: Enter wish text → advances to waiting_reminder with skip+cancel."""
+        from app.handlers.wishes import wish_create_text
 
         msg = _mock_message("Купить молоко")
         state = _mock_state()
 
-        await note_create_text(msg, state, "ru")
+        await wish_create_text(msg, state, "ru")
 
         state.update_data.assert_called_once_with(text="Купить молоко")
         state.set_state.assert_called_once()
 
-    async def test_19_note_create_skip_reminder(self, session: AsyncSession):
-        """S19: Skip reminder → advances to tags."""
-        from app.handlers.notes import note_create_skip_reminder
+    async def test_19_wish_create_skip_reminder(self, session: AsyncSession):
+        """S19: Skip reminder → advances to people."""
+        from app.handlers.wishes import wish_create_skip_reminder
 
         cb = _mock_callback()
         state = _mock_state()
 
-        await note_create_skip_reminder(cb, state, "ru")
+        await wish_create_skip_reminder(cb, state, "ru")
 
         state.set_state.assert_called_once()
 
-    async def test_20_note_create_full_flow(self, session: AsyncSession):
-        """S20: Full note create: text→skip reminder→skip tags → note in DB."""
-        from app.handlers.notes import _finish_note_create
+    async def test_20_wish_create_full_flow(self, session: AsyncSession):
+        """S20: Full wish create: text→skip reminder→skip people → wish in DB."""
+        from app.handlers.wishes import _finish_wish_create
 
         user = await _make_user(session)
         msg = _mock_message()
         state = _mock_state()
         data = {"text": "Не забыть позвонить маме"}
 
-        await _finish_note_create(msg, state, user, "ru", session, data, [])
+        await _finish_wish_create(msg, state, user, "ru", session, data, [])
 
         state.clear.assert_called_once()
         text = msg.answer.call_args.args[0]
-        assert "сохранена" in text.lower() or "saved" in text.lower()
+        assert "сохранено" in text.lower() or "saved" in text.lower()
 
-    async def test_21_note_view_shows_details(self, session: AsyncSession):
-        """S21: View note → shows text, tags, reminder."""
-        from app.handlers.notes import note_view
+    async def test_21_wish_view_shows_details(self, session: AsyncSession):
+        """S21: View wish → shows text, people, reminder."""
+        from app.handlers.wishes import wish_view
 
         user = await _make_user(session)
-        note = await create_note(
+        wish = await create_wish(
             session, user.id,
-            NoteCreate(text="Test note", reminder_date=date(2025, 12, 31)),
+            WishCreate(text="Test wish", reminder_date=date(2025, 12, 31)),
         )
         cb = _mock_callback()
-        cd = _mock_callback_data(id=str(note.id), page=0)
+        cd = _mock_callback_data(id=str(wish.id), page=0)
 
-        await note_view(cb, cd, user, "ru", session)
+        await wish_view(cb, cd, user, "ru", session)
 
         text = cb.message.edit_text.call_args.args[0]
-        assert "Test note" in text
+        assert "Test wish" in text
         assert "31.12.2025" in text
 
-    async def test_22_note_edit_text(self, session: AsyncSession):
-        """S22: Edit note text → updated, shown with view keyboard."""
-        from app.handlers.notes import note_edit_text
+    async def test_22_wish_edit_text(self, session: AsyncSession):
+        """S22: Edit wish text → updated, shown with view keyboard."""
+        from app.handlers.wishes import wish_edit_text
 
         user = await _make_user(session)
-        note = await create_note(session, user.id, NoteCreate(text="Old text"))
+        wish = await create_wish(session, user.id, WishCreate(text="Old text"))
         msg = _mock_message("New text")
-        state = _mock_state(data={"edit_note_id": str(note.id)})
+        state = _mock_state(data={"edit_wish_id": str(wish.id)})
 
-        await note_edit_text(msg, state, user, "ru", session)
+        await wish_edit_text(msg, state, user, "ru", session)
 
         state.clear.assert_called_once()
         text = msg.answer.call_args.args[0]
-        assert "обновлена" in text.lower() or "updated" in text.lower()
+        assert "обновлено" in text.lower() or "updated" in text.lower()
 
-    async def test_23_note_create_limit_reached(self, session: AsyncSession):
-        """S23: Create note at limit → error message."""
-        from app.handlers.notes import _finish_note_create
+    async def test_23_wish_create_limit_reached(self, session: AsyncSession):
+        """S23: Create wish at limit → error message."""
+        from app.handlers.wishes import _finish_wish_create
 
-        user = await _make_user(session, max_notes=1)
-        await create_note(session, user.id, NoteCreate(text="First"))
+        user = await _make_user(session, max_wishes=1)
+        await create_wish(session, user.id, WishCreate(text="First"))
 
         msg = _mock_message()
         state = _mock_state()
 
-        await _finish_note_create(msg, state, user, "ru", session, {"text": "Second"}, [])
+        await _finish_wish_create(msg, state, user, "ru", session, {"text": "Second"}, [])
 
         text = msg.answer.call_args.args[0]
         assert "лимит" in text.lower() or "limit" in text.lower()
 
 
 # =====================================================================
-# 24-29: TAGS
+# 24-29: PEOPLE
 # =====================================================================
 
 
-class TestTagCRUD:
-    """Scenarios 24-29: Tag create, view, rename, delete."""
+class TestPersonCRUD:
+    """Scenarios 24-29: Person create, view, rename, delete."""
 
-    async def test_24_tag_list_empty(self, session: AsyncSession):
-        """S24: Tags list with 0 tags → 'empty' message."""
-        from app.handlers.tags import show_tags_list
+    async def test_24_person_list_empty(self, session: AsyncSession):
+        """S24: People list with 0 people → 'empty' message."""
+        from app.handlers.people import show_people_list
 
         user = await _make_user(session)
         cb = _mock_callback()
 
-        await show_tags_list(cb, user, "ru", session, page=0)
+        await show_people_list(cb, user, "ru", session, page=0)
 
         text = cb.message.edit_text.call_args.args[0]
         assert "пока нет" in text.lower() or "empty" in text.lower()
 
-    async def test_25_tag_create(self, session: AsyncSession):
-        """S25: Create tag → success message with tag name."""
-        from app.handlers.tags import tag_create_name
+    async def test_25_person_create(self, session: AsyncSession):
+        """S25: Create person → success message with person name."""
+        from app.handlers.people import person_create_name
 
         user = await _make_user(session)
         msg = _mock_message("Работа")
         state = _mock_state()
 
-        await tag_create_name(msg, state, user, "ru", session)
+        await person_create_name(msg, state, user, "ru", session)
 
         state.clear.assert_called_once()
         text = msg.answer.call_args.args[0]
         assert "Работа" in text
 
-    async def test_26_tag_view_shows_counts(self, session: AsyncSession):
-        """S26: View tag → shows event/note counts."""
-        from app.handlers.tags import tag_view
+    async def test_26_person_view_shows_counts(self, session: AsyncSession):
+        """S26: View person → shows event/wish counts."""
+        from app.handlers.people import person_view
 
         user = await _make_user(session)
-        tag = await create_tag(session, user.id, "Family")
+        person = await create_person(session, user.id, "Family")
         await create_event(
             session, user.id,
-            EventCreate(title="Bday", event_date=date(2020, 5, 1), tag_names=["Family"]),
+            EventCreate(title="Bday", event_date=date(2020, 5, 1), person_names=["Family"]),
         )
         cb = _mock_callback()
-        cd = _mock_callback_data(id=str(tag.id), page=0)
+        cd = _mock_callback_data(id=str(person.id), page=0)
 
-        # Refresh tag with relationships
-        await session.refresh(tag, ["events", "notes"])
+        # Refresh person with relationships
+        await session.refresh(person, ["events", "wishes"])
 
-        await tag_view(cb, cd, user, "en", session)
+        await person_view(cb, cd, user, "en", session)
 
         text = cb.message.edit_text.call_args.args[0]
         assert "Family" in text
 
-    async def test_27_tag_rename_success(self, session: AsyncSession):
-        """S27: Rename tag → success message."""
-        from app.handlers.tags import tag_rename_name
+    async def test_27_person_rename_success(self, session: AsyncSession):
+        """S27: Rename person → success message."""
+        from app.handlers.people import person_rename_name
 
         user = await _make_user(session)
-        tag = await create_tag(session, user.id, "Old")
+        person = await create_person(session, user.id, "Old")
         msg = _mock_message("New")
-        state = _mock_state(data={"rename_tag_id": str(tag.id)})
+        state = _mock_state(data={"rename_person_id": str(person.id)})
 
-        await tag_rename_name(msg, state, user, "en", session)
+        await person_rename_name(msg, state, user, "en", session)
 
         state.clear.assert_called_once()
         text = msg.answer.call_args.args[0]
         assert "New" in text
 
-    async def test_28_tag_rename_duplicate_shows_error_with_keyboard(self, session: AsyncSession):
-        """S28: Rename tag to existing name → error + main_menu_kb (not dead-end)."""
-        from app.handlers.tags import tag_rename_name
+    async def test_28_person_rename_duplicate_shows_error_with_keyboard(self, session: AsyncSession):
+        """S28: Rename person to existing name → error + main_menu_kb (not dead-end)."""
+        from app.handlers.people import person_rename_name
 
         user = await _make_user(session)
-        await create_tag(session, user.id, "Existing")
-        tag2 = await create_tag(session, user.id, "ToRename")
+        await create_person(session, user.id, "Existing")
+        person2 = await create_person(session, user.id, "ToRename")
         msg = _mock_message("Existing")
-        state = _mock_state(data={"rename_tag_id": str(tag2.id)})
+        state = _mock_state(data={"rename_person_id": str(person2.id)})
 
-        await tag_rename_name(msg, state, user, "ru", session)
+        await person_rename_name(msg, state, user, "ru", session)
 
         state.clear.assert_called_once()
         text = msg.answer.call_args.args[0]
-        assert "существует" in text.lower() or "exists" in text.lower()
+        assert "уже есть" in text.lower() or "already" in text.lower()
         # CRITICAL: verify keyboard is present (not a dead-end)
         kw = msg.answer.call_args.kwargs
         assert "reply_markup" in kw
 
-    async def test_29_tag_delete(self, session: AsyncSession):
-        """S29: Confirm delete tag → deleted, returns to list."""
-        from app.handlers.tags import tag_delete_confirm
+    async def test_29_person_delete(self, session: AsyncSession):
+        """S29: Confirm delete person → deleted, returns to list."""
+        from app.handlers.people import person_delete_confirm
 
         user = await _make_user(session)
-        tag = await create_tag(session, user.id, "Temp")
+        person = await create_person(session, user.id, "Temp")
         cb = _mock_callback()
-        cd = _mock_callback_data(id=str(tag.id), page=0)
+        cd = _mock_callback_data(id=str(person.id), page=0)
 
-        await tag_delete_confirm(cb, cd, user, "ru", session)
+        await person_delete_confirm(cb, cd, user, "ru", session)
 
         cb.answer.assert_called()
         text = cb.answer.call_args.args[0]
-        assert "удалён" in text.lower() or "deleted" in text.lower()
+        assert "удален" in text.lower() or "deleted" in text.lower()
 
 
 # =====================================================================
@@ -703,13 +703,13 @@ class TestCancelEscape:
 
         state.clear.assert_called_once()
 
-    async def test_40_cancel_callback_from_tag_rename(self, session: AsyncSession):
-        """S40: Press cancel during tag rename → main menu."""
+    async def test_40_cancel_callback_from_person_rename(self, session: AsyncSession):
+        """S40: Press cancel during person rename → main menu."""
         from app.handlers.common import cancel_callback
 
         user = await _make_user(session)
         cb = _mock_callback(data="cancel")
-        state = _mock_state(state_name="TagRenameStates:waiting_name")
+        state = _mock_state(state_name="PersonRenameStates:waiting_name")
 
         await cancel_callback(cb, state, user, "ru")
 
@@ -849,20 +849,20 @@ class TestEdgeCases:
         assert "<script>" not in text
         assert "&lt;script&gt;" in text or escape("<script>") in text
 
-    async def test_48_html_injection_in_note_text(self, session: AsyncSession):
-        """S48: Note text with HTML → escaped in view."""
-        from app.handlers.notes import note_view
+    async def test_48_html_injection_in_wish_text(self, session: AsyncSession):
+        """S48: Wish text with HTML → escaped in view."""
+        from app.handlers.wishes import wish_view
 
         user = await _make_user(session)
         malicious_text = "<img src=x onerror=alert(1)>Hello"
-        note = await create_note(
+        wish = await create_wish(
             session, user.id,
-            NoteCreate(text=malicious_text),
+            WishCreate(text=malicious_text),
         )
         cb = _mock_callback()
-        cd = _mock_callback_data(id=str(note.id), page=0)
+        cd = _mock_callback_data(id=str(wish.id), page=0)
 
-        await note_view(cb, cd, user, "ru", session)
+        await wish_view(cb, cd, user, "ru", session)
 
         text = cb.message.edit_text.call_args.args[0]
         assert "<img" not in text
@@ -883,16 +883,16 @@ class TestEdgeCases:
         text = msg.answer.call_args.args[0]
         assert "найдено" in text.lower() or "found" in text.lower()
 
-    async def test_50_note_edit_returns_none_shows_error(self, session: AsyncSession):
-        """S50: Edit non-existent note → 'not found' message (not silent)."""
-        from app.handlers.notes import note_edit_text
+    async def test_50_wish_edit_returns_none_shows_error(self, session: AsyncSession):
+        """S50: Edit non-existent wish → 'not found' message (not silent)."""
+        from app.handlers.wishes import wish_edit_text
 
         user = await _make_user(session)
         msg = _mock_message("Updated text")
         fake_id = str(uuid.uuid4())
-        state = _mock_state(data={"edit_note_id": fake_id})
+        state = _mock_state(data={"edit_wish_id": fake_id})
 
-        await note_edit_text(msg, state, user, "ru", session)
+        await wish_edit_text(msg, state, user, "ru", session)
 
         state.clear.assert_called_once()
         text = msg.answer.call_args.args[0]

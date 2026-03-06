@@ -1,5 +1,3 @@
-"""Media handlers — photo/video/video_note/document → note with tag."""
-
 import contextlib
 import uuid
 from html import escape
@@ -9,14 +7,14 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyParameters
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.handlers.states import MediaNoteStates
+from app.handlers.states import MediaWishStates
 from app.i18n.loader import t
-from app.keyboards.callbacks import MediaTagCb
-from app.keyboards.notes import note_view_kb
-from app.keyboards.tags import media_tag_select_kb
+from app.keyboards.callbacks import MediaPersonCb
+from app.keyboards.people import media_person_select_kb
+from app.keyboards.wishes import wish_view_kb
 from app.models.user import User
-from app.services.note_service import NoteLimitError, create_note_with_media
-from app.services.tag_service import get_tag, get_user_tags
+from app.services.person_service import get_person, get_user_people
+from app.services.wish_service import WishLimitError, create_wish_with_media
 
 router = Router(name="media")
 
@@ -29,7 +27,7 @@ _MEDIA_TYPE_NAMES = {
 }
 
 
-def _media_note_text(
+def _media_wish_text(
     media_type: str,
     lang: str,
     caption: str | None = None,
@@ -47,9 +45,6 @@ def _media_note_text(
     return text
 
 
-# --- Incoming media ---
-
-
 @router.message(F.photo | F.video | F.video_note | F.document | F.location)
 async def handle_media(
     message: Message,
@@ -58,7 +53,6 @@ async def handle_media(
     lang: str,
     session: AsyncSession,
 ) -> None:
-    # Detect media type and extract extra info
     media_filename = ""
     if message.photo:
         media_type = "photo"
@@ -75,12 +69,10 @@ async def handle_media(
     else:
         return
 
-    # For video_note and location, record the message date
     media_recorded_date = ""
     if media_type in ("video_note", "location"):
         media_recorded_date = message.date.strftime("%d.%m.%Y")
 
-    # Store media info in FSM (include caption for note description)
     await state.update_data(
         media_chat_id=message.chat.id,
         media_message_id=message.message_id,
@@ -90,57 +82,53 @@ async def handle_media(
         media_recorded_date=media_recorded_date,
     )
 
-    # Fetch user's existing tags
-    tags = await get_user_tags(session, user.id)
+    people = await get_user_people(session, user.id)
 
-    if not tags:
-        await message.answer(t("media.no_tags", lang))
+    if not people:
+        await message.answer(t("media.no_people", lang))
         return
 
     await message.answer(
-        t("media.choose_tag", lang),
-        reply_markup=media_tag_select_kb(tags, lang),
+        t("media.choose_person", lang),
+        reply_markup=media_person_select_kb(people, lang),
     )
-    await state.set_state(MediaNoteStates.waiting_tag)
+    await state.set_state(MediaWishStates.waiting_person)
 
 
-# --- Tag selection ---
-
-
-@router.callback_query(MediaNoteStates.waiting_tag, MediaTagCb.filter(F.action == "select"))
-async def media_tag_selected(
+@router.callback_query(MediaWishStates.waiting_person, MediaPersonCb.filter(F.action == "select"))
+async def media_person_selected(
     callback: CallbackQuery,
-    callback_data: MediaTagCb,
+    callback_data: MediaPersonCb,
     state: FSMContext,
     user: User,
     lang: str,
     session: AsyncSession,
 ) -> None:
     data = await state.get_data()
-    tag = await get_tag(session, uuid.UUID(callback_data.id), user_id=user.id)
-    if tag is None:
+    person = await get_person(session, uuid.UUID(callback_data.id), user_id=user.id)
+    if person is None:
         await callback.answer(t("errors.not_found", lang), show_alert=True)
         return
 
-    note_text = _media_note_text(
+    wish_text = _media_wish_text(
         data["media_type"], lang, data.get("media_caption"),
         filename=data.get("media_filename"),
         recorded_date=data.get("media_recorded_date"),
     )
 
     try:
-        note = await create_note_with_media(
+        wish = await create_wish_with_media(
             session,
             user_id=user.id,
-            text=note_text,
-            tag_names=[tag.name],
+            text=wish_text,
+            person_names=[person.name],
             chat_id=data["media_chat_id"],
             message_id=data["media_message_id"],
             media_type=data["media_type"],
         )
-    except NoteLimitError:
+    except WishLimitError:
         await callback.message.edit_text(  # type: ignore[union-attr]
-            t("notes.limit_reached", lang, max=str(user.max_notes))
+            t("wishes.limit_reached", lang, max=str(user.max_wishes))
         )
         await state.clear()
         await callback.answer()
@@ -148,19 +136,18 @@ async def media_tag_selected(
 
     await state.clear()
 
-    tags_str = escape(tag.name)
+    people_str = escape(person.name)
     card = (
-        f"<b>{t('notes.view_title', lang)}</b>\n\n"
-        f"{escape(note.text)}\n\n"
-        f"{t('notes.tags_label', lang, tags=tags_str)}"
+        f"<b>{t('wishes.view_title', lang)}</b>\n\n"
+        f"{escape(wish.text)}\n\n"
+        f"{t('wishes.people_label', lang, people=people_str)}"
     )
-    # Delete tag selection message and reply to the original media
     with contextlib.suppress(Exception):
         await callback.message.delete()  # type: ignore[union-attr]
     await callback.bot.send_message(  # type: ignore[union-attr]
         chat_id=data["media_chat_id"],
         text=card,
-        reply_markup=note_view_kb(note, lang),
+        reply_markup=wish_view_kb(wish, lang),
         reply_parameters=ReplyParameters(
             message_id=data["media_message_id"],
             allow_sending_without_reply=True,
@@ -169,72 +156,68 @@ async def media_tag_selected(
     await callback.answer()
 
 
-# --- Create new tag for media ---
-
-
-@router.callback_query(MediaNoteStates.waiting_tag, MediaTagCb.filter(F.action == "create"))
-async def media_create_tag(
+@router.callback_query(MediaWishStates.waiting_person, MediaPersonCb.filter(F.action == "create"))
+async def media_create_person(
     callback: CallbackQuery,
     state: FSMContext,
     lang: str,
 ) -> None:
     await callback.message.edit_text(  # type: ignore[union-attr]
-        t("media.create_tag_first", lang)
+        t("media.create_person_first", lang)
     )
-    await state.set_state(MediaNoteStates.waiting_new_tag_name)
+    await state.set_state(MediaWishStates.waiting_new_person_name)
     await callback.answer()
 
 
-@router.message(MediaNoteStates.waiting_new_tag_name)
-async def media_new_tag_name(
+@router.message(MediaWishStates.waiting_new_person_name)
+async def media_new_person_name(
     message: Message,
     state: FSMContext,
     user: User,
     lang: str,
     session: AsyncSession,
 ) -> None:
-    tag_name = (message.text or "").strip()
-    if not tag_name:
+    person_name = (message.text or "").strip()
+    if not person_name:
         await message.answer(t("errors.invalid_input", lang))
         return
 
     data = await state.get_data()
-    note_text = _media_note_text(
+    wish_text = _media_wish_text(
         data["media_type"], lang, data.get("media_caption"),
         filename=data.get("media_filename"),
         recorded_date=data.get("media_recorded_date"),
     )
 
     try:
-        note = await create_note_with_media(
+        wish = await create_wish_with_media(
             session,
             user_id=user.id,
-            text=note_text,
-            tag_names=[tag_name],
+            text=wish_text,
+            person_names=[person_name],
             chat_id=data["media_chat_id"],
             message_id=data["media_message_id"],
             media_type=data["media_type"],
         )
-    except NoteLimitError:
+    except WishLimitError:
         await message.answer(
-            t("notes.limit_reached", lang, max=str(user.max_notes))
+            t("wishes.limit_reached", lang, max=str(user.max_wishes))
         )
         await state.clear()
         return
 
     await state.clear()
 
-    tags_str = escape(tag_name)
+    people_str = escape(person_name)
     card = (
-        f"<b>{t('notes.view_title', lang)}</b>\n\n"
-        f"{escape(note.text)}\n\n"
-        f"{t('notes.tags_label', lang, tags=tags_str)}"
+        f"<b>{t('wishes.view_title', lang)}</b>\n\n"
+        f"{escape(wish.text)}\n\n"
+        f"{t('wishes.people_label', lang, people=people_str)}"
     )
-    # Reply to the original media message so user sees what was saved
     await message.bot.send_message(  # type: ignore[union-attr]
         chat_id=data["media_chat_id"],
         text=card,
-        reply_markup=note_view_kb(note, lang),
+        reply_markup=wish_view_kb(wish, lang),
         reply_parameters=ReplyParameters(
             message_id=data["media_message_id"],
             allow_sending_without_reply=True,
@@ -242,10 +225,7 @@ async def media_new_tag_name(
     )
 
 
-# --- Cancel ---
-
-
-@router.callback_query(MediaNoteStates.waiting_tag, MediaTagCb.filter(F.action == "cancel"))
+@router.callback_query(MediaWishStates.waiting_person, MediaPersonCb.filter(F.action == "cancel"))
 async def media_cancel(
     callback: CallbackQuery,
     state: FSMContext,

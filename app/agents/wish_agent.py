@@ -1,5 +1,3 @@
-"""Note agent — extracts note details from user message."""
-
 import json
 import logging
 from datetime import datetime
@@ -7,15 +5,14 @@ from datetime import datetime
 from langchain_openai import ChatOpenAI
 
 from app.agents.ai_logger import AICallLogger
-from app.agents.prompts import NOTE_AGENT_SYSTEM
+from app.agents.prompts import WISH_AGENT_SYSTEM
 from app.agents.state import AgentState
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 
-async def note_agent_node(state: AgentState) -> AgentState:
-    """LangGraph node: extract note data from message."""
+async def wish_agent_node(state: AgentState) -> AgentState:
     text = state.transcribed_text or state.raw_text
 
     llm = ChatOpenAI(
@@ -26,11 +23,11 @@ async def note_agent_node(state: AgentState) -> AgentState:
     )
 
     messages = [
-        {"role": "system", "content": NOTE_AGENT_SYSTEM},
+        {"role": "system", "content": WISH_AGENT_SYSTEM},
         {"role": "user", "content": text},
     ]
 
-    al = AICallLogger("note_agent", settings.openai_model, state.user_id)
+    al = AICallLogger("wish_agent", settings.openai_model, state.user_id)
     al.set_request(messages=messages, text=text)
     al.start_timer()
 
@@ -58,17 +55,17 @@ async def note_agent_node(state: AgentState) -> AgentState:
                 content = content[4:]
         data = json.loads(content)
 
-        state.note_text = data.get("text", text)
-        state.tag_names = data.get("tags", [])
+        state.wish_text = data.get("text", text)
+        state.person_names = data.get("people", [])
         if data.get("reminder_date"):
-            state.note_reminder_date = datetime.strptime(
+            state.wish_reminder_date = datetime.strptime(
                 data["reminder_date"], "%Y-%m-%d"
             ).date()
         state.needs_confirmation = True
-        logger.info("[note_agent] user=%s text=%r tags=%r", state.user_id, state.note_text[:100], state.tag_names)
+        logger.info("[wish_agent] user=%s text=%r people=%r", state.user_id, state.wish_text[:100], state.person_names)
     except (json.JSONDecodeError, ValueError, KeyError) as e:
-        logger.warning("[note_agent] user=%s PARSE ERROR: %s content=%r", state.user_id, e, content)
-        state.note_text = text
+        logger.warning("[wish_agent] user=%s PARSE ERROR: %s content=%r", state.user_id, e, content)
+        state.wish_text = text
         state.needs_confirmation = True
 
     return state

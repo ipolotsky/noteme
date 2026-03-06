@@ -2,8 +2,17 @@
 # PostgreSQL: 5433, Redis: 6380, App: 8001
 services:
   app:
-    build: .
+    build:
+      context: .
+      target: builder
     env_file: .env
+    environment:
+      - PATH=/app/.venv/bin:/usr/local/bin:/usr/bin:/bin
+      - UV_LINK_MODE=copy
+      - NOTEME_DB_HOST=db
+      - NOTEME_DB_PORT=5432
+      - NOTEME_REDIS_HOST=redis
+      - NOTEME_REDIS_PORT=6379
     depends_on:
       db:
         condition: service_healthy
@@ -13,11 +22,21 @@ services:
       - "8001:8000"
     volumes:
       - .:/app
-    command: python -m app
+      - app_venv:/app/.venv
+    command: sh -c "uv sync --frozen --no-dev && python -m app"
 
   worker:
-    build: .
+    build:
+      context: .
+      target: builder
     env_file: .env
+    environment:
+      - PATH=/app/.venv/bin:/usr/local/bin:/usr/bin:/bin
+      - UV_LINK_MODE=copy
+      - NOTEME_DB_HOST=db
+      - NOTEME_DB_PORT=5432
+      - NOTEME_REDIS_HOST=redis
+      - NOTEME_REDIS_PORT=6379
     depends_on:
       db:
         condition: service_healthy
@@ -25,7 +44,8 @@ services:
         condition: service_healthy
     volumes:
       - .:/app
-    command: arq app.workers.WorkerSettings
+      - app_venv:/app/.venv
+    command: sh -c "uv sync --frozen --no-dev && arq app.workers.WorkerSettings"
 
   db:
     image: postgres:16-alpine
@@ -69,3 +89,4 @@ services:
 volumes:
   noteme_pgdata:
   noteme_databasus:
+  app_venv:

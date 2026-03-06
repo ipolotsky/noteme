@@ -18,7 +18,7 @@ async def test_create_user(session: AsyncSession, user_id: int):
     assert user.first_name == "Test"
     assert user.language == "ru"
     assert user.max_events == 10
-    assert user.max_notes == 10
+    assert user.max_wishes == 10
 
 
 @pytest.mark.asyncio

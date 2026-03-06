@@ -25,9 +25,9 @@ class NotificationLog(Base):
         ForeignKey("beautiful_dates.id", ondelete="SET NULL"),
         nullable=True,
     )
-    note_id: Mapped[uuid.UUID | None] = mapped_column(
+    wish_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("notes.id", ondelete="SET NULL"),
+        ForeignKey("wishes.id", ondelete="SET NULL"),
         nullable=True,
     )
     sent_at: Mapped[datetime] = mapped_column(

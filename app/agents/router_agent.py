@@ -1,5 +1,3 @@
-"""Router agent — classifies user intent."""
-
 import logging
 
 from langchain_openai import ChatOpenAI
@@ -15,20 +13,19 @@ VALID_INTENTS = {
     "create_event",
     "edit_event",
     "delete_event",
-    "create_note",
-    "edit_note",
-    "delete_note",
+    "create_wish",
+    "edit_wish",
+    "delete_wish",
     "view_events",
-    "view_notes",
+    "view_wishes",
     "view_feed",
-    "view_tags",
+    "view_people",
     "settings",
     "help",
 }
 
 
 async def router_node(state: AgentState) -> AgentState:
-    """LangGraph node: classify intent."""
     text = state.transcribed_text or state.raw_text
 
     llm = ChatOpenAI(
@@ -67,8 +64,8 @@ async def router_node(state: AgentState) -> AgentState:
     if intent in VALID_INTENTS:
         state.intent = intent
     else:
-        state.intent = "create_note"  # Default fallback
-        logger.warning("Unknown intent '%s', defaulting to create_note", intent)
+        state.intent = "create_wish"
+        logger.warning("Unknown intent '%s', defaulting to create_wish", intent)
 
     logger.info("[router] user=%s intent=%s (raw=%r)", state.user_id, state.intent, intent)
     return state

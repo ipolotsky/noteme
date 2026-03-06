@@ -1,5 +1,3 @@
-"""Event handlers — list, view, create, edit, delete."""
-
 import uuid
 from datetime import datetime
 from html import escape
@@ -37,9 +35,6 @@ from app.services.event_service import (
 router = Router(name="events")
 
 
-# --- Shared display helpers ---
-
-
 async def show_events_list(
     callback: CallbackQuery,
     user: User,
@@ -56,9 +51,6 @@ async def show_events_list(
         text,
         reply_markup=events_list_kb(events, page, total, lang),
     )
-
-
-# --- List ---
 
 
 @router.callback_query(EventCb.filter(F.action == "list"))
@@ -85,9 +77,6 @@ async def event_page(
     await callback.answer()
 
 
-# --- View ---
-
-
 @router.callback_query(EventCb.filter(F.action == "view"))
 async def event_view(
     callback: CallbackQuery,
@@ -101,14 +90,14 @@ async def event_view(
         await callback.answer(t("errors.not_found", lang), show_alert=True)
         return
 
-    text, related_count, tag_counts = await _build_event_card(event, user, lang, session)
+    text, related_count, person_counts = await _build_event_card(event, user, lang, session)
 
     await callback.message.edit_text(  # type: ignore[union-attr]
         text,
         reply_markup=event_view_kb(
             event, lang,
-            related_notes_count=related_count,
-            tag_event_counts=tag_counts,
+            related_wishes_count=related_count,
+            person_event_counts=person_counts,
         ),
     )
     await callback.answer()
@@ -122,20 +111,19 @@ async def event_view_new(
     lang: str,
     session: AsyncSession,
 ) -> None:
-    """Send event card as a new message (used from feed)."""
     event = await get_event(session, uuid.UUID(callback_data.id), user_id=user.id)
     if event is None:
         await callback.answer(t("errors.not_found", lang), show_alert=True)
         return
 
-    text, related_count, tag_counts = await _build_event_card(event, user, lang, session)
+    text, related_count, person_counts = await _build_event_card(event, user, lang, session)
 
     await callback.message.answer(  # type: ignore[union-attr]
         text,
         reply_markup=event_view_kb(
             event, lang,
-            related_notes_count=related_count,
-            tag_event_counts=tag_counts,
+            related_wishes_count=related_count,
+            person_event_counts=person_counts,
         ),
     )
     await callback.answer()
@@ -147,39 +135,35 @@ async def _build_event_card(
     lang: str,
     session: AsyncSession,
 ) -> tuple[str, int, dict[str, tuple[str, int]]]:
-    """Build event card text and compute keyboard metadata.
+    from app.services.event_service import get_events_by_person_names
+    from app.services.wish_service import get_wishes_by_person_names
 
-    Returns (text, related_notes_count, tag_event_counts).
-    """
-    from app.services.event_service import get_events_by_tag_names
-    from app.services.note_service import get_notes_by_tag_names
-
-    tags_str = ", ".join(escape(tg.name) for tg in event.tags) if event.tags else t("events.no_tags", lang)
+    people_str = ", ".join(escape(x.name) for x in event.people) if event.people else t("events.no_people", lang)
     text = (
         f"<b>{t('events.view_title', lang, title=escape(event.title))}</b>\n"
         f"{t('events.date_label', lang, date=event.event_date.strftime('%d.%m.%Y'))}\n"
-        f"{t('events.tags_label', lang, tags=tags_str)}"
+        f"{t('events.people_label', lang, people=people_str)}"
     )
     if event.description:
         text += f"\n\n{escape(event.description)}"
 
     related_count = 0
-    tag_counts: dict[str, tuple[str, int]] = {}
+    person_counts: dict[str, tuple[str, int]] = {}
 
-    if event.tags:
-        tag_names = [tg.name for tg in event.tags]
-        related = await get_notes_by_tag_names(session, user.id, tag_names, limit=5)
+    if event.people:
+        person_names = [x.name for x in event.people]
+        related = await get_wishes_by_person_names(session, user.id, person_names, limit=5)
         related_count = len(related)
 
-        for tg in event.tags:
-            evs = await get_events_by_tag_names(session, user.id, [tg.name], limit=50)
-            tag_counts[tg.name] = (str(tg.id), len(evs))
+        for x in event.people:
+            evs = await get_events_by_person_names(session, user.id, [x.name], limit=50)
+            person_counts[x.name] = (str(x.id), len(evs))
 
-    return text, related_count, tag_counts
+    return text, related_count, person_counts
 
 
-@router.callback_query(EventCb.filter(F.action == "related_notes"))
-async def event_related_notes(
+@router.callback_query(EventCb.filter(F.action == "related_wishes"))
+async def event_related_wishes(
     callback: CallbackQuery,
     callback_data: EventCb,
     user: User,
@@ -188,26 +172,26 @@ async def event_related_notes(
 ) -> None:
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-    from app.services.note_service import get_notes_by_tag_names
+    from app.services.wish_service import get_wishes_by_person_names
 
     event = await get_event(session, uuid.UUID(callback_data.id), user_id=user.id)
     if event is None:
         await callback.answer(t("errors.not_found", lang), show_alert=True)
         return
 
-    notes = []
-    if event.tags:
-        tag_names = [tg.name for tg in event.tags]
-        notes = await get_notes_by_tag_names(session, user.id, tag_names, limit=20)
+    wishes = []
+    if event.people:
+        person_names = [x.name for x in event.people]
+        wishes = await get_wishes_by_person_names(session, user.id, person_names, limit=20)
 
     text = f"<b>{t('events.wishes', lang)}: {escape(event.title)}</b>"
-    if notes:
-        text += "\n\n" + "\n\n".join(escape(nt.text) for nt in notes)
+    if wishes:
+        text += "\n\n" + "\n\n".join(escape(x.text) for x in wishes)
     else:
         text += f"\n\n{t('events.wishes_empty', lang)}"
 
     rows: list[list[InlineKeyboardButton]] = []
-    if notes:
+    if wishes:
         rows.append([InlineKeyboardButton(
             text=f"\u270f\ufe0f {t('events.edit_wish', lang)}",
             callback_data=EventCb(action="wish_list", id=callback_data.id).pack(),
@@ -233,39 +217,36 @@ async def event_wish_list(
 ) -> None:
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-    from app.keyboards.callbacks import NoteCb
-    from app.services.note_service import get_notes_by_tag_names
+    from app.keyboards.callbacks import WishCb
+    from app.services.wish_service import get_wishes_by_person_names
 
     event = await get_event(session, uuid.UUID(callback_data.id), user_id=user.id)
     if event is None:
         await callback.answer(t("errors.not_found", lang), show_alert=True)
         return
 
-    notes = []
-    if event.tags:
-        tag_names = [tg.name for tg in event.tags]
-        notes = await get_notes_by_tag_names(session, user.id, tag_names, limit=20)
+    wishes = []
+    if event.people:
+        person_names = [x.name for x in event.people]
+        wishes = await get_wishes_by_person_names(session, user.id, person_names, limit=20)
 
     text = f"<b>{t('events.choose_wish', lang)}</b>"
     rows: list[list[InlineKeyboardButton]] = []
-    for nt in notes:
-        preview = nt.text[:40] + ("..." if len(nt.text) > 40 else "")
+    for x in wishes:
+        preview = x.text[:40] + ("..." if len(x.text) > 40 else "")
         rows.append([InlineKeyboardButton(
             text=f"\U0001f4dd {preview}",
-            callback_data=NoteCb(action="view", id=str(nt.id)).pack(),
+            callback_data=WishCb(action="view", id=str(x.id)).pack(),
         )])
     rows.append([InlineKeyboardButton(
         text=f"\u25c0 {t('menu.back', lang)}",
-        callback_data=EventCb(action="related_notes", id=callback_data.id).pack(),
+        callback_data=EventCb(action="related_wishes", id=callback_data.id).pack(),
     )])
 
     await callback.message.edit_text(  # type: ignore[union-attr]
         text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows)
     )
     await callback.answer()
-
-
-# --- Create ---
 
 
 @router.callback_query(EventCb.filter(F.action == "create"))
@@ -324,10 +305,10 @@ async def event_create_description(
 ) -> None:
     await state.update_data(description=message.text)
     await message.answer(
-        t("events.create_tags", lang),
+        t("events.create_people", lang),
         reply_markup=event_skip_kb(lang),
     )
-    await state.set_state(EventCreateStates.waiting_tags)
+    await state.set_state(EventCreateStates.waiting_people)
 
 
 @router.callback_query(EventCreateStates.waiting_description, F.data == "skip")
@@ -337,15 +318,15 @@ async def event_create_skip_description(
     lang: str,
 ) -> None:
     await callback.message.edit_text(  # type: ignore[union-attr]
-        t("events.create_tags", lang),
+        t("events.create_people", lang),
         reply_markup=event_skip_kb(lang),
     )
-    await state.set_state(EventCreateStates.waiting_tags)
+    await state.set_state(EventCreateStates.waiting_people)
     await callback.answer()
 
 
-@router.message(EventCreateStates.waiting_tags)
-async def event_create_tags(
+@router.message(EventCreateStates.waiting_people)
+async def event_create_people(
     message: Message,
     state: FSMContext,
     user: User,
@@ -353,12 +334,12 @@ async def event_create_tags(
     session: AsyncSession,
 ) -> None:
     data = await state.get_data()
-    tag_names = [tg.strip() for tg in (message.text or "").split(",") if tg.strip()]
-    await _finish_event_create(message, state, user, lang, session, data, tag_names)
+    person_names = [x.strip() for x in (message.text or "").split(",") if x.strip()]
+    await _finish_event_create(message, state, user, lang, session, data, person_names)
 
 
-@router.callback_query(EventCreateStates.waiting_tags, F.data == "skip")
-async def event_create_skip_tags(
+@router.callback_query(EventCreateStates.waiting_people, F.data == "skip")
+async def event_create_skip_people(
     callback: CallbackQuery,
     state: FSMContext,
     user: User,
@@ -377,7 +358,7 @@ async def _finish_event_create(
     lang: str,
     session: AsyncSession,
     data: dict,
-    tag_names: list[str],
+    person_names: list[str],
 ) -> None:
     from datetime import date as date_type
 
@@ -386,7 +367,7 @@ async def _finish_event_create(
         title=data["title"],
         event_date=event_date,
         description=data.get("description"),
-        tag_names=tag_names or [],
+        person_names=person_names or [],
     )
 
     try:
@@ -404,9 +385,6 @@ async def _finish_event_create(
         t("events.created", lang, title=escape(event.title)),
         reply_markup=event_view_kb(event, lang),
     )
-
-
-# --- Edit ---
 
 
 @router.callback_query(EventCb.filter(F.action == "edit"))
@@ -549,8 +527,8 @@ async def event_edit_desc(
         await message.answer(t("errors.not_found", lang))
 
 
-@router.callback_query(EventEditCb.filter(F.field == "tags"))
-async def event_edit_tags_start(
+@router.callback_query(EventEditCb.filter(F.field == "people"))
+async def event_edit_people_start(
     callback: CallbackQuery,
     callback_data: EventEditCb,
     state: FSMContext,
@@ -558,15 +536,15 @@ async def event_edit_tags_start(
 ) -> None:
     await state.update_data(edit_event_id=callback_data.id)
     await callback.message.edit_text(  # type: ignore[union-attr]
-        t("events.create_tags", lang),
+        t("events.create_people", lang),
         reply_markup=cancel_kb(lang),
     )
-    await state.set_state(EventEditStates.waiting_tags)
+    await state.set_state(EventEditStates.waiting_people)
     await callback.answer()
 
 
-@router.message(EventEditStates.waiting_tags)
-async def event_edit_tags(
+@router.message(EventEditStates.waiting_people)
+async def event_edit_people(
     message: Message,
     state: FSMContext,
     user: User,
@@ -574,9 +552,9 @@ async def event_edit_tags(
     session: AsyncSession,
 ) -> None:
     data = await state.get_data()
-    tag_names = [tg.strip() for tg in (message.text or "").split(",") if tg.strip()]
+    person_names = [x.strip() for x in (message.text or "").split(",") if x.strip()]
     event = await update_event(
-        session, uuid.UUID(data["edit_event_id"]), EventUpdate(tag_names=tag_names),
+        session, uuid.UUID(data["edit_event_id"]), EventUpdate(person_names=person_names),
         user_id=user.id,
     )
     await state.clear()
@@ -587,9 +565,6 @@ async def event_edit_tags(
         )
     else:
         await message.answer(t("errors.not_found", lang))
-
-
-# --- Delete ---
 
 
 @router.callback_query(EventCb.filter(F.action == "delete"))
@@ -632,11 +607,7 @@ async def event_delete_confirm(
     else:
         await callback.answer(t("events.cannot_delete_system", lang), show_alert=True)
 
-    # Show events list
     await show_events_list(callback, user, lang, session)
-
-
-# --- Beautiful dates for event ---
 
 
 @router.callback_query(EventCb.filter(F.action == "dates"))

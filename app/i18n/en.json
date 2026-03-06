@@ -1,35 +1,35 @@
 {
-  "welcome": "Hi, {name}! I'm Noteme, a bot for tracking important dates and notes.",
+  "welcome": "Hi, {name}! I'm Noteme, a bot for important dates and the wishes of your loved ones.",
   "welcome_back": "Welcome back, {name}!",
   "choose_language": "Choose your language:",
   "language_set": "Language set: English",
 
   "onboarding": {
-    "intro": "I remember important dates and find beautiful numbers in them.\n\n<b>How it works:</b>\n\n1. Tell me about an event — voice or text:\n\"Wedding with Maria on July 17, 2022\"\nI'll understand the date, create the event, and add tags.\n\n2. Add notes:\n\"Maria wants a hot air balloon ride\"\nI'll link the note to the right event.\n\n3. Get notifications about beautiful dates:\n<i>\"In 10 days — exactly 777 days since the wedding\n\uD83D\uDCDD Maria wants a hot air balloon ride\"</i>\n\nNotifications are sent as spoilers — no one will see and ruin the surprise.\n\nWorks for everyone: friends, parents, colleagues. Photos, videos, files — I'll save them as notes too.",
+    "intro": "I remember important dates and find beautiful number coincidences.\n\n<b>How it works:</b>\n\n1. Tell me about an event — voice or text:\n\"Wedding with Maria on July 17, 2022\"\nI'll understand the date, create the event, and link it to Maria.\n\n2. Write down what someone close wants:\n\"Maria wants a hot air balloon ride\"\nI'll link the wish to Maria automatically.\n\n3. Get notifications:\n<i>\"In 10 days — exactly 777 days since the wedding with Maria\n\uD83D\uDCDD Maria wants a hot air balloon ride\"</i>\n\nYou'll know what to give when a beautiful date comes. Notifications are spoiler-protected — no one will peek.\n\nWorks for everyone: friends, parents, colleagues. Photos, videos, files — I'll save those too.",
     "step1": "Tell me about an important event — text or voice.\n\nExamples:\n\uD83D\uDC8D \"Wedding with Maria on July 17, 2022\"\n\uD83D\uDE97 \"Mike got his driver's license two days ago\"",
-    "step2": "Now add a note — a gift idea or something to remember.\n\nExamples:\n\uD83D\uDC8D \"Maria wants a hot air balloon ride\"\n\uD83D\uDE97 \"Mike dreams of Sony headphones\"",
+    "step2": "Now write down what someone close to you wants.\n\nExamples:\n\uD83D\uDC8D \"Maria wants a hot air balloon ride\"\n\uD83D\uDE97 \"Mike dreams of Sony headphones\"",
     "step3": "All set! Use the menu below to navigate.",
     "skip": "Skip"
   },
 
   "menu": {
     "feed": "Beautiful Dates Feed",
-    "events": "My Events",
-    "notes": "My Notes",
-    "tags": "Tags",
+    "events": "Events",
+    "wishes": "Wishes",
+    "people": "People",
     "settings": "Settings",
     "back": "Back",
     "cancel": "Cancel"
   },
 
   "events": {
-    "title": "My Events",
-    "empty": "You don't have any events yet. Create your first one!",
+    "title": "Events",
+    "empty": "No events yet. Tell me about your first one — and I'll find beautiful dates in it!",
     "create": "Create Event",
     "create_title": "Enter event title:",
     "create_date": "Enter event date (DD.MM.YYYY):",
     "create_description": "Add a description (or press \"Skip\"):",
-    "create_tags": "Add tags separated by comma (or press \"Skip\"):",
+    "create_people": "Who is this event about? Enter names separated by comma (or press \"Skip\"):",
     "created": "Event \"{title}\" created!",
     "edit": "Edit",
     "delete": "Delete",
@@ -42,68 +42,68 @@
     "invalid_date": "Invalid date. Please use the DD.MM.YYYY format.",
     "view_title": "Event: {title}",
     "date_label": "Date: {date}",
-    "tags_label": "Tags: {tags}",
-    "no_tags": "No tags",
-    "related_notes": "Related notes",
+    "people_label": "People: {people}",
+    "no_people": "No people",
+    "related_wishes": "Related wishes",
     "wishes": "Wishes",
     "wishes_empty": "No wishes yet.",
     "edit_wish": "Edit wish",
     "choose_wish": "Choose a wish to edit:",
-    "events_with_tag": "Events with \"{tag}\""
+    "events_with_person": "Events with \"{person}\""
   },
 
-  "notes": {
-    "title": "My Notes",
-    "empty": "You don't have any notes yet. Create your first one!",
-    "create": "Create Note",
-    "create_text": "Enter note text:",
+  "wishes": {
+    "title": "Wishes",
+    "empty": "No wishes yet. Write down what someone close to you wants — the bot will remind you at the right time.",
+    "create": "Add Wish",
+    "create_text": "Describe the wish — what does the person want:",
+    "create_people": "Who is this wish about? Enter names separated by comma (or press \"Skip\"):",
     "create_reminder": "Set a reminder? Enter date (DD.MM.YYYY) or press \"Skip\":",
-    "create_tags": "Add tags separated by comma (or press \"Skip\"):",
-    "created": "Note saved!",
+    "created": "Wish saved!",
     "edit": "Edit",
     "delete": "Delete",
-    "delete_confirm": "Are you sure you want to delete this note?",
-    "deleted": "Note deleted.",
-    "updated": "Note updated.",
-    "limit_reached": "Note limit reached ({max}). Delete an existing one or contact the admin.",
+    "delete_confirm": "Are you sure you want to delete this wish?",
+    "deleted": "Wish deleted.",
+    "updated": "Wish updated.",
+    "limit_reached": "Wish limit reached ({max}). Delete an existing one or contact the admin.",
     "reminder_set": "Reminder set for {date}.",
-    "view_title": "Note",
-    "tags_label": "Tags: {tags}",
-    "no_tags": "No tags"
+    "view_title": "Wish",
+    "people_label": "People: {people}",
+    "no_people": "No people"
   },
 
-  "tags": {
-    "title": "My Tags",
-    "empty": "You don't have any tags yet.",
-    "create": "Create Tag",
-    "create_name": "Enter tag name:",
-    "created": "Tag \"{name}\" created!",
+  "people": {
+    "title": "People",
+    "empty": "No people yet. They'll appear automatically when you add an event or wish with a name.",
+    "create": "Add Person",
+    "create_name": "Enter person name:",
+    "created": "\"{name}\" added!",
     "rename": "Rename",
-    "rename_prompt": "Enter new tag name:",
-    "renamed": "Tag renamed to \"{name}\".",
+    "rename_prompt": "Enter new name:",
+    "renamed": "Renamed to \"{name}\".",
     "delete": "Delete",
-    "delete_confirm": "Delete tag \"{name}\"? It will be removed from all events and notes.",
-    "delete_warning_orphans": "Warning: some notes will be left without tags after deletion.",
-    "deleted": "Tag deleted.",
-    "already_exists": "Tag \"{name}\" already exists.",
-    "limit_reached": "Tag limit reached for this item ({max}).",
+    "delete_confirm": "Delete \"{name}\"? They will be removed from all events and wishes.",
+    "delete_warning_orphans": "Warning: some wishes will be left without people after deletion.",
+    "deleted": "Deleted.",
+    "already_exists": "\"{name}\" already exists.",
+    "limit_reached": "People limit reached for this item ({max}).",
     "events_count": "Events: {count}",
-    "notes_count": "Notes: {count}",
+    "wishes_count": "Wishes: {count}",
     "show_events": "Events",
-    "show_notes": "Notes"
+    "show_wishes": "Wishes"
   },
 
   "media": {
-    "choose_tag": "Which tag to attach to?",
-    "note_created": "Media attached to tag \"{tag}\".",
-    "create_tag_first": "Enter new tag name:",
+    "choose_person": "Who to attach it to?",
+    "wish_created": "Media saved as \"{person}\"'s wish.",
+    "create_person_first": "Enter person name:",
     "saved": "Saved!",
-    "no_tags": "You don't have any tags yet. Create one in the Tags section first."
+    "no_people": "No people yet. Add one in the People section or tell me about an event with a name."
   },
 
   "feed": {
     "title": "Beautiful Dates",
-    "empty": "No beautiful dates yet. Add events to see the magic!",
+    "empty": "No beautiful dates yet. Add events — and the magic numbers will appear!",
     "today": "Today",
     "tomorrow": "Tomorrow",
     "in_days": "In {days}",
@@ -113,7 +113,7 @@
     "all_wishes": "All wishes",
     "when": "Coming on",
     "shared_link": "Link for friends:\n{url}",
-    "related_notes": "Related notes:",
+    "related_wishes": "Related wishes:",
     "wish": "Wish:",
     "counter": "{current} of {total}",
     "next": "Next",
@@ -144,25 +144,25 @@
 
   "notifications": {
     "morning_greeting": "Hey, {name}!",
-    "your_beautiful_dates": "Your upcoming beautiful dates:",
+    "your_beautiful_dates": "Upcoming beautiful dates:",
     "open_feed": "Open feed",
-    "note_reminder": "Note reminder:",
+    "wish_reminder": "Reminder:",
     "no_dates_today": "No beautiful dates today, but exciting ones are ahead!",
-    "closing": "Don't forget to add notes when you notice your loved ones want something"
+    "closing": "Notice what your loved ones want and write it down — the bot will remind you at the right time"
   },
 
   "ai": {
     "processing": "Processing...",
-    "not_understood": "Sorry, I didn't understand. Try rephrasing.",
-    "off_topic": "I can only help with events and notes. Try creating an event or a note!",
+    "not_understood": "Couldn't understand that. Try rephrasing.",
+    "off_topic": "I can help with events and wishes. Tell me about an important date or write down what someone close to you wants!",
     "audio_too_long": "Audio is too long. Maximum is 1 minute.",
     "audio_empty": "Could not understand the audio. Please try again.",
     "rate_limit": "Too many requests. Please wait a moment.",
-    "ambiguous": "Is this an event or a note? Please clarify.",
+    "ambiguous": "Is this an event or a wish? Please clarify.",
     "confirm_create_event": "Create event \"{title}\" on {date}?",
-    "confirm_create_note": "Save this note?",
+    "confirm_create_wish": "Save this wish?",
     "media_group_warning": "I'll only process the first message in the group.",
-    "help": "I help you store important dates and notes.\n\nTell me about an event (e.g., \"wedding August 17, 2022\") or a note (e.g., \"Max wants headphones\").\n\nUse the menu to navigate."
+    "help": "I help you store important dates and wishes of your loved ones.\n\nTell me about an event with a person's name:\n\"Wedding with Maria on August 17, 2022\"\n\nWrite down a wish:\n\"Maria wants headphones\"\n\nEvents and wishes are linked through people automatically. When a beautiful date comes — I'll remind you what to give.\n\nUse the menu to navigate."
   },
 
   "errors": {

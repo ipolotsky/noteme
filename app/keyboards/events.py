@@ -1,9 +1,7 @@
-"""Event-related inline keyboards."""
-
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.i18n.loader import t
-from app.keyboards.callbacks import EventCb, EventEditCb, MenuCb, TagCb
+from app.keyboards.callbacks import EventCb, EventEditCb, MenuCb, PersonCb
 from app.keyboards.pagination import pagination_row
 from app.models.event import Event
 
@@ -40,17 +38,12 @@ def events_list_kb(
 def event_view_kb(
     event: Event,
     lang: str,
-    related_notes_count: int = 0,
-    tag_event_counts: dict[str, tuple[str, int]] | None = None,
+    related_wishes_count: int = 0,
+    person_event_counts: dict[str, tuple[str, int]] | None = None,
 ) -> InlineKeyboardMarkup:
-    """Build event view keyboard.
-
-    tag_event_counts: {tag_name: (tag_id, event_count)} for per-tag buttons.
-    """
     eid = str(event.id)
     rows: list[list[InlineKeyboardButton]] = []
 
-    # Row 1: Edit + Delete
     rows.append([
         InlineKeyboardButton(
             text=f"\u270f\ufe0f {t('events.edit', lang)}",
@@ -62,29 +55,26 @@ def event_view_kb(
         ),
     ])
 
-    # Row 2: Beautiful dates
     rows.append([InlineKeyboardButton(
         text=f"\U0001f52e {t('events.beautiful_dates', lang)}",
         callback_data=EventCb(action="dates", id=eid).pack(),
     )])
 
-    if related_notes_count > 0:
+    if related_wishes_count > 0:
         rows.append([InlineKeyboardButton(
-            text=f"\U0001f4dd {t('events.wishes', lang)} ({related_notes_count})",
-            callback_data=EventCb(action="related_notes", id=eid).pack(),
+            text=f"\U0001f4dd {t('events.wishes', lang)} ({related_wishes_count})",
+            callback_data=EventCb(action="related_wishes", id=eid).pack(),
         )])
 
-    # Per-tag event buttons (only if >1 event with that tag)
-    if tag_event_counts:
-        for tag_name, (tag_id, count) in tag_event_counts.items():
+    if person_event_counts:
+        for person_name, (person_id, count) in person_event_counts.items():
             if count > 1:
-                label = t("events.events_with_tag", lang, tag=tag_name)
+                label = t("events.events_with_person", lang, person=person_name)
                 rows.append([InlineKeyboardButton(
                     text=f"\U0001f4cb {label} ({count})",
-                    callback_data=TagCb(action="events", id=tag_id).pack(),
+                    callback_data=PersonCb(action="events", id=person_id).pack(),
                 )])
 
-    # Back
     rows.append([InlineKeyboardButton(
         text=f"\u25c0 {t('menu.back', lang)}",
         callback_data=EventCb(action="list").pack(),
@@ -108,8 +98,8 @@ def event_edit_kb(event_id: str, lang: str) -> InlineKeyboardMarkup:
             callback_data=EventEditCb(field="description", id=event_id).pack(),
         )],
         [InlineKeyboardButton(
-            text=t("events.create_tags", lang).rstrip(":"),
-            callback_data=EventEditCb(field="tags", id=event_id).pack(),
+            text=t("events.create_people", lang).rstrip(":"),
+            callback_data=EventEditCb(field="people", id=event_id).pack(),
         )],
         [InlineKeyboardButton(
             text=f"\u25c0 {t('menu.back', lang)}",

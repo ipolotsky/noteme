@@ -1,51 +1,49 @@
-"""FSM states for multi-step flows."""
-
 from aiogram.fsm.state import State, StatesGroup
 
 
 class OnboardingStates(StatesGroup):
     waiting_language = State()
     waiting_first_event = State()
-    waiting_first_note = State()
+    waiting_first_wish = State()
 
 
 class EventCreateStates(StatesGroup):
     waiting_title = State()
     waiting_date = State()
     waiting_description = State()
-    waiting_tags = State()
+    waiting_people = State()
 
 
 class EventEditStates(StatesGroup):
     waiting_title = State()
     waiting_date = State()
     waiting_description = State()
-    waiting_tags = State()
+    waiting_people = State()
 
 
-class NoteCreateStates(StatesGroup):
+class WishCreateStates(StatesGroup):
     waiting_text = State()
     waiting_reminder = State()
-    waiting_tags = State()
+    waiting_people = State()
 
 
-class NoteEditStates(StatesGroup):
+class WishEditStates(StatesGroup):
     waiting_text = State()
     waiting_reminder = State()
-    waiting_tags = State()
+    waiting_people = State()
 
 
-class TagCreateStates(StatesGroup):
+class PersonCreateStates(StatesGroup):
     waiting_name = State()
 
 
-class TagRenameStates(StatesGroup):
+class PersonRenameStates(StatesGroup):
     waiting_name = State()
 
 
-class MediaNoteStates(StatesGroup):
-    waiting_tag = State()
-    waiting_new_tag_name = State()
+class MediaWishStates(StatesGroup):
+    waiting_person = State()
+    waiting_new_person_name = State()
 
 
 class SettingsStates(StatesGroup):

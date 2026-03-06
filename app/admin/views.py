@@ -1,5 +1,3 @@
-"""sqladmin model views for all entities."""
-
 from markupsafe import Markup
 from sqladmin import ModelView
 
@@ -8,11 +6,11 @@ from app.models.beautiful_date import BeautifulDate
 from app.models.beautiful_date_strategy import BeautifulDateStrategy
 from app.models.event import Event
 from app.models.media_link import MediaLink
-from app.models.note import Note
 from app.models.notification_log import NotificationLog
-from app.models.tag import Tag
+from app.models.person import Person
 from app.models.user import User
 from app.models.user_action_log import UserActionLog
+from app.models.wish import Wish
 
 
 class UserAdmin(ModelView, model=User):
@@ -38,13 +36,13 @@ class UserAdmin(ModelView, model=User):
         User.notification_count,
         User.spoiler_enabled,
         User.max_events,
-        User.max_notes,
+        User.max_wishes,
         User.created_at,
     ]
     column_searchable_list = [User.username, User.first_name]
     column_sortable_list = [User.id, User.created_at]
     column_default_sort = ("created_at", True)
-    form_excluded_columns = [User.tags, User.events, User.notes]
+    form_excluded_columns = [User.people, User.events, User.wishes]
     name = "User"
     name_plural = "Users"
     icon = "fa-solid fa-users"
@@ -71,38 +69,38 @@ class EventAdmin(ModelView, model=Event):
     column_searchable_list = [Event.title]
     column_sortable_list = [Event.event_date, Event.created_at]
     column_default_sort = ("created_at", True)
-    form_excluded_columns = [Event.tags, Event.beautiful_dates]
+    form_excluded_columns = [Event.people, Event.beautiful_dates]
     name = "Event"
     name_plural = "Events"
     icon = "fa-solid fa-calendar"
 
 
-class NoteAdmin(ModelView, model=Note):
+class WishAdmin(ModelView, model=Wish):
     column_list = [
-        Note.id,
-        Note.user_id,
-        Note.text,
-        Note.reminder_date,
-        Note.reminder_sent,
-        Note.created_at,
+        Wish.id,
+        Wish.user_id,
+        Wish.text,
+        Wish.reminder_date,
+        Wish.reminder_sent,
+        Wish.created_at,
     ]
-    column_searchable_list = [Note.text]
-    column_sortable_list = [Note.created_at]
+    column_searchable_list = [Wish.text]
+    column_sortable_list = [Wish.created_at]
     column_default_sort = ("created_at", True)
-    form_excluded_columns = [Note.tags, Note.media_link]
-    name = "Note"
-    name_plural = "Notes"
-    icon = "fa-solid fa-sticky-note"
+    form_excluded_columns = [Wish.people, Wish.media_link]
+    name = "Wish"
+    name_plural = "Wishes"
+    icon = "fa-solid fa-gift"
 
 
-class TagAdmin(ModelView, model=Tag):
-    column_list = [Tag.id, Tag.user_id, Tag.name, Tag.created_at]
-    column_searchable_list = [Tag.name]
-    column_sortable_list = [Tag.name, Tag.created_at]
-    form_excluded_columns = [Tag.events, Tag.notes]
-    name = "Tag"
-    name_plural = "Tags"
-    icon = "fa-solid fa-tags"
+class PersonAdmin(ModelView, model=Person):
+    column_list = [Person.id, Person.user_id, Person.name, Person.created_at]
+    column_searchable_list = [Person.name]
+    column_sortable_list = [Person.name, Person.created_at]
+    form_excluded_columns = [Person.events, Person.wishes]
+    name = "Person"
+    name_plural = "People"
+    icon = "fa-solid fa-users"
 
 
 class BeautifulDateStrategyAdmin(ModelView, model=BeautifulDateStrategy):
@@ -143,7 +141,7 @@ class BeautifulDateAdmin(ModelView, model=BeautifulDate):
 class MediaLinkAdmin(ModelView, model=MediaLink):
     column_list = [
         MediaLink.id,
-        MediaLink.note_id,
+        MediaLink.wish_id,
         MediaLink.media_type,
         MediaLink.is_deleted,
     ]
