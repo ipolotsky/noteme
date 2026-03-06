@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 from html import escape
 
 from aiogram import F, Router
@@ -10,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.handlers.states import OnboardingStates
 from app.i18n.loader import t
 from app.keyboards.callbacks import LangCb, OnboardCb
-from app.keyboards.main_menu import onboarding_skip_kb, persistent_menu_kb
+from app.keyboards.main_menu import onboarding_event_kb, onboarding_skip_kb, persistent_menu_kb
 from app.keyboards.settings import language_select_kb
 from app.models.user import User
 from app.schemas.user import UserUpdate
@@ -43,6 +44,13 @@ async def _transcribe_voice(message: Message, lang: str, user_id: int = 0) -> st
         logger.exception("Voice transcription failed")
         await message.answer(t("errors.unknown", lang))
         return None
+
+
+def _build_step2_text(lang: str, person_names: list[str]) -> str:
+    real_names = [n for n in person_names if n not in ("Личное", "Personal")]
+    if real_names:
+        return t("onboarding.step2_with_person", lang, name=real_names[0])
+    return t("onboarding.step2_personal", lang)
 
 
 @router.message(CommandStart())
@@ -95,11 +103,22 @@ async def onboarding_language(
     )
     await callback.message.answer(  # type: ignore[union-attr]
         t("onboarding.step1", lang),
-        reply_markup=onboarding_skip_kb(lang),
+        reply_markup=onboarding_event_kb(lang),
     )
     await state.set_state(OnboardingStates.waiting_first_event)
     await state.update_data(lang=lang)
     await callback.answer()
+
+
+async def _handle_event_created(
+    message: Message,
+    state: FSMContext,
+    lang: str,
+    person_names: list[str],
+) -> None:
+    step2_text = _build_step2_text(lang, person_names)
+    await message.answer(step2_text, reply_markup=onboarding_skip_kb(lang))
+    await state.set_state(OnboardingStates.waiting_first_wish)
 
 
 @router.message(OnboardingStates.waiting_first_event, F.text)
@@ -124,12 +143,13 @@ async def onboarding_first_event_text(
         )
 
         if result.intent == "create_event" and result.event_title and result.event_date:
+            person_names = result.person_names or []
             event = await create_event(
                 session, user.id,
                 EventCreate(
                     title=result.event_title,
                     event_date=result.event_date,
-                    person_names=result.person_names or [],
+                    person_names=person_names,
                 ),
             )
             from app.services.beautiful_dates.engine import recalculate_for_event
@@ -140,21 +160,17 @@ async def onboarding_first_event_text(
         else:
             await message.answer(
                 t("ai.not_understood", lang),
-                reply_markup=onboarding_skip_kb(lang),
+                reply_markup=onboarding_event_kb(lang),
             )
             return
     except Exception:
         await message.answer(
             t("ai.not_understood", lang),
-            reply_markup=onboarding_skip_kb(lang),
+            reply_markup=onboarding_event_kb(lang),
         )
         return
 
-    await message.answer(
-        t("onboarding.step2", lang),
-        reply_markup=onboarding_skip_kb(lang),
-    )
-    await state.set_state(OnboardingStates.waiting_first_wish)
+    await _handle_event_created(message, state, lang, person_names)
 
 
 @router.message(OnboardingStates.waiting_first_event, F.voice)
@@ -179,12 +195,13 @@ async def onboarding_first_event_voice(
         result = await process_message(text=text, user_id=user.id, user_language=lang, is_voice=True)
 
         if result.intent == "create_event" and result.event_title and result.event_date:
+            person_names = result.person_names or []
             event = await create_event(
                 session, user.id,
                 EventCreate(
                     title=result.event_title,
                     event_date=result.event_date,
-                    person_names=result.person_names or [],
+                    person_names=person_names,
                 ),
             )
             from app.services.beautiful_dates.engine import recalculate_for_event
@@ -193,15 +210,54 @@ async def onboarding_first_event_voice(
             await state.update_data(event_created=True)
             await log_user_action(user.id, "onboarding_create_event_voice", event.title)
         else:
-            await message.answer(t("ai.not_understood", lang), reply_markup=onboarding_skip_kb(lang))
+            await message.answer(t("ai.not_understood", lang), reply_markup=onboarding_event_kb(lang))
             return
     except Exception:
         logger.exception("Onboarding voice event failed for user %s", user.id)
-        await message.answer(t("ai.not_understood", lang), reply_markup=onboarding_skip_kb(lang))
+        await message.answer(t("ai.not_understood", lang), reply_markup=onboarding_event_kb(lang))
         return
 
-    await message.answer(t("onboarding.step2", lang), reply_markup=onboarding_skip_kb(lang))
+    await _handle_event_created(message, state, lang, person_names)
+
+
+@router.callback_query(
+    OnboardingStates.waiting_first_event,
+    OnboardCb.filter(F.action == "quick_event"),
+)
+async def onboarding_quick_event(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+) -> None:
+    data = await state.get_data()
+    lang = data.get("lang", user.language)
+
+    from app.schemas.event import EventCreate
+    from app.services.event_service import create_event
+
+    title = t("onboarding.quick_event", lang)
+    person_names = ["Личное" if lang == "ru" else "Personal"]
+    event = await create_event(
+        session, user.id,
+        EventCreate(title=title, event_date=date.today(), person_names=person_names),
+    )
+    from app.services.beautiful_dates.engine import recalculate_for_event
+    await recalculate_for_event(session, event)
+
+    await callback.message.edit_text(  # type: ignore[union-attr]
+        t("events.created", lang, title=escape(event.title)),
+    )
+    await state.update_data(event_created=True)
+    await log_user_action(user.id, "onboarding_quick_event")
+
+    step2_text = _build_step2_text(lang, person_names)
+    await callback.message.answer(  # type: ignore[union-attr]
+        step2_text,
+        reply_markup=onboarding_skip_kb(lang),
+    )
     await state.set_state(OnboardingStates.waiting_first_wish)
+    await callback.answer()
 
 
 @router.callback_query(
@@ -219,10 +275,11 @@ async def onboarding_skip_event(
 
     await log_user_action(user.id, "onboarding_skip_event")
     await callback.message.edit_text(  # type: ignore[union-attr]
-        t("onboarding.step2", lang),
-        reply_markup=onboarding_skip_kb(lang),
+        t("onboarding.skipped", lang),
     )
-    await state.set_state(OnboardingStates.waiting_first_wish)
+    await _finish_onboarding(
+        callback.message, state, user, lang, session,  # type: ignore[arg-type]
+    )
     await callback.answer()
 
 
@@ -342,7 +399,7 @@ async def onboarding_skip_wish(
 
     await log_user_action(user.id, "onboarding_skip_wish")
     await callback.message.edit_text(  # type: ignore[union-attr]
-        t("onboarding.step2", lang).split("\n")[0] + " \u2714",
+        t("onboarding.step2_personal", lang).split("\n")[0] + " \u2714",
     )
     await _finish_onboarding(
         callback.message, state, user, lang, session,  # type: ignore[arg-type]
