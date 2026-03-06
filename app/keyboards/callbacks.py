@@ -39,7 +39,7 @@ class MediaPersonCb(CallbackData, prefix="mp"):
 
 
 class SettingsCb(CallbackData, prefix="set"):
-    action: str  # "view", "language", "timezone", "notif_toggle", "notif_time", "notif_count", "spoiler"
+    action: str
     value: str = ""
 
 

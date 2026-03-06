@@ -126,29 +126,42 @@
     "title": "Настройки",
     "language": "Язык: {language}",
     "timezone": "Часовой пояс: {tz}",
+    "notification_submenu": "Уведомления",
     "notifications": "Уведомления: {status}",
-    "notification_time": "Время уведомлений: {time}",
-    "notification_count": "Кол-во дат в дайджесте: {count}",
+    "notify_day_before": "За день до: {status}",
+    "notify_day_before_time": "Время (за день): {time}",
+    "notify_week_before": "За неделю до: {status}",
+    "notify_week_before_time": "Время (за неделю): {time}",
+    "notify_weekly_digest": "Еженедельный дайджест: {status}",
+    "weekly_digest_day": "День дайджеста: {day}",
+    "weekly_digest_time": "Время дайджеста: {time}",
+    "choose_digest_day": "Выберите день для дайджеста:",
     "spoiler": "Спойлер: {status}",
     "enabled": "Включено",
     "disabled": "Выключено",
     "change_language": "Сменить язык",
     "change_timezone": "Сменить часовой пояс",
-    "change_notification_time": "Изменить время",
-    "change_notification_count": "Изменить кол-во",
-    "toggle_notifications": "Вкл/Выкл уведомления",
-    "toggle_spoiler": "Вкл/Выкл спойлер",
+    "change_time": "Введите время (HH:MM):",
     "current_time": "Сейчас в вашем часовом поясе: {time}",
     "saved": "Настройки сохранены."
   },
 
   "notifications": {
-    "morning_greeting": "Привет, {name}!",
-    "your_beautiful_dates": "Ближайшие красивые даты:",
+    "day_before": "Завтра",
+    "week_before": "Через неделю",
+    "weekly_greeting": "Красивые даты на этой неделе:",
     "open_feed": "Открыть ленту",
-    "wish_reminder": "Напоминание:",
-    "no_dates_today": "Сегодня нет красивых дат, но впереди много интересного!",
-    "closing": "Замечай, что хотят близкие, и записывай — бот напомнит к нужной дате"
+    "wish_reminder": "Напоминание:"
+  },
+
+  "days_of_week": {
+    "0": "Понедельник",
+    "1": "Вторник",
+    "2": "Среда",
+    "3": "Четверг",
+    "4": "Пятница",
+    "5": "Суббота",
+    "6": "Воскресенье"
   },
 
   "ai": {

@@ -7,9 +7,14 @@ class UserBase(BaseModel):
     first_name: str = ""
     language: str = "ru"
     timezone: str = "Europe/Moscow"
-    notification_time: time = time(9, 0)
     notifications_enabled: bool = True
-    notification_count: int = 3
+    notify_day_before: bool = True
+    notify_day_before_time: time = time(9, 0)
+    notify_week_before: bool = True
+    notify_week_before_time: time = time(9, 0)
+    notify_weekly_digest: bool = True
+    weekly_digest_day: int = 6
+    weekly_digest_time: time = time(19, 0)
     spoiler_enabled: bool = False
 
 
@@ -23,9 +28,14 @@ class UserUpdate(BaseModel):
     username: str | None = None
     language: str | None = None
     timezone: str | None = None
-    notification_time: time | None = None
     notifications_enabled: bool | None = None
-    notification_count: int | None = None
+    notify_day_before: bool | None = None
+    notify_day_before_time: time | None = None
+    notify_week_before: bool | None = None
+    notify_week_before_time: time | None = None
+    notify_weekly_digest: bool | None = None
+    weekly_digest_day: int | None = None
+    weekly_digest_time: time | None = None
     spoiler_enabled: bool | None = None
     onboarding_completed: bool | None = None
 

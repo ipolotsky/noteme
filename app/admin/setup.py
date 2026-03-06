@@ -38,15 +38,15 @@ class AdminAuth(AuthenticationBackend):
 # Tables to truncate (in FK-safe order, CASCADE handles the rest)
 _CLEAR_TABLES = [
     "media_links",
-    "note_tags",
-    "event_tags",
+    "wish_people",
+    "event_people",
     "beautiful_dates",
     "notification_logs",
     "ai_logs",
     "user_action_logs",
-    "notes",
+    "wishes",
     "events",
-    "tags",
+    "people",
 ]
 
 
@@ -170,7 +170,9 @@ def setup_admin(app: FastAPI) -> Admin:
 
         try:
             pool = await create_pool(parse_redis_url())
-            await pool.enqueue_job("app.workers.notifications.send_digest_task", user_id, True)
+            await pool.enqueue_job("app.workers.notifications.send_day_before_notification", user_id, True)
+            await pool.enqueue_job("app.workers.notifications.send_week_before_notification", user_id, True)
+            await pool.enqueue_job("app.workers.notifications.send_weekly_digest_notification", user_id, True)
             await pool.enqueue_job("app.workers.notifications.send_wish_reminders_task", user_id, True)
             await pool.close()
             status = f"Jobs enqueued for user <b>{user_id}</b>. Check bot chat for results."

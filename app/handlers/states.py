@@ -48,5 +48,6 @@ class MediaWishStates(StatesGroup):
 
 class SettingsStates(StatesGroup):
     waiting_timezone = State()
-    waiting_notification_time = State()
-    waiting_notification_count = State()
+    waiting_day_before_time = State()
+    waiting_week_before_time = State()
+    waiting_digest_time = State()

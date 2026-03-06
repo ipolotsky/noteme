@@ -624,19 +624,16 @@ class TestSettings:
         kw = msg.answer.call_args.kwargs
         assert "reply_markup" in kw  # settings_kb returned
 
-    async def test_35_settings_notification_count(self, session: AsyncSession):
-        """S35: Change notification count → saved with settings keyboard."""
-        from app.handlers.settings import settings_set_notif_count
+    async def test_35_settings_notification_submenu(self, session: AsyncSession):
+        from app.handlers.settings import settings_notif_submenu
 
         user = await _make_user(session)
-        msg = _mock_message("7")
-        state = _mock_state()
+        cb = _mock_callback()
 
-        await settings_set_notif_count(msg, state, user, "ru", session)
+        await settings_notif_submenu(cb, user, "ru")
 
-        assert user.notification_count == 7
-        state.clear.assert_called_once()
-        kw = msg.answer.call_args.kwargs
+        cb.message.edit_text.assert_called_once()
+        kw = cb.message.edit_text.call_args.kwargs
         assert "reply_markup" in kw
 
 

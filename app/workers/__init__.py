@@ -27,7 +27,9 @@ class WorkerSettings:
     functions = [
         "app.workers.beautiful_dates.recalculate_event_task",
         "app.workers.beautiful_dates.recalculate_all_task",
-        "app.workers.notifications.send_digest_task",
+        "app.workers.notifications.send_day_before_notification",
+        "app.workers.notifications.send_week_before_notification",
+        "app.workers.notifications.send_weekly_digest_notification",
         "app.workers.notifications.send_wish_reminders_task",
         "app.workers.notifications.check_and_send_notifications",
         "app.workers.ai_logs.persist_ai_logs_task",

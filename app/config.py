@@ -57,7 +57,8 @@ class Settings(BaseSettings):
 
     # Notifications
     default_notification_time: str = "09:00"
-    default_notification_count: int = 3
+    default_weekly_digest_time: str = "19:00"
+    default_weekly_digest_day: int = 6
 
     # Logging
     log_level: str = "INFO"
