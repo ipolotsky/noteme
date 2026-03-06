@@ -286,13 +286,41 @@ async def feed_share(
     lang: str,
     session: AsyncSession,
 ) -> None:
-    share_uuid = await generate_share_uuid(session, uuid.UUID(callback_data.id))
+    bd_id = uuid.UUID(callback_data.id)
+    result = await session.execute(
+        select(BeautifulDate)
+        .options(selectinload(BeautifulDate.event).selectinload(Event.people))
+        .where(BeautifulDate.id == bd_id)
+    )
+    bd = result.scalar_one_or_none()
+    if bd is None:
+        await callback.answer(t("errors.not_found", lang), show_alert=True)
+        return
+
+    share_uuid = await generate_share_uuid(session, bd_id)
     if share_uuid is None:
         await callback.answer(t("errors.not_found", lang), show_alert=True)
         return
 
+    label = bd.label_ru if lang == "ru" else bd.label_en
+    person_names = [x.name for x in bd.event.people] if bd.event.people else []
+
+    import asyncio
+
+    from app.services.share_image import generate_share_image
+    image_bytes = await asyncio.to_thread(
+        generate_share_image,
+        label=label,
+        event_title=bd.event.title,
+        target_date_formatted=format_date(bd.target_date, lang),
+        relative_date=format_relative_date(bd.target_date, lang),
+        person_names=person_names,
+    )
+
+    from aiogram.types import BufferedInputFile
     url = f"{settings.app_base_url}/share/{share_uuid}"
-    await callback.message.answer(  # type: ignore[union-attr]
-        t("feed.shared_link", lang, url=url),
+    await callback.message.answer_photo(  # type: ignore[union-attr]
+        photo=BufferedInputFile(image_bytes, filename="share.png"),
+        caption=t("feed.shared_link", lang, url=url),
     )
     await callback.answer()
