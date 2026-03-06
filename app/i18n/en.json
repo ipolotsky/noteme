@@ -126,29 +126,42 @@
     "title": "Settings",
     "language": "Language: {language}",
     "timezone": "Timezone: {tz}",
+    "notification_submenu": "Notifications",
     "notifications": "Notifications: {status}",
-    "notification_time": "Notification time: {time}",
-    "notification_count": "Dates in digest: {count}",
+    "notify_day_before": "Day before: {status}",
+    "notify_day_before_time": "Time (day before): {time}",
+    "notify_week_before": "Week before: {status}",
+    "notify_week_before_time": "Time (week before): {time}",
+    "notify_weekly_digest": "Weekly digest: {status}",
+    "weekly_digest_day": "Digest day: {day}",
+    "weekly_digest_time": "Digest time: {time}",
+    "choose_digest_day": "Choose digest day:",
     "spoiler": "Spoiler: {status}",
     "enabled": "Enabled",
     "disabled": "Disabled",
     "change_language": "Change language",
     "change_timezone": "Change timezone",
-    "change_notification_time": "Change time",
-    "change_notification_count": "Change count",
-    "toggle_notifications": "Toggle notifications",
-    "toggle_spoiler": "Toggle spoiler",
+    "change_time": "Enter time (HH:MM):",
     "current_time": "Current time in your timezone: {time}",
     "saved": "Settings saved."
   },
 
   "notifications": {
-    "morning_greeting": "Hey, {name}!",
-    "your_beautiful_dates": "Upcoming beautiful dates:",
+    "day_before": "Tomorrow",
+    "week_before": "In a week",
+    "weekly_greeting": "Beautiful dates this week:",
     "open_feed": "Open feed",
-    "wish_reminder": "Reminder:",
-    "no_dates_today": "No beautiful dates today, but exciting ones are ahead!",
-    "closing": "Notice what your loved ones want and write it down — the bot will remind you at the right time"
+    "wish_reminder": "Reminder:"
+  },
+
+  "days_of_week": {
+    "0": "Monday",
+    "1": "Tuesday",
+    "2": "Wednesday",
+    "3": "Thursday",
+    "4": "Friday",
+    "5": "Saturday",
+    "6": "Sunday"
   },
 
   "ai": {

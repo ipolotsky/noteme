@@ -6,7 +6,6 @@ Each test focuses on a single unit in isolation, mocking external deps.
 
 import uuid
 from datetime import date
-from datetime import time as dt_time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -298,17 +297,14 @@ class TestSettingsKeyboard:
     """Test settings keyboard builders."""
 
     def test_settings_kb_has_all_options(self, session: AsyncSession):
-        """Settings kb shows language, timezone, notifications, spoiler, back."""
         from app.keyboards.settings import settings_kb
         user = MagicMock(spec=User)
         user.notifications_enabled = True
         user.spoiler_enabled = False
         user.timezone = "Europe/Moscow"
-        user.notification_time = dt_time(9, 0)
-        user.notification_count = 3
         kb = settings_kb(user, "ru")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
-        assert len(buttons) == 7  # lang, tz, notif, notif_time, notif_count, spoiler, back
+        assert len(buttons) == 5
 
     def test_settings_kb_language_label_ru(self):
         from app.keyboards.settings import settings_kb
@@ -316,8 +312,6 @@ class TestSettingsKeyboard:
         user.notifications_enabled = True
         user.spoiler_enabled = True
         user.timezone = "UTC"
-        user.notification_time = dt_time(10, 0)
-        user.notification_count = 5
         kb = settings_kb(user, "ru")
         first_text = kb.inline_keyboard[0][0].text
         assert "\U0001f1f7\U0001f1fa" in first_text  # RU flag
@@ -444,8 +438,9 @@ class TestFSMStates:
     def test_settings_states(self):
         from app.handlers.states import SettingsStates
         assert SettingsStates.waiting_timezone
-        assert SettingsStates.waiting_notification_time
-        assert SettingsStates.waiting_notification_count
+        assert SettingsStates.waiting_day_before_time
+        assert SettingsStates.waiting_week_before_time
+        assert SettingsStates.waiting_digest_time
 
 
 # =====================================================================

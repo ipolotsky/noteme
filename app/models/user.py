@@ -1,6 +1,6 @@
 from datetime import datetime, time
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Index, Integer, String, Time, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String, Time, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -9,12 +9,6 @@ from app.models.base import Base
 
 class User(Base):
     __tablename__ = "users"
-    __table_args__ = (
-        Index(
-            "ix_users_notification_filter",
-            "is_active", "notifications_enabled", "notification_time",
-        ),
-    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
 
@@ -23,11 +17,14 @@ class User(Base):
     language: Mapped[str] = mapped_column(String(5), default="ru")
     timezone: Mapped[str] = mapped_column(String(50), default="Europe/Moscow")
 
-    notification_time: Mapped[time] = mapped_column(
-        Time, default=time(9, 0)
-    )
     notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    notification_count: Mapped[int] = mapped_column(Integer, default=3)
+    notify_day_before: Mapped[bool] = mapped_column(Boolean, default=True)
+    notify_day_before_time: Mapped[time] = mapped_column(Time, default=time(9, 0))
+    notify_week_before: Mapped[bool] = mapped_column(Boolean, default=True)
+    notify_week_before_time: Mapped[time] = mapped_column(Time, default=time(9, 0))
+    notify_weekly_digest: Mapped[bool] = mapped_column(Boolean, default=True)
+    weekly_digest_day: Mapped[int] = mapped_column(Integer, default=6)
+    weekly_digest_time: Mapped[time] = mapped_column(Time, default=time(19, 0))
 
     max_events: Mapped[int] = mapped_column(Integer, default=10)
     max_wishes: Mapped[int] = mapped_column(Integer, default=10)

@@ -5,7 +5,7 @@ These tests create real DB records and verify cross-module interactions.
 """
 
 import uuid
-from datetime import date, time, timedelta
+from datetime import date, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -81,7 +81,6 @@ class TestUserLifecycle:
         assert user.language == "ru"
         assert user.timezone == "Europe/Moscow"
         assert user.notifications_enabled is True
-        assert user.notification_count == 3
         assert user.max_events == 10
         assert user.max_wishes == 10
         assert user.onboarding_completed is False
@@ -408,10 +407,10 @@ class TestSharingFlow:
 class TestNotificationFlow:
     """Build digest and check wish reminders."""
 
-    async def test_build_digest_with_dates(self, session: AsyncSession):
-        """Digest contains upcoming beautiful dates."""
+    async def test_get_dates_for_range_with_dates(self, session: AsyncSession):
+        """Range query returns upcoming beautiful dates."""
         from app.services.beautiful_dates.engine import recalculate_for_event
-        from app.services.notification_service import build_digest
+        from app.services.notification_service import get_dates_for_range
 
         user = await _user(session, uid=1500)
         strategy = await _seed_strategy(session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"})
@@ -421,58 +420,16 @@ class TestNotificationFlow:
         ))
         await recalculate_for_event(session, event, [strategy])
 
-        digest = await build_digest(session, user)
-        assert len(digest) <= user.notification_count
-        # With step=100 and event from 2020, there should be upcoming dates
-        assert len(digest) > 0
+        dates = await get_dates_for_range(session, user.id, date.today(), date.today() + timedelta(days=3650))
+        assert len(dates) > 0
 
-    async def test_build_digest_empty_no_events(self, session: AsyncSession):
-        """Digest is empty when no events exist."""
-        from app.services.notification_service import build_digest
+    async def test_get_dates_for_range_empty_no_events(self, session: AsyncSession):
+        """Range query is empty when no events exist."""
+        from app.services.notification_service import get_dates_for_range
 
         user = await _user(session, uid=1600)
-        digest = await build_digest(session, user)
-        assert len(digest) == 0
-
-    async def test_format_digest_message(self, session: AsyncSession):
-        """Digest message contains greeting and labels."""
-        from app.services.beautiful_dates.engine import recalculate_for_event
-        from app.services.notification_service import build_digest, format_digest_message
-
-        user = await _user(session, uid=1700)
-        strategy = await _seed_strategy(session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"})
-
-        event = await create_event(session, user.id, EventCreate(
-            title="Format Test", event_date=date(2020, 1, 1),
-        ))
-        await recalculate_for_event(session, event, [strategy])
-
-        digest = await build_digest(session, user)
-        message = await format_digest_message(session, user, digest)
-
-        assert user.first_name in message
-        assert "\u2600" in message  # sun emoji for greeting
-
-    async def test_format_digest_with_spoiler(self, session: AsyncSession):
-        """Spoiler-enabled user gets <tg-spoiler> wrapped content."""
-        from app.services.beautiful_dates.engine import recalculate_for_event
-        from app.services.notification_service import build_digest, format_digest_message
-
-        user = await _user(session, uid=1800)
-        user.spoiler_enabled = True
-        await session.flush()
-
-        strategy = await _seed_strategy(session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"})
-
-        event = await create_event(session, user.id, EventCreate(
-            title="Spoiler Test", event_date=date(2020, 1, 1),
-        ))
-        await recalculate_for_event(session, event, [strategy])
-
-        digest = await build_digest(session, user)
-        message = await format_digest_message(session, user, digest)
-
-        assert "<tg-spoiler>" in message
+        dates = await get_dates_for_range(session, user.id, date.today(), date.today() + timedelta(days=365))
+        assert len(dates) == 0
 
     async def test_wish_reminders_due_tomorrow(self, session: AsyncSession):
         """Wishes with reminder_date = tomorrow are found."""
@@ -509,36 +466,28 @@ class TestNotificationFlow:
         assert len(reminders) == 0
 
     async def test_notification_users_filter(self, session: AsyncSession):
-        """get_users_for_notification filters by time, active, enabled."""
-        from app.services.notification_service import get_users_for_notification
+        """get_active_notifiable_users filters by active and enabled."""
+        from app.services.notification_service import get_active_notifiable_users
 
-        # Active user with matching time
         u1 = await _user(session, uid=2100)
-        u1.notification_time = time(9, 0)
         u1.notifications_enabled = True
 
-        # Inactive user
         u2 = await _user(session, uid=2200)
-        u2.notification_time = time(9, 0)
         u2.is_active = False
 
-        # Wrong time
-        u3 = await _user(session, uid=2300)
-        u3.notification_time = time(18, 0)
+        await _user(session, uid=2300)
 
-        # Notifications disabled
         u4 = await _user(session, uid=2400)
-        u4.notification_time = time(9, 0)
         u4.notifications_enabled = False
 
         await session.flush()
 
-        users = await get_users_for_notification(session, 9, 0)
-        ids = [u.id for u in users]
+        users = await get_active_notifiable_users(session)
+        ids = [x.id for x in users]
         assert 2100 in ids
-        assert 2200 not in ids  # inactive
-        assert 2300 not in ids  # wrong time
-        assert 2400 not in ids  # disabled
+        assert 2300 in ids
+        assert 2200 not in ids
+        assert 2400 not in ids
 
     async def test_notification_log(self, session: AsyncSession):
         """log_notification creates a record."""
@@ -751,10 +700,10 @@ class TestWorkerTasks:
         count = await recalculate_for_event(session, event, [strategy])
         assert count > 0
 
-    async def test_digest_format_includes_related_wishes(self, session: AsyncSession):
-        """Digest message includes related wishes for events with people."""
+    async def test_dates_for_range_includes_event_with_people(self, session: AsyncSession):
+        """Range query returns dates for events linked to people."""
         from app.services.beautiful_dates.engine import recalculate_for_event
-        from app.services.notification_service import build_digest, format_digest_message
+        from app.services.notification_service import get_dates_for_range
 
         user = await _user(session, uid=4300)
         strategy = await _seed_strategy(session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"})
@@ -769,10 +718,9 @@ class TestWorkerTasks:
         ))
         await recalculate_for_event(session, event, [strategy])
 
-        digest = await build_digest(session, user)
-        message = await format_digest_message(session, user, digest)
-
-        assert "Buy flowers" in message
+        dates = await get_dates_for_range(session, user.id, date.today(), date.today() + timedelta(days=3650))
+        assert len(dates) > 0
+        assert any(x.event_id == event.id for x in dates)
 
 
 # =====================================================================
