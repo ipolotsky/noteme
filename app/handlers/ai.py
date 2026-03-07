@@ -17,6 +17,7 @@ from app.schemas.event import EventCreate
 from app.schemas.wish import WishCreate
 from app.services.action_logger import log_user_action
 from app.services.event_service import EventLimitError, create_event
+from app.services.person_service import get_user_people
 from app.services.wish_service import WishLimitError, create_wish
 
 logger = logging.getLogger(__name__)
@@ -67,11 +68,15 @@ async def handle_voice(
             return
         logger.info("[voice] user=%s transcribed: %r", user.id, text[:200])
 
+        people = await get_user_people(session, user.id)
+        existing_people = [x.name for x in people]
+
         state = await process_message(
             text=text,
             user_id=user.id,
             user_language=lang,
             is_voice=True,
+            existing_people=existing_people,
         )
 
         await _handle_agent_result(message, processing_msg, state, user, lang, session)
@@ -102,10 +107,14 @@ async def handle_text(
     processing_msg = await message.answer(t("ai.processing", lang))
 
     try:
+        people = await get_user_people(session, user.id)
+        existing_people = [x.name for x in people]
+
         state = await process_message(
             text=message.text,
             user_id=user.id,
             user_language=lang,
+            existing_people=existing_people,
         )
 
         await _handle_agent_result(message, processing_msg, state, user, lang, session)

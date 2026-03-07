@@ -8,6 +8,7 @@ class AgentState:
     user_language: str = "ru"
     raw_text: str = ""
     is_voice: bool = False
+    existing_people: list[str] = field(default_factory=list)
 
     transcribed_text: str = ""
 

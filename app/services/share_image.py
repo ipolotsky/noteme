@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont
 _FONTS_DIR = Path(__file__).parent.parent / "static" / "fonts"
 
 _WIDTH = 1080
-_HEIGHT = 1920
+_HEIGHT = 1080
 
 _COLOR_TOP = (108, 60, 225)
 _COLOR_BOTTOM = (37, 99, 235)
@@ -94,21 +94,21 @@ def generate_share_image(
     person_names: list[str],
     branding: str = "Not a date",
 ) -> bytes:
-    font_label = _load_font("Inter-Bold.ttf", 120)
-    font_title = _load_font("Inter-Regular.ttf", 56)
-    font_date = _load_font("Inter-Regular.ttf", 48)
-    font_relative = _load_font("Inter-Regular.ttf", 44)
-    font_people = _load_font("Inter-Regular.ttf", 40)
-    font_brand = _load_font("Inter-Bold.ttf", 36)
+    font_label = _load_font("Inter-Bold.ttf", 80)
+    font_title = _load_font("Inter-Regular.ttf", 44)
+    font_date = _load_font("Inter-Regular.ttf", 38)
+    font_relative = _load_font("Inter-Regular.ttf", 34)
+    font_people = _load_font("Inter-Regular.ttf", 32)
+    font_brand = _load_font("Inter-Bold.ttf", 28)
 
     image = _make_gradient()
 
     overlay = Image.new("RGBA", (_WIDTH, _HEIGHT), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
 
-    y = 500
+    y = 200
     y = _draw_centered_text(draw, overlay, label, y, font_label, _WHITE)
-    y += 40
+    y += 25
 
     line_y = y
     line_x_start = (_WIDTH - 200) // 2
@@ -118,22 +118,22 @@ def generate_share_image(
         fill=_WHITE_20,
         width=2,
     )
-    y = line_y + 50
+    y = line_y + 30
 
     y = _draw_centered_text(draw, overlay, event_title, y, font_title, _WHITE)
-    y += 30
+    y += 20
 
     y = _draw_centered_text(
         draw, overlay, target_date_formatted, y, font_date, _WHITE_80,
     )
-    y += 20
+    y += 15
 
     y = _draw_centered_text(
         draw, overlay, relative_date, y, font_relative, _WHITE_60,
     )
 
     if person_names:
-        y += 30
+        y += 20
         people_text = ", ".join(person_names)
         _draw_centered_text(
             draw, overlay, people_text, y, font_people, _WHITE_50,
@@ -143,7 +143,7 @@ def generate_share_image(
     brand_width = brand_bbox[2] - brand_bbox[0]
     brand_x = (_WIDTH - brand_width) // 2
     overlay_draw.text(
-        (brand_x, _HEIGHT - 150), branding, font=font_brand, fill=_WHITE_40,
+        (brand_x, _HEIGHT - 80), branding, font=font_brand, fill=_WHITE_40,
     )
 
     image = Image.alpha_composite(image.convert("RGBA"), overlay)

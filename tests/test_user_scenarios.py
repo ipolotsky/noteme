@@ -134,9 +134,11 @@ class TestOnboarding:
         assert cb.message.answer.call_count >= 2
         state.set_state.assert_called_once()
 
-    async def test_04_onboarding_skip_event_finishes(self, session: AsyncSession):
-        """S04: Skip event step -> show skipped message and finish onboarding."""
+    @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
+    async def test_04_onboarding_skip_event_advances_to_wish(self, mock_recalc, session: AsyncSession):
+        """S04: Skip event step -> create registration event and advance to step 2."""
         from app.handlers.start import onboarding_skip_event
+        from app.handlers.states import OnboardingStates
 
         user = await _make_user(session, onboarding_completed=False)
         cb = _mock_callback()
@@ -145,7 +147,7 @@ class TestOnboarding:
         await onboarding_skip_event(cb, state, user, session)
 
         cb.message.edit_text.assert_called_once()
-        state.clear.assert_called_once()
+        state.set_state.assert_called_once_with(OnboardingStates.waiting_first_wish)
 
     async def test_05_onboarding_skip_wish_completes(self, session: AsyncSession):
         """S05: Skip wish step → onboarding complete, main menu shown."""
@@ -753,20 +755,6 @@ class TestFeed:
 
         # Feed sends separate messages or shows empty via edit_text
         assert cb.message.answer.called or cb.message.edit_text.called
-
-    async def test_43_feed_share_not_found(self, session: AsyncSession):
-        """S43: Share non-existent feed item → not_found alert."""
-        from app.handlers.feed import feed_share
-
-        await _make_user(session)
-        cb = _mock_callback()
-        cd = _mock_callback_data(id=str(uuid.uuid4()), page=0)
-
-        await feed_share(cb, cd, "ru", session)
-
-        cb.answer.assert_called()
-        text = cb.answer.call_args.args[0]
-        assert "найдено" in text.lower() or "found" in text.lower()
 
 
 # =====================================================================

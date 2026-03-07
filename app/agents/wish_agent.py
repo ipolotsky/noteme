@@ -22,8 +22,18 @@ async def wish_agent_node(state: AgentState) -> AgentState:
         max_tokens=300,
     )
 
+    existing_people_block = ""
+    if state.existing_people:
+        names = ", ".join(state.existing_people)
+        existing_people_block = (
+            f"\nIMPORTANT: The user already has these people saved: [{names}]. "
+            "If the message mentions a name that is similar to one of these (e.g. spelling variation, "
+            "transliteration difference like Дэйзи/Дейзи, or diminutive), use the EXISTING name exactly as written above."
+        )
+    system = WISH_AGENT_SYSTEM.format(existing_people_block=existing_people_block)
+
     messages = [
-        {"role": "system", "content": WISH_AGENT_SYSTEM},
+        {"role": "system", "content": system},
         {"role": "user", "content": text},
     ]
 

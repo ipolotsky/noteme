@@ -50,7 +50,7 @@
     "related_wishes": "Related wishes",
     "wishes": "Wishes",
     "wishes_empty": "No wishes yet.",
-    "edit_wish": "Edit wish",
+    "edit_wish": "Edit wishes",
     "choose_wish": "Choose a wish to edit:",
     "events_with_person": "Events with \"{person}\""
   },
@@ -122,7 +122,8 @@
     "next": "Next",
     "prev": "Previous",
     "wishes_title": "Wishes",
-    "no_wishes": "No wishes for this event."
+    "no_wishes": "No wishes for this event.",
+    "open_stories": "For Stories"
   },
 
   "settings": {
@@ -202,7 +203,10 @@
   "share": {
     "page_title": "{label} | Noteme",
     "cta": "Create your own beautiful dates!",
-    "powered_by": "Powered by Noteme Bot"
+    "powered_by": "Powered by Noteme Bot",
+    "download_stories": "Download for Stories",
+    "save_hint": "Long-press the image to save",
+    "share_native": "Share"
   },
 
   "declension": {

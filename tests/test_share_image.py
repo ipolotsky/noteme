@@ -27,7 +27,7 @@ class TestShareImage:
             person_names=[],
         )
         image = Image.open(BytesIO(result))
-        assert image.size == (1080, 1920)
+        assert image.size == (1080, 1080)
 
     def test_long_event_title(self):
         result = generate_share_image(

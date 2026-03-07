@@ -1,3 +1,4 @@
+import asyncio
 import contextlib
 import logging
 import uuid
@@ -5,7 +6,15 @@ from html import escape
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import (
+    BufferedInputFile,
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InputMediaPhoto,
+    Message,
+    WebAppInfo,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -21,6 +30,7 @@ from app.services.beautiful_date_service import (
     generate_share_uuid,
     get_user_feed,
 )
+from app.services.share_image import generate_share_image
 from app.services.wish_service import get_wishes_by_person_names
 from app.utils.date_utils import format_date, format_relative_date
 
@@ -31,7 +41,13 @@ logger = logging.getLogger(__name__)
 _FSM_KEY = "feed_message_ids"
 
 
-async def _select_best_wish(wishes, label: str) -> str | None:
+async def _select_best_wish(
+    wishes,
+    label: str,
+    event_title: str = "",
+    target_date_str: str = "",
+    relative_date_str: str = "",
+) -> str | None:
     if not wishes:
         return None
     if len(wishes) == 1:
@@ -44,18 +60,31 @@ async def _select_best_wish(wishes, label: str) -> str | None:
         llm = ChatOpenAI(
             model=settings.openai_model,
             api_key=settings.openai_api_key,
-            temperature=0,
+            temperature=0.7,
             max_tokens=10,
         )
-        wishes_list = "\n".join(f"{i + 1}. {x.text[:100]}" for i, x in enumerate(wishes))
+        wishes_list = "\n".join(f"{i + 1}. {x.text[:200]}" for i, x in enumerate(wishes))
+        context_parts = [f"Milestone: {label}"]
+        if event_title:
+            context_parts.append(f"Event: {event_title}")
+        if target_date_str:
+            context_parts.append(f"Date: {target_date_str}")
+        if relative_date_str:
+            context_parts.append(f"When: {relative_date_str}")
+        context = "\n".join(context_parts)
+
         messages = [
             {
                 "role": "system",
-                "content": "Select the most relevant wish for the given date milestone. Reply with ONLY the wish number.",
+                "content": (
+                    "You help pick the most fitting wish/gift idea for a date milestone. "
+                    "Consider relevance to the event, timing, and how well the wish matches the occasion. "
+                    "Reply with ONLY the wish number."
+                ),
             },
             {
                 "role": "user",
-                "content": f"Milestone: {label}\n\nWishes:\n{wishes_list}\n\nBest wish number?",
+                "content": f"{context}\n\nWishes:\n{wishes_list}\n\nBest wish number?",
             },
         ]
         response = await llm.ainvoke(messages)
@@ -74,23 +103,32 @@ async def _build_card(
     lang: str,
     session: AsyncSession,
     user_id: int,
-) -> tuple[str, InlineKeyboardMarkup]:
+) -> tuple[bytes, str, InlineKeyboardMarkup]:
     label = bd.label_ru if lang == "ru" else bd.label_en
     relative = format_relative_date(bd.target_date, lang)
     calendar = format_date(bd.target_date, lang)
+    person_names = [x.name for x in bd.event.people] if bd.event.people else []
 
-    text = f"\U0001f52e <b>{escape(label)}</b>\n\n"
-    text += f"\U0001f4c5 {calendar}\n"
-    text += f"\u23f3 {relative}"
+    image_bytes = await asyncio.to_thread(
+        generate_share_image,
+        label=label,
+        event_title=bd.event.title,
+        target_date_formatted=calendar,
+        relative_date=relative,
+        person_names=person_names,
+    )
 
+    caption = ""
     if bd.event.people:
-        person_names = [x.name for x in bd.event.people]
         wishes = await get_wishes_by_person_names(session, user_id, person_names, limit=10)
-        wish = await _select_best_wish(wishes, label)
+        wish = await _select_best_wish(
+            wishes, label,
+            event_title=bd.event.title,
+            target_date_str=calendar,
+            relative_date_str=relative,
+        )
         if wish:
-            text += f"\n\n{t('feed.wish', lang)}\n{escape(wish)}"
-
-    text += f"\n\n<i>{t('feed.counter', lang, current=offset + 1, total=total)}</i>"
+            caption = f"{t('feed.wish', lang)}\n{escape(wish)}"
 
     rows: list[list[InlineKeyboardButton]] = []
 
@@ -119,17 +157,20 @@ async def _build_card(
         ),
     ])
 
-    rows.append([InlineKeyboardButton(
-        text=f"\U0001f517 {t('feed.share', lang)}",
-        callback_data=FeedCb(action="share", id=str(bd.id)).pack(),
-    )])
+    share_uuid = await generate_share_uuid(session, bd.id)
+    if share_uuid:
+        mini_app_url = f"{settings.app_base_url}/mini-app/card/{share_uuid}"
+        rows.append([InlineKeyboardButton(
+            text=f"\U0001f517 {t('feed.share', lang)}",
+            web_app=WebAppInfo(url=mini_app_url),
+        )])
 
     rows.append([InlineKeyboardButton(
         text=f"\u25c0 {t('menu.back', lang)}",
         callback_data=MenuCb(action="main").pack(),
     )])
 
-    return text, InlineKeyboardMarkup(inline_keyboard=rows)
+    return image_bytes, caption, InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 async def _delete_previous_feed(chat_id: int, state: FSMContext, bot) -> None:
@@ -159,8 +200,9 @@ async def _show_card_new(
         return False
 
     bd = items[0]
-    text, kb = await _build_card(bd, offset, total, lang, session, user.id)
-    msg = await send_to.answer(text, reply_markup=kb)
+    image_bytes, caption, kb = await _build_card(bd, offset, total, lang, session, user.id)
+    photo = BufferedInputFile(image_bytes, filename="card.png")
+    msg = await send_to.answer_photo(photo=photo, caption=caption, reply_markup=kb)
     await state.update_data(**{_FSM_KEY: [msg.message_id]})
     return True
 
@@ -239,8 +281,12 @@ async def feed_card(
         return
 
     bd = items[0]
-    text, kb = await _build_card(bd, offset, total, lang, session, user.id)
-    await callback.message.edit_text(text, reply_markup=kb)  # type: ignore[union-attr]
+    image_bytes, caption, kb = await _build_card(bd, offset, total, lang, session, user.id)
+    photo = BufferedInputFile(image_bytes, filename="card.png")
+    await callback.message.edit_media(  # type: ignore[union-attr]
+        InputMediaPhoto(media=photo, caption=caption),
+        reply_markup=kb,
+    )
     await callback.answer()
 
 
@@ -279,48 +325,3 @@ async def feed_wishes(
     await callback.answer()
 
 
-@router.callback_query(FeedCb.filter(F.action == "share"))
-async def feed_share(
-    callback: CallbackQuery,
-    callback_data: FeedCb,
-    lang: str,
-    session: AsyncSession,
-) -> None:
-    bd_id = uuid.UUID(callback_data.id)
-    result = await session.execute(
-        select(BeautifulDate)
-        .options(selectinload(BeautifulDate.event).selectinload(Event.people))
-        .where(BeautifulDate.id == bd_id)
-    )
-    bd = result.scalar_one_or_none()
-    if bd is None:
-        await callback.answer(t("errors.not_found", lang), show_alert=True)
-        return
-
-    share_uuid = await generate_share_uuid(session, bd_id)
-    if share_uuid is None:
-        await callback.answer(t("errors.not_found", lang), show_alert=True)
-        return
-
-    label = bd.label_ru if lang == "ru" else bd.label_en
-    person_names = [x.name for x in bd.event.people] if bd.event.people else []
-
-    import asyncio
-
-    from app.services.share_image import generate_share_image
-    image_bytes = await asyncio.to_thread(
-        generate_share_image,
-        label=label,
-        event_title=bd.event.title,
-        target_date_formatted=format_date(bd.target_date, lang),
-        relative_date=format_relative_date(bd.target_date, lang),
-        person_names=person_names,
-    )
-
-    from aiogram.types import BufferedInputFile
-    url = f"{settings.app_base_url}/share/{share_uuid}"
-    await callback.message.answer_photo(  # type: ignore[union-attr]
-        photo=BufferedInputFile(image_bytes, filename="share.png"),
-        caption=t("feed.shared_link", lang, url=url),
-    )
-    await callback.answer()
