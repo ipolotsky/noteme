@@ -69,7 +69,6 @@ async def create_wish(
     wish = Wish(
         user_id=user_id,
         text=data.text,
-        reminder_date=data.reminder_date,
         people=people,
     )
     session.add(wish)

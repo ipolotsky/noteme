@@ -8,7 +8,7 @@
     "intro": "I remember important dates and find beautiful number coincidences - 100 days, 777 days, 1 year. Add an event, write down wishes, and I'll remind you what to give when a beautiful date comes.",
     "step1": "Tell me about an important event - text or voice.\n\nExamples:\n\"Wedding with Maria on July 17, 2022\"\n\"Mike got his driver's license two days ago\"",
     "step2_personal": "Let's save your wishes. Say or type:\n\"I want big headphones with noise cancellation\"",
-    "step2_with_person": "Let's remember what {name} loves or wants. Say:\n\"{name} really wanted a beige purse\"",
+    "step2_with_person": "Let's remember what {name} loves or wants. Say:\n\"{name} wants big headphones\"",
     "step3": "All set! Use the menu below to navigate.",
     "skipped": "OK, when you add an event - the magic begins, waiting for you!",
     "skip": "Skip",
@@ -61,7 +61,6 @@
     "create": "Add Wish",
     "create_text": "Describe the wish — what does the person want:",
     "create_people": "Who is this wish about? Enter names separated by comma (or press \"Skip\"):",
-    "create_reminder": "Set a reminder? Enter date (DD.MM.YYYY) or press \"Skip\":",
     "created": "Wish saved!",
     "edit": "Edit",
     "delete": "Delete",
@@ -69,7 +68,6 @@
     "deleted": "Wish deleted.",
     "updated": "Wish updated.",
     "limit_reached": "Wish limit reached ({max}). Delete an existing one or contact the admin.",
-    "reminder_set": "Reminder set for {date}.",
     "view_title": "Wish",
     "people_label": "People: {people}",
     "no_people": "No people"
@@ -154,8 +152,7 @@
     "day_before": "Tomorrow",
     "week_before": "In a week",
     "weekly_greeting": "Beautiful dates this week:",
-    "open_feed": "Open feed",
-    "wish_reminder": "Reminder:"
+    "open_feed": "Open feed"
   },
 
   "days_of_week": {

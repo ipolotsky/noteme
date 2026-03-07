@@ -342,14 +342,17 @@ async def _create_wish_via_ai(
     if not person_names:
         person_names = ["Личное" if lang == "ru" else "Personal"]
 
-    wish_text = result.wish_text if result.intent == "create_wish" and result.wish_text else text
+    wish_text = " ".join(text.split())
+    if wish_text:
+        wish_text = wish_text[0].upper() + wish_text[1:]
+        if wish_text[-1] not in ".!?":
+            wish_text += "."
 
     await create_wish(
         session, user.id,
         WishCreate(
             text=wish_text,
             person_names=person_names,
-            reminder_date=result.wish_reminder_date,
         ),
     )
     return True

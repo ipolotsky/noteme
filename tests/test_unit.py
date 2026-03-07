@@ -45,7 +45,6 @@ def _make_wish_obj(**overrides) -> MagicMock:
     n = MagicMock()
     n.id = overrides.get("id", uuid.uuid4())
     n.text = overrides.get("text", "Buy headphones")
-    n.reminder_date = overrides.get("reminder_date")
     return n
 
 
@@ -431,13 +430,11 @@ class TestFSMStates:
     def test_wish_create_states(self):
         from app.handlers.states import WishCreateStates
         assert WishCreateStates.waiting_text
-        assert WishCreateStates.waiting_reminder
         assert WishCreateStates.waiting_people
 
     def test_wish_edit_states(self):
         from app.handlers.states import WishEditStates
         assert WishEditStates.waiting_text
-        assert WishEditStates.waiting_reminder
         assert WishEditStates.waiting_people
 
     def test_person_states(self):
@@ -513,7 +510,6 @@ class TestSchemas:
         from app.schemas.wish import WishCreate
         w = WishCreate(text="Hello")
         assert w.person_names == []
-        assert w.reminder_date is None
 
     def test_wish_update_all_optional(self):
         from app.schemas.wish import WishUpdate

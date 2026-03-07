@@ -358,8 +358,8 @@ class TestWishCRUD:
         kw = cb.message.edit_text.call_args.kwargs
         assert "reply_markup" in kw
 
-    async def test_18_wish_create_text_advances_to_reminder(self, session: AsyncSession):
-        """S18: Enter wish text → advances to waiting_reminder with skip+cancel."""
+    async def test_18_wish_create_text_advances_to_people(self, session: AsyncSession):
+        """S18: Enter wish text → advances to waiting_people with skip+cancel."""
         from app.handlers.wishes import wish_create_text
 
         msg = _mock_message("Купить молоко")
@@ -370,19 +370,8 @@ class TestWishCRUD:
         state.update_data.assert_called_once_with(text="Купить молоко")
         state.set_state.assert_called_once()
 
-    async def test_19_wish_create_skip_reminder(self, session: AsyncSession):
-        """S19: Skip reminder → advances to people."""
-        from app.handlers.wishes import wish_create_skip_reminder
-
-        cb = _mock_callback()
-        state = _mock_state()
-
-        await wish_create_skip_reminder(cb, state, "ru")
-
-        state.set_state.assert_called_once()
-
     async def test_20_wish_create_full_flow(self, session: AsyncSession):
-        """S20: Full wish create: text→skip reminder→skip people → wish in DB."""
+        """S20: Full wish create: text→skip people → wish in DB."""
         from app.handlers.wishes import _finish_wish_create
 
         user = await _make_user(session)
@@ -397,13 +386,13 @@ class TestWishCRUD:
         assert "сохранено" in text.lower() or "saved" in text.lower()
 
     async def test_21_wish_view_shows_details(self, session: AsyncSession):
-        """S21: View wish → shows text, people, reminder."""
+        """S21: View wish → shows text, people."""
         from app.handlers.wishes import wish_view
 
         user = await _make_user(session)
         wish = await create_wish(
             session, user.id,
-            WishCreate(text="Test wish", reminder_date=date(2025, 12, 31)),
+            WishCreate(text="Test wish"),
         )
         cb = _mock_callback()
         cd = _mock_callback_data(id=str(wish.id), page=0)
@@ -412,7 +401,6 @@ class TestWishCRUD:
 
         text = cb.message.edit_text.call_args.args[0]
         assert "Test wish" in text
-        assert "31.12.2025" in text
 
     async def test_22_wish_edit_text(self, session: AsyncSession):
         """S22: Edit wish text → updated, shown with view keyboard."""

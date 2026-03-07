@@ -152,16 +152,15 @@ class TestWishAgentNode:
     @patch("app.agents.wish_agent.ChatOpenAI")
     async def test_extract_wish(self, mock_llm_cls):
         mock_response = AsyncMock()
-        mock_response.content = '{"text": "Хочет наушники Sony", "people": ["Макс"], "reminder_date": "2025-12-25"}'
+        mock_response.content = '{"text": "Хочет наушники Sony", "people": ["Макс"]}'
         mock_llm = AsyncMock()
         mock_llm.ainvoke = AsyncMock(return_value=mock_response)
         mock_llm_cls.return_value = mock_llm
 
-        state = AgentState(raw_text="Макс хочет наушники Sony, напомнить 25 декабря")
+        state = AgentState(raw_text="Макс хочет наушники Sony")
         result = await wish_agent_node(state)
         assert result.wish_text == "Хочет наушники Sony"
         assert result.person_names == ["Макс"]
-        assert result.wish_reminder_date == date(2025, 12, 25)
         assert result.needs_confirmation
 
     @patch("app.agents.wish_agent.ChatOpenAI")

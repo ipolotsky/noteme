@@ -129,14 +129,6 @@ class TestWishEdgeCases:
         with pytest.raises(WishLimitError):
             await create_wish(session, u.id, WishCreate(text="Wish 2"))
 
-    async def test_wish_with_reminder_date(self, session, user):
-        """Wishes with reminder dates are stored correctly."""
-        reminder = date.today() + timedelta(days=7)
-        wish = await create_wish(
-            session, user.id, WishCreate(text="Remind me", reminder_date=reminder)
-        )
-        assert wish.reminder_date == reminder
-
     async def test_wish_without_people(self, session, user):
         """Wishes without people work fine."""
         wish = await create_wish(session, user.id, WishCreate(text="Plain wish"))

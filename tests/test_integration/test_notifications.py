@@ -4,12 +4,10 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
-from app.models.wish import Wish
 from app.services.notification_service import (
     get_active_notifiable_users,
     get_dates_for_day,
     get_dates_for_range,
-    get_due_wish_reminders,
     log_notification,
 )
 
@@ -83,51 +81,6 @@ class TestGetDatesForRange:
             session, active_user.id, date.today(), date.today() + timedelta(days=7)
         )
         assert dates == []
-
-
-class TestDueWishReminders:
-    async def test_reminder_due_tomorrow(self, session, active_user):
-        tomorrow = date.today() + timedelta(days=1)
-        wish = Wish(
-            user_id=active_user.id,
-            text="Reminder wish",
-            reminder_date=tomorrow,
-            reminder_sent=False,
-        )
-        session.add(wish)
-        await session.flush()
-
-        reminders = await get_due_wish_reminders(session, active_user)
-        assert len(reminders) == 1
-        assert reminders[0].text == "Reminder wish"
-
-    async def test_already_sent_excluded(self, session, active_user):
-        tomorrow = date.today() + timedelta(days=1)
-        wish = Wish(
-            user_id=active_user.id,
-            text="Sent wish",
-            reminder_date=tomorrow,
-            reminder_sent=True,
-        )
-        session.add(wish)
-        await session.flush()
-
-        reminders = await get_due_wish_reminders(session, active_user)
-        assert len(reminders) == 0
-
-    async def test_reminder_not_due_yet(self, session, active_user):
-        far_future = date.today() + timedelta(days=30)
-        wish = Wish(
-            user_id=active_user.id,
-            text="Future wish",
-            reminder_date=far_future,
-            reminder_sent=False,
-        )
-        session.add(wish)
-        await session.flush()
-
-        reminders = await get_due_wish_reminders(session, active_user)
-        assert len(reminders) == 0
 
 
 class TestLogNotification:
