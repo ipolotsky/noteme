@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from html import escape
 
 from aiogram import F, Router
@@ -634,9 +634,13 @@ async def event_dates(
     text = f"\U0001f52e <b>{t('events.beautiful_dates', lang)}: {escape(event.title)}</b>\n\n"
     for bd in dates:
         label = bd.label_ru if lang == "ru" else bd.label_en
-        relative = format_relative_date(bd.target_date, lang)
-        text += f"\U0001f538 {relative} — {label}\n"
-        text += f"    {bd.target_date.strftime('%d.%m.%Y')}\n\n"
+        delta_days = (bd.target_date - date.today()).days
+        if 0 <= delta_days < 20:
+            relative = format_relative_date(bd.target_date, lang)
+            text += f"\U0001f538 {relative} — {label}\n"
+        else:
+            text += f"\U0001f538 {label}\n"
+        text += f"    {t('feed.when', lang)} {bd.target_date.strftime('%d.%m.%Y')}\n\n"
 
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 

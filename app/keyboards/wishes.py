@@ -63,10 +63,6 @@ def wish_edit_kb(wish_id: str, lang: str) -> InlineKeyboardMarkup:
             callback_data=WishEditCb(field="text", id=wish_id).pack(),
         )],
         [InlineKeyboardButton(
-            text=t("wishes.create_reminder", lang).split("?")[0],
-            callback_data=WishEditCb(field="reminder", id=wish_id).pack(),
-        )],
-        [InlineKeyboardButton(
             text=t("wishes.create_people", lang).rstrip(":"),
             callback_data=WishEditCb(field="people", id=wish_id).pack(),
         )],

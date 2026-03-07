@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, datetime
+from datetime import datetime
 
 from pydantic import BaseModel
 
@@ -8,7 +8,6 @@ from app.schemas.event import PersonBrief
 
 class WishBase(BaseModel):
     text: str
-    reminder_date: date | None = None
 
 
 class WishCreate(WishBase):
@@ -17,14 +16,12 @@ class WishCreate(WishBase):
 
 class WishUpdate(BaseModel):
     text: str | None = None
-    reminder_date: date | None = None
     person_names: list[str] | None = None
 
 
 class WishRead(WishBase):
     id: uuid.UUID
     user_id: int
-    reminder_sent: bool
     created_at: datetime
     updated_at: datetime | None
     people: list[PersonBrief] = []

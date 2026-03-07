@@ -431,40 +431,6 @@ class TestNotificationFlow:
         dates = await get_dates_for_range(session, user.id, date.today(), date.today() + timedelta(days=365))
         assert len(dates) == 0
 
-    async def test_wish_reminders_due_tomorrow(self, session: AsyncSession):
-        """Wishes with reminder_date = tomorrow are found."""
-        from app.services.notification_service import get_due_wish_reminders
-
-        user = await _user(session, uid=1900)
-        tomorrow = date.today() + timedelta(days=1)
-
-        await create_wish(session, user.id, WishCreate(
-            text="Remind me!", reminder_date=tomorrow,
-        ))
-        await create_wish(session, user.id, WishCreate(
-            text="No reminder",
-        ))
-
-        reminders = await get_due_wish_reminders(session, user)
-        assert len(reminders) == 1
-        assert reminders[0].text == "Remind me!"
-
-    async def test_wish_reminder_not_sent_twice(self, session: AsyncSession):
-        """Once reminder_sent=True, wish is not returned again."""
-        from app.services.notification_service import get_due_wish_reminders
-
-        user = await _user(session, uid=2000)
-        tomorrow = date.today() + timedelta(days=1)
-
-        wish = await create_wish(session, user.id, WishCreate(
-            text="Once only", reminder_date=tomorrow,
-        ))
-        wish.reminder_sent = True
-        await session.flush()
-
-        reminders = await get_due_wish_reminders(session, user)
-        assert len(reminders) == 0
-
     async def test_notification_users_filter(self, session: AsyncSession):
         """get_active_notifiable_users filters by active and enabled."""
         from app.services.notification_service import get_active_notifiable_users

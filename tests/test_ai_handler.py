@@ -306,34 +306,6 @@ class TestHandleAgentResult:
         wish_data = mock_create.call_args[0][2]
         assert wish_data.person_names == ["Лева", "подарки"]
 
-    @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
-    @patch("app.handlers.ai.create_wish", new_callable=AsyncMock)
-    async def test_create_wish_with_reminder(
-        self, mock_create, mock_log,
-        mock_message, mock_processing_msg, mock_user, mock_session,
-    ):
-        """create_wish with reminder_date passes it correctly."""
-        from app.handlers.ai import _handle_agent_result
-
-        mock_wish = MagicMock()
-        mock_wish.id = uuid.uuid4()
-        mock_create.return_value = mock_wish
-
-        state = AgentState(
-            intent="create_wish",
-            wish_text="Buy present",
-            person_names=["Max"],
-            wish_reminder_date=date(2026, 12, 25),
-            user_language="en",
-        )
-
-        await _handle_agent_result(
-            mock_message, mock_processing_msg, state, mock_user, "en", mock_session,
-        )
-
-        wish_data = mock_create.call_args[0][2]
-        assert wish_data.reminder_date == date(2026, 12, 25)
-
     async def test_create_event_missing_date_no_db_call(
         self, mock_message, mock_processing_msg, mock_user, mock_session,
     ):

@@ -1,7 +1,5 @@
 """Tests for wish service."""
 
-from datetime import date
-
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,21 +33,6 @@ async def test_create_wish(session: AsyncSession, user_id: int):
     assert wish.text == "Max wants Sony headphones"
     assert len(wish.people) == 1
     assert wish.people[0].name == "Max"
-
-
-@pytest.mark.asyncio
-async def test_wish_with_reminder(session: AsyncSession, user_id: int):
-    await _create_test_user(session, user_id)
-
-    data = WishCreate(
-        text="Buy a gift",
-        reminder_date=date(2025, 12, 25),
-        person_names=["Gift"],
-    )
-    wish = await create_wish(session, user_id, data)
-
-    assert wish.reminder_date == date(2025, 12, 25)
-    assert wish.reminder_sent is False
 
 
 @pytest.mark.asyncio

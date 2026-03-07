@@ -112,6 +112,7 @@
             gap: 12px;
             width: 100%;
             max-width: 360px;
+            margin-bottom: 16px;
         }
 
         .btn {
@@ -162,6 +163,13 @@
     </style>
 </head>
 <body>
+    <div class="actions">
+        <button class="btn btn-primary" id="share-btn" style="display: none" onclick="shareCard()">
+            {{ share_text }}
+        </button>
+        <div class="save-hint" id="save-hint">{{ save_hint }}</div>
+    </div>
+
     <div class="card-wrapper">
         <div id="card">
             <div class="card-label">{{ label }}</div>
@@ -178,13 +186,6 @@
 
     <div id="preview-container">
         <img id="preview-img" src="" alt="card">
-    </div>
-
-    <div class="actions">
-        <button class="btn btn-primary" id="share-btn" style="display: none" onclick="shareCard()">
-            {{ share_text }}
-        </button>
-        <div class="save-hint" id="save-hint">{{ save_hint }}</div>
     </div>
 
     <script>
