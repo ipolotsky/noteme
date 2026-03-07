@@ -15,7 +15,6 @@ _COLOR_BOTTOM = (37, 99, 235)
 _WHITE = (255, 255, 255, 255)
 _WHITE_80 = (255, 255, 255, 204)
 _WHITE_60 = (255, 255, 255, 153)
-_WHITE_50 = (255, 255, 255, 128)
 _WHITE_40 = (255, 255, 255, 102)
 _WHITE_20 = (255, 255, 255, 51)
 
@@ -91,14 +90,12 @@ def generate_share_image(
     event_title: str,
     target_date_formatted: str,
     relative_date: str,
-    person_names: list[str],
     branding: str = "Not a date",
 ) -> bytes:
     font_label = _load_font("Inter-Bold.ttf", 80)
     font_title = _load_font("Inter-Regular.ttf", 44)
     font_date = _load_font("Inter-Regular.ttf", 38)
     font_relative = _load_font("Inter-Regular.ttf", 34)
-    font_people = _load_font("Inter-Regular.ttf", 32)
     font_brand = _load_font("Inter-Bold.ttf", 28)
 
     image = _make_gradient()
@@ -128,16 +125,9 @@ def generate_share_image(
     )
     y += 15
 
-    y = _draw_centered_text(
+    _draw_centered_text(
         draw, overlay, relative_date, y, font_relative, _WHITE_60,
     )
-
-    if person_names:
-        y += 20
-        people_text = ", ".join(person_names)
-        _draw_centered_text(
-            draw, overlay, people_text, y, font_people, _WHITE_50,
-        )
 
     brand_bbox = draw.textbbox((0, 0), branding, font=font_brand)
     brand_width = brand_bbox[2] - brand_bbox[0]
