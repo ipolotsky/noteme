@@ -265,7 +265,7 @@ class TestFeedCardNoCounter:
         from app.handlers.feed import _build_card
 
         bd = _make_bd_mock()
-        image_bytes, caption, _kb = await _build_card(bd, 5, 100, "ru", AsyncMock(), 55555)
+        image_bytes, _caption, _kb = await _build_card(bd, 5, 100, "ru", AsyncMock(), 55555)
 
         assert image_bytes == b"fake"
         mock_img.assert_called_once()
