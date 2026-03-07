@@ -131,6 +131,8 @@ async def onboarding_first_event_text(
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
+    processing_msg = await message.answer(t("ai.processing", lang))
+
     try:
         from app.agents.graph import process_message
         from app.schemas.event import EventCreate
@@ -154,17 +156,17 @@ async def onboarding_first_event_text(
             )
             from app.services.beautiful_dates.engine import recalculate_for_event
             await recalculate_for_event(session, event)
-            await message.answer(t("events.created", lang, title=escape(event.title)))
+            await processing_msg.edit_text(t("events.created", lang, title=escape(event.title)))
             await state.update_data(event_created=True)
             await log_user_action(user.id, "onboarding_create_event", event.title)
         else:
-            await message.answer(
+            await processing_msg.edit_text(
                 t("ai.not_understood", lang),
                 reply_markup=onboarding_event_kb(lang),
             )
             return
     except Exception:
-        await message.answer(
+        await processing_msg.edit_text(
             t("ai.not_understood", lang),
             reply_markup=onboarding_event_kb(lang),
         )
@@ -316,9 +318,8 @@ async def _finish_onboarding(
     await update_user(session, user.id, UserUpdate(onboarding_completed=True))
     await log_user_action(user.id, "onboarding_completed")
     await state.clear()
-    await message.answer(t("onboarding.step3", lang))
     await message.answer(
-        t("welcome_back", lang, name=user.first_name),
+        t("onboarding.step3", lang),
         reply_markup=persistent_menu_kb(lang),
     )
 
@@ -364,12 +365,14 @@ async def onboarding_first_wish_text(
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
+    processing_msg = await message.answer(t("ai.processing", lang))
+
     try:
         await _create_wish_via_ai(message.text or "", user, lang, session)
-        await message.answer(t("wishes.created", lang))
+        await processing_msg.edit_text(t("wishes.created", lang))
         await log_user_action(user.id, "onboarding_create_wish")
     except Exception:
-        await message.answer(
+        await processing_msg.edit_text(
             t("ai.not_understood", lang),
             reply_markup=onboarding_skip_kb(lang),
         )
