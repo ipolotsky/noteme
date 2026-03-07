@@ -54,7 +54,8 @@ Guidelines:
 - Category words are secondary, only if no person names found (e.g., "отношения", "работа", "семья")
 - Extract at most 2 entries. Prefer person names over categories. Example: "И она, Аня, на своей празднике хочет золотую подвеску" → people: ["Аня"]
 - Respond in JSON format: {{"title": "...", "date": "YYYY-MM-DD", "description": "...", "people": [...]}}
-- If you cannot determine the date, set date to null and the system will ask the user"""
+- If you cannot determine the date, set date to null and the system will ask the user
+{existing_people_block}"""
 
 WISH_AGENT_SYSTEM = """You are a wish extraction agent for Noteme bot. Extract wish details from the user's message.
 
@@ -67,7 +68,8 @@ Guidelines:
 - Person names are the TOP PRIORITY (e.g., "Макс хочет наушники" → people: ["Макс"]). Always extract them first.
 - Category words are secondary, only if no person names found (e.g., "подарки", "рестораны")
 - Extract at most 2 entries. Prefer person names over categories. Example: "И она, Аня, на своей празднике хочет золотую подвеску" → people: ["Аня"]
-- Respond in JSON format: {{"text": "...", "people": [...], "reminder_date": "YYYY-MM-DD" or null}}"""
+- Respond in JSON format: {{"text": "...", "people": [...], "reminder_date": "YYYY-MM-DD" or null}}
+{existing_people_block}"""
 
 QUERY_AGENT_SYSTEM = """You are a query agent for Noteme bot. The user wants to view data.
 

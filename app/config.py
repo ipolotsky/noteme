@@ -1,3 +1,4 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -44,7 +45,8 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     app_port: int = 8000
     app_debug: bool = False
-    app_base_url: str = "http://localhost:8001"
+    app_domain: str = ""
+    app_base_url: str = ""
 
     # Default User Limits (future monetization)
     default_max_events: int = 10
@@ -63,6 +65,15 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
     log_format: str = "text"
+
+    @model_validator(mode="after")
+    def _set_base_url_default(self) -> "Settings":
+        if not self.app_base_url:
+            if self.app_domain:
+                self.app_base_url = f"https://{self.app_domain}"
+            else:
+                self.app_base_url = f"http://localhost:{self.app_port}"
+        return self
 
     @property
     def database_url(self) -> str:

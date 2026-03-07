@@ -50,7 +50,7 @@
     "related_wishes": "Связанные желания",
     "wishes": "Желания",
     "wishes_empty": "Желаний пока нет.",
-    "edit_wish": "Редактировать желание",
+    "edit_wish": "Редактировать желания",
     "choose_wish": "Выберите желание для редактирования:",
     "events_with_person": "События с «{person}»"
   },
@@ -122,7 +122,8 @@
     "next": "Следующая",
     "prev": "Предыдущая",
     "wishes_title": "Желания",
-    "no_wishes": "Нет желаний для этого события."
+    "no_wishes": "Нет желаний для этого события.",
+    "open_stories": "Для Stories"
   },
 
   "settings": {
@@ -202,7 +203,10 @@
   "share": {
     "page_title": "{label} | Noteme",
     "cta": "Создай свои красивые даты!",
-    "powered_by": "Работает на Noteme Bot"
+    "powered_by": "Работает на Noteme Bot",
+    "download_stories": "Скачать для Stories",
+    "save_hint": "Нажми и удерживай картинку, чтобы сохранить",
+    "share_native": "Поделиться"
   },
 
   "declension": {

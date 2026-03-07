@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{{ label }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #111;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+            color: #fff;
+        }
+
+        .card-wrapper {
+            width: 100%;
+            max-width: 360px;
+            aspect-ratio: 9/16;
+            margin-bottom: 24px;
+        }
+
+        #card {
+            width: 1080px;
+            height: 1920px;
+            background: linear-gradient(180deg, #6C3CE1 0%, #2563EB 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transform-origin: top left;
+        }
+
+        .card-label {
+            font-weight: 700;
+            font-size: 120px;
+            color: #fff;
+            text-align: center;
+            padding: 0 60px;
+            line-height: 1.1;
+        }
+
+        .card-divider {
+            width: 200px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 40px 0 50px;
+        }
+
+        .card-title {
+            font-weight: 400;
+            font-size: 56px;
+            color: #fff;
+            text-align: center;
+            padding: 0 90px;
+            line-height: 1.3;
+            word-wrap: break-word;
+        }
+
+        .card-date {
+            font-weight: 400;
+            font-size: 48px;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            margin-top: 30px;
+            padding: 0 90px;
+        }
+
+        .card-relative {
+            font-weight: 400;
+            font-size: 44px;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            margin-top: 20px;
+            padding: 0 90px;
+        }
+
+        .card-people {
+            font-weight: 400;
+            font-size: 40px;
+            color: rgba(255, 255, 255, 0.5);
+            text-align: center;
+            margin-top: 30px;
+            padding: 0 90px;
+        }
+
+        .card-brand {
+            font-weight: 700;
+            font-size: 36px;
+            color: rgba(255, 255, 255, 0.4);
+            text-align: center;
+            position: absolute;
+            bottom: 150px;
+            left: 0;
+            right: 0;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            max-width: 360px;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6C3CE1, #2563EB);
+            color: #fff;
+        }
+
+        .btn-primary:active {
+            opacity: 0.8;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .save-hint {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+
+        #preview-container {
+            display: none;
+            width: 100%;
+            max-width: 360px;
+            margin-bottom: 16px;
+        }
+
+        #preview-container img {
+            width: 100%;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card-wrapper">
+        <div id="card">
+            <div class="card-label">{{ label }}</div>
+            <div class="card-divider"></div>
+            <div class="card-title">{{ event_title }}</div>
+            <div class="card-date">{{ target_date }}</div>
+            <div class="card-relative">{{ relative_date }}</div>
+            {% if person_names %}
+            <div class="card-people">{{ person_names }}</div>
+            {% endif %}
+            <div class="card-brand">{{ branding }}</div>
+        </div>
+    </div>
+
+    <div id="preview-container">
+        <img id="preview-img" src="" alt="card">
+    </div>
+
+    <div class="actions">
+        <button class="btn btn-primary" id="share-btn" style="display: none" onclick="shareCard()">
+            {{ share_text }}
+        </button>
+        <div class="save-hint" id="save-hint">{{ save_hint }}</div>
+    </div>
+
+    <script>
+        (function() {
+            var card = document.getElementById('card');
+            var wrapper = card.parentElement;
+
+            function scaleCard() {
+                var wrapperWidth = wrapper.offsetWidth;
+                var scale = wrapperWidth / 1080;
+                card.style.transform = 'scale(' + scale + ')';
+                wrapper.style.height = (1920 * scale) + 'px';
+            }
+
+            scaleCard();
+            window.addEventListener('resize', scaleCard);
+
+            if (window.Telegram && window.Telegram.WebApp) {
+                Telegram.WebApp.ready();
+                Telegram.WebApp.expand();
+            }
+
+            var canShare = navigator.canShare && navigator.canShare({
+                files: [new File([''], 'test.png', { type: 'image/png' })]
+            });
+
+            if (canShare) {
+                document.getElementById('share-btn').style.display = 'block';
+            } else {
+                renderCard().then(function(canvas) {
+                    canvas.toBlob(function(blob) {
+                        var url = URL.createObjectURL(blob);
+                        var previewImg = document.getElementById('preview-img');
+                        previewImg.src = url;
+                        document.getElementById('preview-container').style.display = 'block';
+                        document.getElementById('save-hint').style.display = 'block';
+                    }, 'image/png');
+                });
+            }
+        })();
+
+        function renderCard() {
+            var card = document.getElementById('card');
+            var wrapper = card.parentElement;
+            var savedTransform = card.style.transform;
+            var savedHeight = wrapper.style.height;
+
+            card.style.transform = 'none';
+            wrapper.style.height = 'auto';
+            wrapper.style.overflow = 'visible';
+
+            return html2canvas(card, {
+                width: 1080,
+                height: 1920,
+                scale: 1,
+                useCORS: true,
+                logging: false
+            }).then(function(canvas) {
+                card.style.transform = savedTransform;
+                wrapper.style.height = savedHeight;
+                wrapper.style.overflow = '';
+                return canvas;
+            });
+        }
+
+        function shareCard() {
+            var btn = document.getElementById('share-btn');
+            btn.disabled = true;
+            btn.textContent = '...';
+
+            renderCard().then(function(canvas) {
+                canvas.toBlob(function(blob) {
+                    var file = new File([blob], 'beautiful-date.png', { type: 'image/png' });
+                    navigator.share({ files: [file] }).then(function() {
+                        btn.disabled = false;
+                        btn.textContent = '{{ share_text }}';
+                    }).catch(function() {
+                        btn.disabled = false;
+                        btn.textContent = '{{ share_text }}';
+                    });
+                }, 'image/png');
+            }).catch(function() {
+                btn.disabled = false;
+                btn.textContent = '{{ share_text }}';
+            });
+        }
+    </script>
+</body>
+</html>

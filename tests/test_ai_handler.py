@@ -532,10 +532,11 @@ class TestHandleText:
 
     @patch("app.handlers.ai._handle_agent_result", new_callable=AsyncMock)
     @patch("app.handlers.ai.process_message", new_callable=AsyncMock)
+    @patch("app.handlers.ai.get_user_people", new_callable=AsyncMock, return_value=[])
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_text_message_pipeline(
-        self, mock_rate, mock_log, mock_process, mock_handle,
+        self, mock_rate, mock_log, mock_people, mock_process, mock_handle,
         mock_message, mock_user, mock_session,
     ):
         """Text message goes through pipeline and calls _handle_agent_result."""
@@ -554,6 +555,7 @@ class TestHandleText:
             text="Я хочу книгу От нуля до единицы",
             user_id=mock_user.id,
             user_language="ru",
+            existing_people=[],
         )
         mock_handle.assert_called_once()
 
@@ -622,10 +624,11 @@ class TestHandleVoice:
     @patch("app.handlers.ai._handle_agent_result", new_callable=AsyncMock)
     @patch("app.handlers.ai.process_message", new_callable=AsyncMock)
     @patch("app.handlers.ai.transcribe_audio", new_callable=AsyncMock)
+    @patch("app.handlers.ai.get_user_people", new_callable=AsyncMock, return_value=[])
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_voice_full_pipeline(
-        self, mock_rate, mock_log, mock_transcribe, mock_process, mock_handle,
+        self, mock_rate, mock_log, mock_people, mock_transcribe, mock_process, mock_handle,
         mock_voice_message, mock_user, mock_session,
     ):
         """Voice message downloads, transcribes, processes, and handles result."""
@@ -651,6 +654,7 @@ class TestHandleVoice:
             user_id=mock_user.id,
             user_language="ru",
             is_voice=True,
+            existing_people=[],
         )
 
         mock_handle.assert_called_once()

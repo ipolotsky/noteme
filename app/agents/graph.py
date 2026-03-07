@@ -71,6 +71,7 @@ async def process_message(
     user_id: int,
     user_language: str = "ru",
     is_voice: bool = False,
+    existing_people: list[str] | None = None,
 ) -> AgentState:
     graph = get_graph()
 
@@ -79,6 +80,7 @@ async def process_message(
         user_language=user_language,
         raw_text=text,
         is_voice=is_voice,
+        existing_people=existing_people or [],
     )
 
     logger.info("[pipeline] user=%s text=%r", user_id, text[:200])

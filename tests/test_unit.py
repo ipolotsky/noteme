@@ -175,14 +175,13 @@ class TestMainMenuKeyboard:
         assert btn.text == "\u23ed"
         assert "onb:" in btn.callback_data
 
-    def test_onboarding_event_kb_two_buttons(self):
+    def test_onboarding_event_kb_skip_button(self):
         from app.keyboards.main_menu import onboarding_event_kb
         kb = onboarding_event_kb("ru")
         assert len(kb.inline_keyboard) == 1
         buttons = kb.inline_keyboard[0]
-        assert len(buttons) == 2
+        assert len(buttons) == 1
         assert "onb:" in buttons[0].callback_data
-        assert "onb:" in buttons[1].callback_data
 
 
 class TestEventsKeyboard:

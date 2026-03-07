@@ -183,8 +183,11 @@ async def onboarding_first_event_voice(
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
+    processing_msg = await message.answer(t("ai.processing", lang))
+
     text = await _transcribe_voice(message, lang, user_id=user.id)
     if text is None:
+        await processing_msg.delete()
         return
 
     try:
@@ -206,15 +209,15 @@ async def onboarding_first_event_voice(
             )
             from app.services.beautiful_dates.engine import recalculate_for_event
             await recalculate_for_event(session, event)
-            await message.answer(t("events.created", lang, title=escape(event.title)))
+            await processing_msg.edit_text(t("events.created", lang, title=escape(event.title)))
             await state.update_data(event_created=True)
             await log_user_action(user.id, "onboarding_create_event_voice", event.title)
         else:
-            await message.answer(t("ai.not_understood", lang), reply_markup=onboarding_event_kb(lang))
+            await processing_msg.edit_text(t("ai.not_understood", lang), reply_markup=onboarding_event_kb(lang))
             return
     except Exception:
         logger.exception("Onboarding voice event failed for user %s", user.id)
-        await message.answer(t("ai.not_understood", lang), reply_markup=onboarding_event_kb(lang))
+        await processing_msg.edit_text(t("ai.not_understood", lang), reply_markup=onboarding_event_kb(lang))
         return
 
     await _handle_event_created(message, state, lang, person_names)
@@ -273,13 +276,30 @@ async def onboarding_skip_event(
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
+    from app.schemas.event import EventCreate
+    from app.services.event_service import create_event
+
+    title = t("onboarding.quick_event", lang)
+    person_names = ["Личное" if lang == "ru" else "Personal"]
+    event = await create_event(
+        session, user.id,
+        EventCreate(title=title, event_date=date.today(), person_names=person_names),
+    )
+    from app.services.beautiful_dates.engine import recalculate_for_event
+    await recalculate_for_event(session, event)
+    await state.update_data(event_created=True)
+
     await log_user_action(user.id, "onboarding_skip_event")
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("onboarding.skipped", lang),
     )
-    await _finish_onboarding(
-        callback.message, state, user, lang, session,  # type: ignore[arg-type]
+
+    step2_text = _build_step2_text(lang, person_names)
+    await callback.message.answer(  # type: ignore[union-attr]
+        step2_text,
+        reply_markup=onboarding_skip_kb(lang),
     )
+    await state.set_state(OnboardingStates.waiting_first_wish)
     await callback.answer()
 
 
@@ -368,17 +388,20 @@ async def onboarding_first_wish_voice(
     data = await state.get_data()
     lang = data.get("lang", user.language)
 
+    processing_msg = await message.answer(t("ai.processing", lang))
+
     text = await _transcribe_voice(message, lang, user_id=user.id)
     if text is None:
+        await processing_msg.delete()
         return
 
     try:
         await _create_wish_via_ai(text, user, lang, session)
-        await message.answer(t("wishes.created", lang))
+        await processing_msg.edit_text(t("wishes.created", lang))
         await log_user_action(user.id, "onboarding_create_wish_voice")
     except Exception:
         logger.exception("Onboarding voice wish failed for user %s", user.id)
-        await message.answer(t("ai.not_understood", lang), reply_markup=onboarding_skip_kb(lang))
+        await processing_msg.edit_text(t("ai.not_understood", lang), reply_markup=onboarding_skip_kb(lang))
         return
 
     await _finish_onboarding(message, state, user, lang, session)
