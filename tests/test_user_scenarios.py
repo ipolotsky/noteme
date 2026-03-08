@@ -754,8 +754,9 @@ class TestAIHandler:
 
         user = await _make_user(session)
         msg = _mock_message("/settings")
+        state = AsyncMock()
 
-        await handle_text(msg, user, "ru", session)
+        await handle_text(msg, state, user, "ru", session)
 
         msg.answer.assert_not_called()
 
@@ -768,8 +769,9 @@ class TestAIHandler:
         msg.voice = MagicMock()
         msg.voice.duration = 120
         msg.answer = AsyncMock()
+        state = AsyncMock()
 
-        await handle_voice(msg, user, "ru", session)
+        await handle_voice(msg, state, user, "ru", session)
 
         text = msg.answer.call_args.args[0]
         assert "длинное" in text.lower() or "long" in text.lower()
@@ -781,8 +783,9 @@ class TestAIHandler:
 
         user = await _make_user(session)
         msg = _mock_message("Запомни дату")
+        state = AsyncMock()
 
-        await handle_text(msg, user, "ru", session)
+        await handle_text(msg, state, user, "ru", session)
 
         text = msg.answer.call_args.args[0]
         assert "запрос" in text.lower() or "request" in text.lower() or "подожд" in text.lower()

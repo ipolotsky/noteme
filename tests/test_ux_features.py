@@ -347,7 +347,7 @@ class TestExistingPeopleInPipeline:
     def test_event_agent_prompt_formats_without_people(self):
         from app.agents.prompts import EVENT_AGENT_SYSTEM
         formatted = EVENT_AGENT_SYSTEM.format(
-            today="2026-03-06", existing_people_block="",
+            today="2026-03-06", user_language="ru", existing_people_block="",
         )
         assert "{existing_people_block}" not in formatted
         assert "IMPORTANT: The user already has" not in formatted
@@ -361,7 +361,7 @@ class TestExistingPeopleInPipeline:
             "Дэйзи/Дейзи, or diminutive), use the EXISTING name exactly as written above."
         )
         formatted = EVENT_AGENT_SYSTEM.format(
-            today="2026-03-06", existing_people_block=block,
+            today="2026-03-06", user_language="en", existing_people_block=block,
         )
         assert "Max, Leva" in formatted
 
@@ -371,7 +371,7 @@ class TestExistingPeopleInPipeline:
             "\nIMPORTANT: The user already has these people saved: [Daisy]. "
             "If the message mentions a name that is similar..."
         )
-        formatted = WISH_AGENT_SYSTEM.format(existing_people_block=block)
+        formatted = WISH_AGENT_SYSTEM.format(user_language="en", existing_people_block=block)
         assert "Daisy" in formatted
 
     @patch("app.handlers.ai._handle_agent_result", new_callable=AsyncMock)
@@ -392,10 +392,11 @@ class TestExistingPeopleInPipeline:
         mock_process.return_value = AgentState(intent="create_wish", wish_text="test")
 
         msg = _mock_message("Лева хочет наушники")
-        user = MagicMock(id=12345)
+        user = MagicMock(id=12345, onboarding_completed=True)
         session = AsyncMock()
+        state = AsyncMock()
 
-        await handle_text(msg, user, "ru", session)
+        await handle_text(msg, state, user, "ru", session)
 
         call_kwargs = mock_process.call_args.kwargs
         assert call_kwargs["existing_people"] == ["Max", "Leva"]
@@ -417,10 +418,11 @@ class TestExistingPeopleInPipeline:
         mock_process.return_value = AgentState(intent="create_event")
 
         msg = _mock_voice_message()
-        user = MagicMock(id=12345)
+        user = MagicMock(id=12345, onboarding_completed=True)
         session = AsyncMock()
+        state = AsyncMock()
 
-        await handle_voice(msg, user, "ru", session)
+        await handle_voice(msg, state, user, "ru", session)
 
         call_kwargs = mock_process.call_args.kwargs
         assert call_kwargs["existing_people"] == ["Daisy"]
@@ -437,11 +439,12 @@ class TestExistingPeopleInPipeline:
 
         mock_process.return_value = AgentState(intent="help")
 
-        msg = _mock_message("help")
-        user = MagicMock(id=12345)
+        msg = _mock_message("help me please")
+        user = MagicMock(id=12345, onboarding_completed=True)
         session = AsyncMock()
+        state = AsyncMock()
 
-        await handle_text(msg, user, "en", session)
+        await handle_text(msg, state, user, "en", session)
 
         call_kwargs = mock_process.call_args.kwargs
         assert call_kwargs["existing_people"] == []

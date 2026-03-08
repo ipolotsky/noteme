@@ -171,6 +171,7 @@
     "off_topic": "I can help with events and wishes. Tell me about an important date or write down what someone close to you wants!",
     "audio_too_long": "Audio is too long. Maximum is 1 minute.",
     "audio_empty": "Could not understand the audio. Please try again.",
+    "too_short": "Message is too short. Please describe your event or wish in more detail.",
     "rate_limit": "Too many requests. Please wait a moment.",
     "ambiguous": "Is this an event or a wish? Please clarify.",
     "confirm_create_event": "Create event \"{title}\" on {date}?",

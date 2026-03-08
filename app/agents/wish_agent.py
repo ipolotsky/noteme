@@ -29,7 +29,10 @@ async def wish_agent_node(state: AgentState) -> AgentState:
             "If the message mentions a name that is similar to one of these (e.g. spelling variation, "
             "transliteration difference like Дэйзи/Дейзи, or diminutive), use the EXISTING name exactly as written above."
         )
-    system = WISH_AGENT_SYSTEM.format(existing_people_block=existing_people_block)
+    system = WISH_AGENT_SYSTEM.format(
+        user_language=state.user_language,
+        existing_people_block=existing_people_block,
+    )
 
     messages = [
         {"role": "system", "content": system},
