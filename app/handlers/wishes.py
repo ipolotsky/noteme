@@ -1,6 +1,5 @@
 import contextlib
 import uuid
-from datetime import datetime
 from html import escape
 
 from aiogram import F, Router
@@ -31,6 +30,7 @@ from app.services.wish_service import (
     get_wish,
     update_wish,
 )
+from app.utils.bot_utils import BOT_MSG_KEY, reply_and_cleanup
 
 router = Router(name="wishes")
 
@@ -96,8 +96,6 @@ async def wish_view(
         f"{escape(wish.text)}\n\n"
         f"{t('wishes.people_label', lang, people=people_str)}"
     )
-    if wish.reminder_date:
-        text += f"\n{t('wishes.reminder_set', lang, date=wish.reminder_date.strftime('%d.%m.%Y'))}"
 
     if wish.media_link and not wish.media_link.is_deleted:
         with contextlib.suppress(Exception):
@@ -129,6 +127,7 @@ async def wish_create_start(
         t("wishes.create_text", lang),
         reply_markup=cancel_kb(lang),
     )
+    await state.update_data(**{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await state.set_state(WishCreateStates.waiting_text)
     await callback.answer()
 
@@ -140,45 +139,12 @@ async def wish_create_text(
     lang: str,
 ) -> None:
     await state.update_data(text=message.text)
-    await message.answer(
-        t("wishes.create_reminder", lang),
-        reply_markup=wish_skip_kb(lang),
-    )
-    await state.set_state(WishCreateStates.waiting_reminder)
-
-
-@router.message(WishCreateStates.waiting_reminder)
-async def wish_create_reminder(
-    message: Message,
-    state: FSMContext,
-    lang: str,
-) -> None:
-    try:
-        reminder_date = datetime.strptime(message.text or "", "%d.%m.%Y").date()
-        await state.update_data(reminder_date=reminder_date.isoformat())
-    except ValueError:
-        await message.answer(t("events.invalid_date", lang))
-        return
-
-    await message.answer(
+    await reply_and_cleanup(
+        message, state,
         t("wishes.create_people", lang),
         reply_markup=wish_skip_kb(lang),
     )
     await state.set_state(WishCreateStates.waiting_people)
-
-
-@router.callback_query(WishCreateStates.waiting_reminder, F.data == "skip")
-async def wish_create_skip_reminder(
-    callback: CallbackQuery,
-    state: FSMContext,
-    lang: str,
-) -> None:
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        t("wishes.create_people", lang),
-        reply_markup=wish_skip_kb(lang),
-    )
-    await state.set_state(WishCreateStates.waiting_people)
-    await callback.answer()
 
 
 @router.message(WishCreateStates.waiting_people)
@@ -216,30 +182,24 @@ async def _finish_wish_create(
     data: dict,
     person_names: list[str],
 ) -> None:
-    from datetime import date as date_type
-
-    reminder_date = None
-    if data.get("reminder_date"):
-        reminder_date = date_type.fromisoformat(data["reminder_date"])
-
     wish_data = WishCreate(
         text=data["text"],
-        reminder_date=reminder_date,
         person_names=person_names or [],
     )
 
     try:
         wish = await create_wish(session, user.id, wish_data)
     except WishLimitError:
-        await message.answer(t("wishes.limit_reached", lang, max=str(user.max_wishes)))
+        await reply_and_cleanup(message, state, t("wishes.limit_reached", lang, max=str(user.max_wishes)))
         await state.clear()
         return
 
-    await state.clear()
-    await message.answer(
+    await reply_and_cleanup(
+        message, state,
         t("wishes.created", lang),
         reply_markup=wish_view_kb(wish, lang),
     )
+    await state.clear()
 
 
 @router.callback_query(WishCb.filter(F.action == "edit"))
@@ -262,7 +222,7 @@ async def wish_edit_text_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(edit_wish_id=callback_data.id)
+    await state.update_data(edit_wish_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("wishes.create_text", lang),
         reply_markup=cancel_kb(lang),
@@ -284,59 +244,15 @@ async def wish_edit_text(
         session, uuid.UUID(data["edit_wish_id"]), WishUpdate(text=message.text),
         user_id=user.id,
     )
-    await state.clear()
     if wish:
-        await message.answer(
+        await reply_and_cleanup(
+            message, state,
             t("wishes.updated", lang),
             reply_markup=wish_view_kb(wish, lang),
         )
     else:
-        await message.answer(t("errors.not_found", lang))
-
-
-@router.callback_query(WishEditCb.filter(F.field == "reminder"))
-async def wish_edit_reminder_start(
-    callback: CallbackQuery,
-    callback_data: WishEditCb,
-    state: FSMContext,
-    lang: str,
-) -> None:
-    await state.update_data(edit_wish_id=callback_data.id)
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        t("wishes.create_reminder", lang),
-        reply_markup=cancel_kb(lang),
-    )
-    await state.set_state(WishEditStates.waiting_reminder)
-    await callback.answer()
-
-
-@router.message(WishEditStates.waiting_reminder)
-async def wish_edit_reminder(
-    message: Message,
-    state: FSMContext,
-    user: User,
-    lang: str,
-    session: AsyncSession,
-) -> None:
-    try:
-        reminder_date = datetime.strptime(message.text or "", "%d.%m.%Y").date()
-    except ValueError:
-        await message.answer(t("events.invalid_date", lang))
-        return
-
-    data = await state.get_data()
-    wish = await update_wish(
-        session, uuid.UUID(data["edit_wish_id"]), WishUpdate(reminder_date=reminder_date),
-        user_id=user.id,
-    )
+        await reply_and_cleanup(message, state, t("errors.not_found", lang))
     await state.clear()
-    if wish:
-        await message.answer(
-            t("wishes.updated", lang),
-            reply_markup=wish_view_kb(wish, lang),
-        )
-    else:
-        await message.answer(t("errors.not_found", lang))
 
 
 @router.callback_query(WishEditCb.filter(F.field == "people"))
@@ -346,7 +262,7 @@ async def wish_edit_people_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(edit_wish_id=callback_data.id)
+    await state.update_data(edit_wish_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("wishes.create_people", lang),
         reply_markup=cancel_kb(lang),
@@ -369,14 +285,15 @@ async def wish_edit_people(
         session, uuid.UUID(data["edit_wish_id"]), WishUpdate(person_names=person_names),
         user_id=user.id,
     )
-    await state.clear()
     if wish:
-        await message.answer(
+        await reply_and_cleanup(
+            message, state,
             t("wishes.updated", lang),
             reply_markup=wish_view_kb(wish, lang),
         )
     else:
-        await message.answer(t("errors.not_found", lang))
+        await reply_and_cleanup(message, state, t("errors.not_found", lang))
+    await state.clear()
 
 
 @router.callback_query(WishCb.filter(F.action == "delete"))

@@ -60,10 +60,17 @@ async def show_main_menu(
     user: User,
     lang: str,
 ) -> None:
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        f"\U0001f3e0 {user.first_name}",
-        reply_markup=main_menu_kb(lang),
-    )
+    if callback.message.photo:  # type: ignore[union-attr]
+        await callback.message.delete()  # type: ignore[union-attr]
+        await callback.message.answer(  # type: ignore[union-attr]
+            f"\U0001f3e0 {user.first_name}",
+            reply_markup=main_menu_kb(lang),
+        )
+    else:
+        await callback.message.edit_text(  # type: ignore[union-attr]
+            f"\U0001f3e0 {user.first_name}",
+            reply_markup=main_menu_kb(lang),
+        )
     await callback.answer()
 
 

@@ -23,13 +23,11 @@ class EventEditStates(StatesGroup):
 
 class WishCreateStates(StatesGroup):
     waiting_text = State()
-    waiting_reminder = State()
     waiting_people = State()
 
 
 class WishEditStates(StatesGroup):
     waiting_text = State()
-    waiting_reminder = State()
     waiting_people = State()
 
 

@@ -12,7 +12,6 @@ class TestShareImage:
             event_title="Свадьба с Машей",
             target_date_formatted="6 марта 2026",
             relative_date="Через 3 дня",
-            person_names=["Маша"],
         )
         assert isinstance(result, bytes)
         assert len(result) > 0
@@ -24,7 +23,6 @@ class TestShareImage:
             event_title="Wedding",
             target_date_formatted="March 6, 2026",
             relative_date="In 3 days",
-            person_names=[],
         )
         image = Image.open(BytesIO(result))
         assert image.size == (1080, 1080)
@@ -35,7 +33,6 @@ class TestShareImage:
             event_title="Очень длинное название события которое не влезает в одну строку на картинке",
             target_date_formatted="6 марта 2026",
             relative_date="Через 3 дня",
-            person_names=["Маша", "Вика", "Дима"],
         )
         assert isinstance(result, bytes)
         assert len(result) > 0
@@ -46,7 +43,6 @@ class TestShareImage:
             event_title="Birthday",
             target_date_formatted="January 1, 2027",
             relative_date="In 300 days",
-            person_names=[],
         )
         assert len(result) > 0
 
@@ -57,7 +53,6 @@ class TestShareImage:
                 event_title="Test",
                 target_date_formatted="01.01.2027",
                 relative_date="Soon",
-                person_names=[],
-            )
+                )
             assert isinstance(result, bytes)
             assert len(result) > 0

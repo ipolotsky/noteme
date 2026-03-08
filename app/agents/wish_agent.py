@@ -1,6 +1,5 @@
 import json
 import logging
-from datetime import datetime
 
 from langchain_openai import ChatOpenAI
 
@@ -67,10 +66,6 @@ async def wish_agent_node(state: AgentState) -> AgentState:
 
         state.wish_text = data.get("text", text)
         state.person_names = data.get("people", [])
-        if data.get("reminder_date"):
-            state.wish_reminder_date = datetime.strptime(
-                data["reminder_date"], "%Y-%m-%d"
-            ).date()
         state.needs_confirmation = True
         logger.info("[wish_agent] user=%s text=%r people=%r", state.user_id, state.wish_text[:100], state.person_names)
     except (json.JSONDecodeError, ValueError, KeyError) as e:

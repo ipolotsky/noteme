@@ -193,7 +193,6 @@ async def _handle_agent_result(
                 user.id,
                 WishCreate(
                     text=wish_text,
-                    reminder_date=state.wish_reminder_date,
                     person_names=person_names,
                 ),
             )
@@ -205,8 +204,6 @@ async def _handle_agent_result(
                 f"{escape(wish.text)}\n\n"
                 f"{t('wishes.people_label', lang, people=people_str)}"
             )
-            if wish.reminder_date:
-                card += f"\n{t('wishes.reminder_set', lang, date=wish.reminder_date.strftime('%d.%m.%Y'))}"
             await processing_msg.edit_text(card, reply_markup=wish_view_kb(wish, lang))
         except WishLimitError:
             logger.warning("[handler] user=%s → wish limit reached", user.id)

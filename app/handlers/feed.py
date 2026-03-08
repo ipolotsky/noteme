@@ -115,7 +115,6 @@ async def _build_card(
         event_title=bd.event.title,
         target_date_formatted=calendar,
         relative_date=relative,
-        person_names=person_names,
     )
 
     caption = ""

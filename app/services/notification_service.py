@@ -9,7 +9,6 @@ from app.models.beautiful_date import BeautifulDate
 from app.models.event import Event
 from app.models.notification_log import NotificationLog
 from app.models.user import User
-from app.models.wish import Wish
 
 logger = logging.getLogger(__name__)
 
@@ -51,20 +50,6 @@ async def get_dates_for_range(
         .order_by(BeautifulDate.target_date.asc())
     )
     return list(result.scalars().unique().all())
-
-
-async def get_due_wish_reminders(session: AsyncSession, user: User) -> list[Wish]:
-    from datetime import timedelta
-    tomorrow = date.today() + timedelta(days=1)
-    result = await session.execute(
-        select(Wish)
-        .where(
-            Wish.user_id == user.id,
-            Wish.reminder_date == tomorrow,
-            Wish.reminder_sent.is_(False),
-        )
-    )
-    return list(result.scalars().all())
 
 
 async def log_notification(

@@ -62,13 +62,12 @@ WISH_AGENT_SYSTEM = """You are a wish extraction agent for Noteme bot. Extract w
 Extract:
 - text: The wish content (required)
 - people: List of relevant person names mentioned
-- reminder_date: If the user mentions wanting to be reminded, extract date in YYYY-MM-DD format
 
 Guidelines:
 - Person names are the TOP PRIORITY (e.g., "Макс хочет наушники" → people: ["Макс"]). Always extract them first.
 - Category words are secondary, only if no person names found (e.g., "подарки", "рестораны")
 - Extract at most 2 entries. Prefer person names over categories. Example: "И она, Аня, на своей празднике хочет золотую подвеску" → people: ["Аня"]
-- Respond in JSON format: {{"text": "...", "people": [...], "reminder_date": "YYYY-MM-DD" or null}}
+- Respond in JSON format: {{"text": "...", "people": [...]}}
 {existing_people_block}"""
 
 QUERY_AGENT_SYSTEM = """You are a query agent for Noteme bot. The user wants to view data.

@@ -9,7 +9,6 @@ from app.services.notification_service import (
     get_active_notifiable_users,
     get_dates_for_day,
     get_dates_for_range,
-    get_due_wish_reminders,
     log_notification,
 )
 
@@ -178,37 +177,6 @@ async def send_weekly_digest_notification(ctx: dict, user_id: int, force: bool =
             return False
 
 
-async def send_wish_reminders_task(ctx: dict, user_id: int, force: bool = False) -> int:
-    from app.bot import bot
-    from app.i18n.loader import t
-
-    sent = 0
-    async with async_session_factory() as session:
-        from app.models.user import User
-        user = await session.get(User, user_id)
-        if user is None or (not force and not user.is_active):
-            return 0
-
-        lang = user.language
-        wishes = await get_due_wish_reminders(session, user)
-
-        for wish in wishes:
-            try:
-                text = f"\U0001f514 {t('notifications.wish_reminder', lang)}\n\n{wish.text}"
-                await bot.send_message(user_id, text)
-                wish.reminder_sent = True
-                await log_notification(session, user_id, "wish_reminder", wish_id=wish.id)
-                sent += 1
-            except TelegramForbiddenError:
-                user.is_active = False
-                break
-            except Exception:
-                logger.exception("Failed to send wish reminder to user %s", user_id)
-
-        await session.commit()
-    return sent
-
-
 async def check_and_send_notifications(ctx: dict) -> int:
     now_utc = datetime.now(tz=UTC)
     total_sent = 0
@@ -244,9 +212,6 @@ async def check_and_send_notifications(ctx: dict) -> int:
             success = await send_weekly_digest_notification(ctx, user.id)
             if success:
                 total_sent += 1
-
-        if local_time == user.notify_day_before_time:
-            await send_wish_reminders_task(ctx, user.id)
 
     logger.info(
         "Notification check at %s UTC: sent %d notifications to %d eligible users",

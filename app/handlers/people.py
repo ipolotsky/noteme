@@ -29,6 +29,7 @@ from app.services.person_service import (
     rename_person,
 )
 from app.services.wish_service import get_wishes_by_person_names
+from app.utils.bot_utils import BOT_MSG_KEY, reply_and_cleanup
 
 router = Router(name="people")
 
@@ -202,6 +203,7 @@ async def person_create_start(
         t("people.create_name", lang),
         reply_markup=cancel_kb(lang),
     )
+    await state.update_data(**{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await state.set_state(PersonCreateStates.waiting_name)
     await callback.answer()
 
@@ -216,15 +218,20 @@ async def person_create_name(
 ) -> None:
     name = (message.text or "").strip()
     if not name:
-        await message.answer(t("errors.invalid_input", lang))
+        await reply_and_cleanup(
+            message, state,
+            t("errors.invalid_input", lang),
+            reply_markup=cancel_kb(lang),
+        )
         return
 
     person = await create_person(session, user.id, name)
-    await state.clear()
-    await message.answer(
+    await reply_and_cleanup(
+        message, state,
         t("people.created", lang, name=escape(person.name)),
         reply_markup=person_view_kb(person, lang),
     )
+    await state.clear()
 
 
 @router.callback_query(PersonCb.filter(F.action == "rename"))
@@ -234,7 +241,7 @@ async def person_rename_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(rename_person_id=callback_data.id)
+    await state.update_data(rename_person_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("people.rename_prompt", lang),
         reply_markup=cancel_kb(lang),
@@ -254,26 +261,33 @@ async def person_rename_name(
     data = await state.get_data()
     new_name = (message.text or "").strip()
     if not new_name:
-        await message.answer(t("errors.invalid_input", lang))
+        await reply_and_cleanup(
+            message, state,
+            t("errors.invalid_input", lang),
+            reply_markup=cancel_kb(lang),
+        )
         return
 
     person = await rename_person(
         session, uuid.UUID(data["rename_person_id"]), new_name, user_id=user.id
     )
-    await state.clear()
 
     if person is None:
         from app.keyboards.main_menu import main_menu_kb
-        await message.answer(
+        await reply_and_cleanup(
+            message, state,
             t("people.already_exists", lang, name=escape(new_name)),
             reply_markup=main_menu_kb(lang),
         )
+        await state.clear()
         return
 
-    await message.answer(
+    await reply_and_cleanup(
+        message, state,
         t("people.renamed", lang, name=escape(person.name)),
         reply_markup=person_view_kb(person, lang),
     )
+    await state.clear()
 
 
 @router.callback_query(PersonCb.filter(F.action == "delete"))

@@ -164,7 +164,6 @@ class TestProcessMessageDictConversion:
             "event_description": "",
             "person_names": ["Макс"],
             "wish_text": "",
-            "wish_reminder_date": None,
             "query_type": "",
             "target_entity_id": "",
             "response_text": "Создать событие?",
@@ -219,7 +218,6 @@ class TestProcessMessageDictConversion:
             "event_description": "desc",
             "person_names": ["tag1", "tag2"],
             "wish_text": "",
-            "wish_reminder_date": None,
             "query_type": "",
             "target_entity_id": "",
             "response_text": "",
@@ -230,14 +228,12 @@ class TestProcessMessageDictConversion:
 
         state = await process_message("test", user_id=42, user_language="en")
 
-        # These are the exact fields _handle_agent_result accesses
         assert state.intent == "create_event"
         assert state.event_title == "Test Event"
         assert state.event_date == date(2024, 1, 1)
         assert state.event_description == "desc"
         assert state.person_names == ["tag1", "tag2"]
         assert state.wish_text == ""
-        assert state.wish_reminder_date is None
         assert state.response_text == ""
         assert state.error == ""
 
