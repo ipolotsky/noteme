@@ -1,6 +1,8 @@
 """Redis caching for feed queries and frequently accessed data."""
 
 import logging
+import uuid
+from datetime import date
 
 import redis.asyncio as aioredis
 
@@ -10,8 +12,9 @@ logger = logging.getLogger(__name__)
 
 _redis: aioredis.Redis | None = None
 
-FEED_CACHE_TTL = 300  # 5 minutes
+FEED_CACHE_TTL = 300
 FEED_COUNT_CACHE_TTL = 300
+CARD_FILE_ID_TTL = 90000
 
 
 def _get_redis() -> aioredis.Redis:
@@ -62,8 +65,41 @@ async def invalidate_user_feed_cache(user_id: int) -> None:
         logger.debug("Failed to invalidate feed cache for user_id=%s", user_id)
 
 
+def _card_fid_key(bd_id: uuid.UUID, lang: str) -> str:
+    return f"card_fid:{bd_id}:{lang}:{date.today()}"
+
+
+async def get_cached_card_file_id(bd_id: uuid.UUID, lang: str) -> str | None:
+    try:
+        r = _get_redis()
+        return await r.get(_card_fid_key(bd_id, lang))
+    except Exception:
+        return None
+
+
+async def set_cached_card_file_id(
+    bd_id: uuid.UUID, lang: str, file_id: str,
+) -> None:
+    try:
+        r = _get_redis()
+        await r.set(_card_fid_key(bd_id, lang), file_id, ex=CARD_FILE_ID_TTL)
+    except Exception:
+        logger.debug("Failed to cache card file_id for bd_id=%s", bd_id)
+
+
+async def invalidate_card_file_ids(bd_ids: list[uuid.UUID]) -> None:
+    if not bd_ids:
+        return
+    try:
+        r = _get_redis()
+        for bd_id in bd_ids:
+            async for key in r.scan_iter(f"card_fid:{bd_id}:*"):
+                await r.delete(key)
+    except Exception:
+        logger.debug("Failed to invalidate card file_ids")
+
+
 async def close_cache() -> None:
-    """Close the Redis cache connection."""
     global _redis
     if _redis is not None:
         await _redis.aclose()

@@ -5,6 +5,7 @@ from html import escape
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.handlers.states import EventCreateStates, EventEditStates
@@ -19,9 +20,11 @@ from app.keyboards.events import (
     events_list_kb,
 )
 from app.keyboards.main_menu import cancel_kb
+from app.models.beautiful_date import BeautifulDate
 from app.models.event import Event
 from app.models.user import User
 from app.schemas.event import EventCreate, EventUpdate
+from app.services.cache import invalidate_card_file_ids
 from app.services.event_service import (
     EventLimitError,
     count_user_events,
@@ -440,6 +443,10 @@ async def event_edit_title(
         user_id=user.id,
     )
     if event:
+        bd_ids = (await session.execute(
+            select(BeautifulDate.id).where(BeautifulDate.event_id == event.id)
+        )).scalars().all()
+        await invalidate_card_file_ids(list(bd_ids))
         await reply_and_cleanup(
             message, state,
             t("events.updated", lang),

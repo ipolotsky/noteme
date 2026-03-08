@@ -30,6 +30,7 @@ from app.services.beautiful_date_service import (
     generate_share_uuid,
     get_user_feed,
 )
+from app.services.cache import get_cached_card_file_id, set_cached_card_file_id
 from app.services.share_image import generate_share_image
 from app.services.wish_service import get_wishes_by_person_names
 from app.utils.date_utils import format_date, format_relative_date
@@ -103,19 +104,23 @@ async def _build_card(
     lang: str,
     session: AsyncSession,
     user_id: int,
-) -> tuple[bytes, str, InlineKeyboardMarkup]:
+) -> tuple[bytes | str, str, InlineKeyboardMarkup]:
     label = bd.label_ru if lang == "ru" else bd.label_en
     relative = format_relative_date(bd.target_date, lang)
     calendar = format_date(bd.target_date, lang)
     person_names = [x.name for x in bd.event.people] if bd.event.people else []
 
-    image_bytes = await asyncio.to_thread(
-        generate_share_image,
-        label=label,
-        event_title=bd.event.title,
-        target_date_formatted=calendar,
-        relative_date=relative,
-    )
+    cached_fid = await get_cached_card_file_id(bd.id, lang)
+    if cached_fid:
+        image_data: bytes | str = cached_fid
+    else:
+        image_data = await asyncio.to_thread(
+            generate_share_image,
+            label=label,
+            event_title=bd.event.title,
+            target_date_formatted=calendar,
+            relative_date=relative,
+        )
 
     caption = ""
     if bd.event.people:
@@ -169,7 +174,7 @@ async def _build_card(
         callback_data=MenuCb(action="main").pack(),
     )])
 
-    return image_bytes, caption, InlineKeyboardMarkup(inline_keyboard=rows)
+    return image_data, caption, InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 async def _delete_previous_feed(chat_id: int, state: FSMContext, bot) -> None:
@@ -199,9 +204,11 @@ async def _show_card_new(
         return False
 
     bd = items[0]
-    image_bytes, caption, kb = await _build_card(bd, offset, total, lang, session, user.id)
-    photo = BufferedInputFile(image_bytes, filename="card.png")
+    image_data, caption, kb = await _build_card(bd, offset, total, lang, session, user.id)
+    photo = image_data if isinstance(image_data, str) else BufferedInputFile(image_data, filename="card.png")
     msg = await send_to.answer_photo(photo=photo, caption=caption, reply_markup=kb)
+    if isinstance(image_data, bytes) and msg.photo:
+        await set_cached_card_file_id(bd.id, lang, msg.photo[-1].file_id)
     await state.update_data(**{_FSM_KEY: [msg.message_id]})
     return True
 
@@ -280,12 +287,14 @@ async def feed_card(
         return
 
     bd = items[0]
-    image_bytes, caption, kb = await _build_card(bd, offset, total, lang, session, user.id)
-    photo = BufferedInputFile(image_bytes, filename="card.png")
-    await callback.message.edit_media(  # type: ignore[union-attr]
+    image_data, caption, kb = await _build_card(bd, offset, total, lang, session, user.id)
+    photo = image_data if isinstance(image_data, str) else BufferedInputFile(image_data, filename="card.png")
+    result = await callback.message.edit_media(  # type: ignore[union-attr]
         InputMediaPhoto(media=photo, caption=caption),
         reply_markup=kb,
     )
+    if isinstance(image_data, bytes) and hasattr(result, "photo") and result.photo:
+        await set_cached_card_file_id(bd.id, lang, result.photo[-1].file_id)
     await callback.answer()
 
 

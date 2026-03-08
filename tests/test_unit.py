@@ -847,6 +847,73 @@ class TestCacheService:
             result = await get_cached_feed_count(42)
         assert result is None  # graceful degradation
 
+    async def test_card_file_id_cache_miss(self):
+        import uuid
+
+        from app.services.cache import get_cached_card_file_id
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=None)
+
+        with patch("app.services.cache._get_redis", return_value=mock_redis):
+            result = await get_cached_card_file_id(uuid.uuid4(), "ru")
+        assert result is None
+
+    async def test_card_file_id_cache_hit(self):
+        import uuid
+
+        from app.services.cache import get_cached_card_file_id
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value="AgACAgIAAx0CZ...")
+
+        with patch("app.services.cache._get_redis", return_value=mock_redis):
+            result = await get_cached_card_file_id(uuid.uuid4(), "ru")
+        assert result == "AgACAgIAAx0CZ..."
+
+    async def test_set_card_file_id(self):
+        import uuid
+
+        from app.services.cache import set_cached_card_file_id
+
+        mock_redis = AsyncMock()
+        mock_redis.set = AsyncMock()
+
+        with patch("app.services.cache._get_redis", return_value=mock_redis):
+            await set_cached_card_file_id(uuid.uuid4(), "ru", "AgACAgIAAx0CZ...")
+        mock_redis.set.assert_awaited_once()
+
+    async def test_invalidate_card_file_ids(self):
+        import uuid
+
+        from app.services.cache import invalidate_card_file_ids
+
+        bd_id = uuid.uuid4()
+        mock_redis = AsyncMock()
+        mock_redis.delete = AsyncMock()
+
+        async def mock_scan_iter(pattern):
+            for key in [f"card_fid:{bd_id}:ru:2026-03-08"]:
+                yield key
+
+        mock_redis.scan_iter = mock_scan_iter
+
+        with patch("app.services.cache._get_redis", return_value=mock_redis):
+            await invalidate_card_file_ids([bd_id])
+        mock_redis.delete.assert_awaited_once()
+
+    async def test_card_file_id_cache_error(self):
+        import uuid
+
+        from app.services.cache import get_cached_card_file_id
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(side_effect=Exception("connection refused"))
+
+        with patch("app.services.cache._get_redis", return_value=mock_redis):
+            result = await get_cached_card_file_id(uuid.uuid4(), "ru")
+        assert result is None
+
 
 # =====================================================================
 # METRICS
