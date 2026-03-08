@@ -205,8 +205,9 @@ class TestEventCRUD:
 
         msg = _mock_message("Свадьба")
         state = _mock_state()
+        user = AsyncMock()
 
-        await event_create_title(msg, state, "ru")
+        await event_create_title(msg, state, user, "ru")
 
         state.update_data.assert_any_call(title="Свадьба")
         state.set_state.assert_called_once()
@@ -217,8 +218,9 @@ class TestEventCRUD:
 
         msg = _mock_message("17.08.2022")
         state = _mock_state()
+        user = AsyncMock()
 
-        await event_create_date(msg, state, "ru")
+        await event_create_date(msg, state, user, "ru")
 
         assert state.update_data.call_count >= 1
         state.set_state.assert_called_once()
@@ -229,8 +231,9 @@ class TestEventCRUD:
 
         msg = _mock_message("not-a-date")
         state = _mock_state()
+        user = AsyncMock()
 
-        await event_create_date(msg, state, "ru")
+        await event_create_date(msg, state, user, "ru")
 
         text = msg.answer.call_args.args[0]
         assert "дат" in text.lower() or "date" in text.lower()
@@ -359,8 +362,9 @@ class TestWishCRUD:
 
         msg = _mock_message("Купить молоко")
         state = _mock_state()
+        user = AsyncMock()
 
-        await wish_create_text(msg, state, "ru")
+        await wish_create_text(msg, state, user, "ru")
 
         state.update_data.assert_any_call(text="Купить молоко")
         state.set_state.assert_called_once()
@@ -754,8 +758,9 @@ class TestAIHandler:
 
         user = await _make_user(session)
         msg = _mock_message("/settings")
+        state = AsyncMock()
 
-        await handle_text(msg, user, "ru", session)
+        await handle_text(msg, state, user, "ru", session)
 
         msg.answer.assert_not_called()
 
@@ -768,8 +773,9 @@ class TestAIHandler:
         msg.voice = MagicMock()
         msg.voice.duration = 120
         msg.answer = AsyncMock()
+        state = AsyncMock()
 
-        await handle_voice(msg, user, "ru", session)
+        await handle_voice(msg, state, user, "ru", session)
 
         text = msg.answer.call_args.args[0]
         assert "длинное" in text.lower() or "long" in text.lower()
@@ -781,8 +787,9 @@ class TestAIHandler:
 
         user = await _make_user(session)
         msg = _mock_message("Запомни дату")
+        state = AsyncMock()
 
-        await handle_text(msg, user, "ru", session)
+        await handle_text(msg, state, user, "ru", session)
 
         text = msg.answer.call_args.args[0]
         assert "запрос" in text.lower() or "request" in text.lower() or "подожд" in text.lower()

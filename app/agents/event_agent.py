@@ -30,7 +30,11 @@ async def event_agent_node(state: AgentState) -> AgentState:
             "If the message mentions a name that is similar to one of these (e.g. spelling variation, "
             "transliteration difference like Дэйзи/Дейзи, or diminutive), use the EXISTING name exactly as written above."
         )
-    system = EVENT_AGENT_SYSTEM.format(today=date.today().isoformat(), existing_people_block=existing_people_block)
+    system = EVENT_AGENT_SYSTEM.format(
+        today=date.today().isoformat(),
+        user_language=state.user_language,
+        existing_people_block=existing_people_block,
+    )
 
     messages = [
         {"role": "system", "content": system},

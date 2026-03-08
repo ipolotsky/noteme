@@ -37,12 +37,21 @@ Available intents:
 
 IMPORTANT: Messages like "позавчера я познакомился с Левой" or "4.04.2024 встретился с Морфеем" or "свадьба 17 августа 2022" are ALL create_event — they describe events with dates. Do NOT classify them as "help".
 
+IMPORTANT: Messages describing a streak, quitting a habit, or starting/stopping something are create_event, NOT create_wish. Examples:
+- "1 день не курю" → create_event (quit smoking yesterday)
+- "100 дней без алкоголя" → create_event (quit drinking 100 days ago)
+- "я перестала курить" → create_event (quit smoking today)
+- "бросил пить" → create_event (quit drinking today)
+- "2 месяца в спортзале" → create_event (started gym 2 months ago)
+
 Respond with EXACTLY the intent name, nothing else."""
 
 EVENT_AGENT_SYSTEM = """You are an event extraction agent for Noteme bot. Extract event details from the user's message.
 
+IMPORTANT: Generate the title in {user_language} language. Keep person names unchanged.
+
 Extract:
-- title: Event name/title (required)
+- title: Event name/title (required, in {user_language})
 - date: Event date in YYYY-MM-DD format (required)
 - description: Optional description
 - people: List of relevant person names mentioned
@@ -55,12 +64,21 @@ Guidelines:
 - Extract at most 2 entries. Prefer person names over categories. Example: "И она, Аня, на своей празднике хочет золотую подвеску" → people: ["Аня"]
 - Respond in JSON format: {{"title": "...", "date": "YYYY-MM-DD", "description": "...", "people": [...]}}
 - If you cannot determine the date, set date to null and the system will ask the user
+
+Streak and habit messages — the user describes how long they have been doing or not doing something. Calculate the START date by subtracting the duration from today ({today}):
+- "1 день не курю" → title: "Бросил курить", date: yesterday (today minus 1 day)
+- "100 дней без алкоголя" → title: "Бросил пить", date: today minus 100 days
+- "2 месяца в спортзале" → title: "Начал ходить в спортзал", date: today minus 2 months
+- "я перестала курить" / "бросил пить" → date: today (just started)
+The title should describe the START of the streak, not the duration itself.
 {existing_people_block}"""
 
 WISH_AGENT_SYSTEM = """You are a wish extraction agent for Noteme bot. Extract wish details from the user's message.
 
+IMPORTANT: Generate the wish text in {user_language} language. Keep person names unchanged.
+
 Extract:
-- text: The wish content (required)
+- text: The wish content (required, in {user_language})
 - people: List of relevant person names mentioned
 
 Guidelines:

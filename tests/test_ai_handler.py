@@ -28,7 +28,14 @@ def mock_user():
     user.id = 123456789
     user.max_events = 10
     user.max_wishes = 10
+    user.onboarding_completed = True
     return user
+
+
+@pytest.fixture
+def mock_state():
+    """Create a mock FSMContext."""
+    return AsyncMock()
 
 
 @pytest.fixture
@@ -509,7 +516,7 @@ class TestHandleText:
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_text_message_pipeline(
         self, mock_rate, mock_log, mock_people, mock_process, mock_handle,
-        mock_message, mock_user, mock_session,
+        mock_message, mock_state, mock_user, mock_session,
     ):
         """Text message goes through pipeline and calls _handle_agent_result."""
         from app.handlers.ai import handle_text
@@ -518,10 +525,10 @@ class TestHandleText:
         processing_msg = AsyncMock()
         mock_message.answer = AsyncMock(return_value=processing_msg)
 
-        mock_state = AgentState(intent="create_wish", wish_text="test")
-        mock_process.return_value = mock_state
+        agent_state = AgentState(intent="create_wish", wish_text="test")
+        mock_process.return_value = agent_state
 
-        await handle_text(mock_message, mock_user, "ru", mock_session)
+        await handle_text(mock_message, mock_state, mock_user, "ru", mock_session)
 
         mock_process.assert_called_once_with(
             text="Я хочу книгу От нуля до единицы",
@@ -536,51 +543,51 @@ class TestHandleText:
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_text_pipeline_exception_shows_error(
         self, mock_rate, mock_log, mock_process,
-        mock_message, mock_user, mock_session,
+        mock_message, mock_state, mock_user, mock_session,
     ):
         """Exception in pipeline shows errors.unknown to user."""
         from app.handlers.ai import handle_text
 
-        mock_message.text = "test"
+        mock_message.text = "test message here"
         processing_msg = AsyncMock()
         mock_message.answer = AsyncMock(return_value=processing_msg)
 
         mock_process.side_effect = RuntimeError("OpenAI timeout")
 
-        await handle_text(mock_message, mock_user, "ru", mock_session)
+        await handle_text(mock_message, mock_state, mock_user, "ru", mock_session)
 
         processing_msg.edit_text.assert_called_once()
         call_text = processing_msg.edit_text.call_args[0][0]
         assert len(call_text) > 0  # Has some error text
 
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=False)
-    async def test_rate_limited_text(self, mock_rate, mock_message, mock_user, mock_session):
+    async def test_rate_limited_text(self, mock_rate, mock_message, mock_state, mock_user, mock_session):
         """Rate-limited user gets rate_limit message."""
         from app.handlers.ai import handle_text
 
-        mock_message.text = "test"
+        mock_message.text = "test message"
 
-        await handle_text(mock_message, mock_user, "ru", mock_session)
+        await handle_text(mock_message, mock_state, mock_user, "ru", mock_session)
 
         mock_message.answer.assert_called_once()
 
-    async def test_skip_commands(self, mock_message, mock_user, mock_session):
+    async def test_skip_commands(self, mock_message, mock_state, mock_user, mock_session):
         """Messages starting with / are skipped."""
         from app.handlers.ai import handle_text
 
         mock_message.text = "/start"
 
-        await handle_text(mock_message, mock_user, "ru", mock_session)
+        await handle_text(mock_message, mock_state, mock_user, "ru", mock_session)
 
         mock_message.answer.assert_not_called()
 
-    async def test_skip_empty_text(self, mock_message, mock_user, mock_session):
+    async def test_skip_empty_text(self, mock_message, mock_state, mock_user, mock_session):
         """Empty text messages are skipped."""
         from app.handlers.ai import handle_text
 
         mock_message.text = None
 
-        await handle_text(mock_message, mock_user, "ru", mock_session)
+        await handle_text(mock_message, mock_state, mock_user, "ru", mock_session)
 
         mock_message.answer.assert_not_called()
 
@@ -601,7 +608,7 @@ class TestHandleVoice:
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_voice_full_pipeline(
         self, mock_rate, mock_log, mock_people, mock_transcribe, mock_process, mock_handle,
-        mock_voice_message, mock_user, mock_session,
+        mock_voice_message, mock_state, mock_user, mock_session,
     ):
         """Voice message downloads, transcribes, processes, and handles result."""
         from app.handlers.ai import handle_voice
@@ -609,10 +616,10 @@ class TestHandleVoice:
         processing_msg = AsyncMock()
         mock_voice_message.answer = AsyncMock(return_value=processing_msg)
         mock_transcribe.return_value = "позавчера я познакомился с Левой"
-        mock_state = AgentState(intent="create_event")
-        mock_process.return_value = mock_state
+        agent_state = AgentState(intent="create_event")
+        mock_process.return_value = agent_state
 
-        await handle_voice(mock_voice_message, mock_user, "ru", mock_session)
+        await handle_voice(mock_voice_message, mock_state, mock_user, "ru", mock_session)
 
         mock_voice_message.bot.get_file.assert_called_once_with("AgACAgIAAx0CZ")
         mock_voice_message.bot.download_file.assert_called_once()
@@ -635,23 +642,23 @@ class TestHandleVoice:
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_voice_too_long(
         self, mock_rate, mock_log,
-        mock_voice_message, mock_user, mock_session,
+        mock_voice_message, mock_state, mock_user, mock_session,
     ):
         """Voice > 60s gets audio_too_long message."""
         from app.handlers.ai import handle_voice
 
         mock_voice_message.voice.duration = 120  # 2 minutes
 
-        await handle_voice(mock_voice_message, mock_user, "ru", mock_session)
+        await handle_voice(mock_voice_message, mock_state, mock_user, "ru", mock_session)
 
         mock_voice_message.answer.assert_called_once()
 
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=False)
-    async def test_voice_rate_limited(self, mock_rate, mock_voice_message, mock_user, mock_session):
+    async def test_voice_rate_limited(self, mock_rate, mock_voice_message, mock_state, mock_user, mock_session):
         """Rate-limited voice gets rate_limit message."""
         from app.handlers.ai import handle_voice
 
-        await handle_voice(mock_voice_message, mock_user, "ru", mock_session)
+        await handle_voice(mock_voice_message, mock_state, mock_user, "ru", mock_session)
 
         mock_voice_message.answer.assert_called_once()
 
@@ -660,7 +667,7 @@ class TestHandleVoice:
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_voice_empty_transcription(
         self, mock_rate, mock_log, mock_transcribe,
-        mock_voice_message, mock_user, mock_session,
+        mock_voice_message, mock_state, mock_user, mock_session,
     ):
         """Empty transcription shows audio_empty message."""
         from app.handlers.ai import handle_voice
@@ -669,7 +676,7 @@ class TestHandleVoice:
         mock_voice_message.answer = AsyncMock(return_value=processing_msg)
         mock_transcribe.return_value = "   "  # whitespace only
 
-        await handle_voice(mock_voice_message, mock_user, "ru", mock_session)
+        await handle_voice(mock_voice_message, mock_state, mock_user, "ru", mock_session)
 
         processing_msg.edit_text.assert_called_once()
 
@@ -678,7 +685,7 @@ class TestHandleVoice:
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_voice_transcription_error(
         self, mock_rate, mock_log, mock_transcribe,
-        mock_voice_message, mock_user, mock_session,
+        mock_voice_message, mock_state, mock_user, mock_session,
     ):
         """Exception during transcription shows errors.unknown."""
         from app.handlers.ai import handle_voice
@@ -687,7 +694,7 @@ class TestHandleVoice:
         mock_voice_message.answer = AsyncMock(return_value=processing_msg)
         mock_transcribe.side_effect = RuntimeError("Whisper API error")
 
-        await handle_voice(mock_voice_message, mock_user, "ru", mock_session)
+        await handle_voice(mock_voice_message, mock_state, mock_user, "ru", mock_session)
 
         processing_msg.edit_text.assert_called_once()
 
@@ -695,7 +702,7 @@ class TestHandleVoice:
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_voice_download_error(
         self, mock_rate, mock_log,
-        mock_voice_message, mock_user, mock_session,
+        mock_voice_message, mock_state, mock_user, mock_session,
     ):
         """Exception during file download shows errors.unknown."""
         from app.handlers.ai import handle_voice
@@ -704,7 +711,7 @@ class TestHandleVoice:
         mock_voice_message.answer = AsyncMock(return_value=processing_msg)
         mock_voice_message.bot.get_file.side_effect = RuntimeError("Telegram API error")
 
-        await handle_voice(mock_voice_message, mock_user, "ru", mock_session)
+        await handle_voice(mock_voice_message, mock_state, mock_user, "ru", mock_session)
 
         processing_msg.edit_text.assert_called_once()
 
@@ -715,7 +722,7 @@ class TestHandleVoice:
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_voice_uses_message_bot_not_import(
         self, mock_rate, mock_log, mock_transcribe, mock_process, mock_handle,
-        mock_voice_message, mock_user, mock_session,
+        mock_voice_message, mock_state, mock_user, mock_session,
     ):
         """Voice handler uses message.bot (not imported bot) for file ops."""
         from app.handlers.ai import handle_voice
@@ -725,7 +732,7 @@ class TestHandleVoice:
         mock_transcribe.return_value = "test"
         mock_process.return_value = AgentState(intent="create_wish", wish_text="test")
 
-        await handle_voice(mock_voice_message, mock_user, "ru", mock_session)
+        await handle_voice(mock_voice_message, mock_state, mock_user, "ru", mock_session)
 
         mock_voice_message.bot.get_file.assert_called_once()
         mock_voice_message.bot.download_file.assert_called_once()

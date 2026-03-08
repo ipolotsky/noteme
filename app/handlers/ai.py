@@ -2,6 +2,7 @@ import logging
 from html import escape
 
 from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,10 +39,16 @@ def _format_user_text(text: str) -> str:
 @router.message(F.voice)
 async def handle_voice(
     message: Message,
+    state: FSMContext,
     user: User,
     lang: str,
     session: AsyncSession,
 ) -> None:
+    if not user.onboarding_completed:
+        from app.handlers.start import cmd_start
+        await cmd_start(message, state, user, lang, session)
+        return
+
     if message.voice.duration > 60:
         await message.answer(t("ai.audio_too_long", lang))
         return
@@ -86,9 +93,13 @@ async def handle_voice(
         await processing_msg.edit_text(t("errors.unknown", lang))
 
 
+_MIN_TEXT_LENGTH = 10
+
+
 @router.message(F.text)
 async def handle_text(
     message: Message,
+    state: FSMContext,
     user: User,
     lang: str,
     session: AsyncSession,
@@ -97,6 +108,16 @@ async def handle_text(
         return
 
     if message.text.startswith("/"):
+        return
+
+    if not user.onboarding_completed:
+        from app.handlers.start import cmd_start
+        await cmd_start(message, state, user, lang, session)
+        return
+
+    text = message.text.strip()
+    if len(text) < _MIN_TEXT_LENGTH:
+        await message.answer(t("ai.too_short", lang))
         return
 
     if not await check_ai_rate_limit(user.id):

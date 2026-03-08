@@ -19,7 +19,7 @@ from app.keyboards.settings import (
 from app.models.user import User
 from app.schemas.user import UserUpdate
 from app.services.user_service import update_user
-from app.utils.bot_utils import BOT_MSG_KEY, reply_and_cleanup
+from app.utils.bot_utils import BOT_MSG_KEY, get_message_text, reply_and_cleanup
 
 router = Router(name="settings")
 
@@ -94,7 +94,7 @@ async def settings_timezone(
     lang: str,
 ) -> None:
     await callback.message.edit_text(  # type: ignore[union-attr]
-        t("settings.change_timezone", lang) + "\n\nExamples: Europe/Moscow, US/Eastern, Asia/Tokyo",
+        t("settings.change_timezone", lang) + "\n\n" + t("settings.timezone_examples", lang),
         reply_markup=cancel_kb(lang),
     )
     await state.update_data(**{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
@@ -110,7 +110,10 @@ async def settings_set_timezone(
     lang: str,
     session: AsyncSession,
 ) -> None:
-    tz = (message.text or "").strip()
+    raw = await get_message_text(message, lang, user_id=user.id)
+    if raw is None:
+        return
+    tz = raw.strip()
     if not tz or "/" not in tz:
         await reply_and_cleanup(
             message, state,
@@ -200,8 +203,11 @@ async def settings_set_day_before_time(
     lang: str,
     session: AsyncSession,
 ) -> None:
+    raw = await get_message_text(message, lang, user_id=user.id)
+    if raw is None:
+        return
     try:
-        parts = (message.text or "").strip().split(":")
+        parts = raw.strip().split(":")
         new_time = time(int(parts[0]), int(parts[1]))
     except (ValueError, IndexError):
         await reply_and_cleanup(
@@ -267,8 +273,11 @@ async def settings_set_week_before_time(
     lang: str,
     session: AsyncSession,
 ) -> None:
+    raw = await get_message_text(message, lang, user_id=user.id)
+    if raw is None:
+        return
     try:
-        parts = (message.text or "").strip().split(":")
+        parts = raw.strip().split(":")
         new_time = time(int(parts[0]), int(parts[1]))
     except (ValueError, IndexError):
         await reply_and_cleanup(
@@ -362,8 +371,11 @@ async def settings_set_digest_time(
     lang: str,
     session: AsyncSession,
 ) -> None:
+    raw = await get_message_text(message, lang, user_id=user.id)
+    if raw is None:
+        return
     try:
-        parts = (message.text or "").strip().split(":")
+        parts = raw.strip().split(":")
         new_time = time(int(parts[0]), int(parts[1]))
     except (ValueError, IndexError):
         await reply_and_cleanup(
