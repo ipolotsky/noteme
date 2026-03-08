@@ -34,7 +34,7 @@ from app.services.event_service import (
     get_user_events,
     update_event,
 )
-from app.utils.bot_utils import BOT_MSG_KEY, reply_and_cleanup
+from app.utils.bot_utils import BOT_MSG_KEY, get_message_text, reply_and_cleanup
 
 router = Router(name="events")
 
@@ -272,9 +272,13 @@ async def event_create_start(
 async def event_create_title(
     message: Message,
     state: FSMContext,
+    user: User,
     lang: str,
 ) -> None:
-    await state.update_data(title=message.text)
+    text = await get_message_text(message, lang, user_id=user.id)
+    if text is None:
+        return
+    await state.update_data(title=text)
     await reply_and_cleanup(
         message, state,
         t("events.create_date", lang),
@@ -287,10 +291,14 @@ async def event_create_title(
 async def event_create_date(
     message: Message,
     state: FSMContext,
+    user: User,
     lang: str,
 ) -> None:
+    text = await get_message_text(message, lang, user_id=user.id)
+    if text is None:
+        return
     try:
-        event_date = datetime.strptime(message.text or "", "%d.%m.%Y").date()
+        event_date = datetime.strptime(text.strip(), "%d.%m.%Y").date()
     except ValueError:
         await reply_and_cleanup(
             message, state,
@@ -312,9 +320,13 @@ async def event_create_date(
 async def event_create_description(
     message: Message,
     state: FSMContext,
+    user: User,
     lang: str,
 ) -> None:
-    await state.update_data(description=message.text)
+    text = await get_message_text(message, lang, user_id=user.id)
+    if text is None:
+        return
+    await state.update_data(description=text)
     await reply_and_cleanup(
         message, state,
         t("events.create_people", lang),
@@ -345,8 +357,11 @@ async def event_create_people(
     lang: str,
     session: AsyncSession,
 ) -> None:
+    text = await get_message_text(message, lang, user_id=user.id)
+    if text is None:
+        return
     data = await state.get_data()
-    person_names = [x.strip() for x in (message.text or "").split(",") if x.strip()]
+    person_names = [x.strip() for x in text.split(",") if x.strip()]
     await _finish_event_create(message, state, user, lang, session, data, person_names)
 
 
@@ -437,9 +452,12 @@ async def event_edit_title(
     lang: str,
     session: AsyncSession,
 ) -> None:
+    text = await get_message_text(message, lang, user_id=user.id)
+    if text is None:
+        return
     data = await state.get_data()
     event = await update_event(
-        session, uuid.UUID(data["edit_event_id"]), EventUpdate(title=message.text),
+        session, uuid.UUID(data["edit_event_id"]), EventUpdate(title=text),
         user_id=user.id,
     )
     if event:
@@ -481,8 +499,11 @@ async def event_edit_date(
     lang: str,
     session: AsyncSession,
 ) -> None:
+    text = await get_message_text(message, lang, user_id=user.id)
+    if text is None:
+        return
     try:
-        event_date = datetime.strptime(message.text or "", "%d.%m.%Y").date()
+        event_date = datetime.strptime(text.strip(), "%d.%m.%Y").date()
     except ValueError:
         await reply_and_cleanup(
             message, state,
@@ -535,9 +556,12 @@ async def event_edit_desc(
     lang: str,
     session: AsyncSession,
 ) -> None:
+    text = await get_message_text(message, lang, user_id=user.id)
+    if text is None:
+        return
     data = await state.get_data()
     event = await update_event(
-        session, uuid.UUID(data["edit_event_id"]), EventUpdate(description=message.text),
+        session, uuid.UUID(data["edit_event_id"]), EventUpdate(description=text),
         user_id=user.id,
     )
     if event:
@@ -575,8 +599,11 @@ async def event_edit_people(
     lang: str,
     session: AsyncSession,
 ) -> None:
+    text = await get_message_text(message, lang, user_id=user.id)
+    if text is None:
+        return
     data = await state.get_data()
-    person_names = [x.strip() for x in (message.text or "").split(",") if x.strip()]
+    person_names = [x.strip() for x in text.split(",") if x.strip()]
     event = await update_event(
         session, uuid.UUID(data["edit_event_id"]), EventUpdate(person_names=person_names),
         user_id=user.id,

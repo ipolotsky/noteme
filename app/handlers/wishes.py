@@ -30,7 +30,7 @@ from app.services.wish_service import (
     get_wish,
     update_wish,
 )
-from app.utils.bot_utils import BOT_MSG_KEY, reply_and_cleanup
+from app.utils.bot_utils import BOT_MSG_KEY, get_message_text, reply_and_cleanup
 
 router = Router(name="wishes")
 
@@ -136,9 +136,13 @@ async def wish_create_start(
 async def wish_create_text(
     message: Message,
     state: FSMContext,
+    user: User,
     lang: str,
 ) -> None:
-    await state.update_data(text=message.text)
+    text = await get_message_text(message, lang, user_id=user.id)
+    if text is None:
+        return
+    await state.update_data(text=text)
     await reply_and_cleanup(
         message, state,
         t("wishes.create_people", lang),
@@ -155,8 +159,11 @@ async def wish_create_people(
     lang: str,
     session: AsyncSession,
 ) -> None:
+    text = await get_message_text(message, lang, user_id=user.id)
+    if text is None:
+        return
     data = await state.get_data()
-    person_names = [tg.strip() for tg in (message.text or "").split(",") if tg.strip()]
+    person_names = [tg.strip() for tg in text.split(",") if tg.strip()]
     await _finish_wish_create(message, state, user, lang, session, data, person_names)
 
 
@@ -239,9 +246,12 @@ async def wish_edit_text(
     lang: str,
     session: AsyncSession,
 ) -> None:
+    text = await get_message_text(message, lang, user_id=user.id)
+    if text is None:
+        return
     data = await state.get_data()
     wish = await update_wish(
-        session, uuid.UUID(data["edit_wish_id"]), WishUpdate(text=message.text),
+        session, uuid.UUID(data["edit_wish_id"]), WishUpdate(text=text),
         user_id=user.id,
     )
     if wish:
@@ -279,8 +289,11 @@ async def wish_edit_people(
     lang: str,
     session: AsyncSession,
 ) -> None:
+    text = await get_message_text(message, lang, user_id=user.id)
+    if text is None:
+        return
     data = await state.get_data()
-    person_names = [tg.strip() for tg in (message.text or "").split(",") if tg.strip()]
+    person_names = [tg.strip() for tg in text.split(",") if tg.strip()]
     wish = await update_wish(
         session, uuid.UUID(data["edit_wish_id"]), WishUpdate(person_names=person_names),
         user_id=user.id,

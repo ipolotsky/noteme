@@ -145,7 +145,8 @@
     "change_timezone": "Сменить часовой пояс",
     "change_time": "Введите время (HH:MM):",
     "current_time": "Сейчас в вашем часовом поясе: {time}",
-    "saved": "Настройки сохранены."
+    "saved": "Настройки сохранены.",
+    "timezone_examples": "Примеры: Europe/Moscow, US/Eastern, Asia/Tokyo"
   },
 
   "notifications": {

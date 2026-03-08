@@ -500,7 +500,7 @@ class TestExistingPeopleInPipeline:
 
 class TestOnboardingVoiceProcessing:
 
-    @patch("app.handlers.start._transcribe_voice", new_callable=AsyncMock, return_value="свадьба завтра")
+    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="свадьба завтра")
     @patch("app.agents.graph.process_message", new_callable=AsyncMock)
     @patch("app.services.event_service.create_event", new_callable=AsyncMock)
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
@@ -526,7 +526,7 @@ class TestOnboardingVoiceProcessing:
         first_call_text = msg.answer.call_args_list[0].args[0]
         assert first_call_text == t("ai.processing", "ru")
 
-    @patch("app.handlers.start._transcribe_voice", new_callable=AsyncMock, return_value=None)
+    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value=None)
     async def test_event_voice_deletes_processing_on_transcription_fail(
         self, mock_transcribe, session: AsyncSession,
     ):
@@ -541,7 +541,7 @@ class TestOnboardingVoiceProcessing:
         processing_msg = msg.answer.return_value
         processing_msg.delete.assert_called_once()
 
-    @patch("app.handlers.start._transcribe_voice", new_callable=AsyncMock, return_value="свадьба завтра")
+    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="свадьба завтра")
     @patch("app.agents.graph.process_message", new_callable=AsyncMock)
     @patch("app.services.event_service.create_event", new_callable=AsyncMock)
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
@@ -569,7 +569,7 @@ class TestOnboardingVoiceProcessing:
         edit_text = processing_msg.edit_text.call_args.args[0]
         assert t("events.created", "ru", title="Wedding") == edit_text
 
-    @patch("app.handlers.start._transcribe_voice", new_callable=AsyncMock, return_value="свадьба завтра")
+    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="свадьба завтра")
     @patch("app.agents.graph.process_message", new_callable=AsyncMock)
     async def test_event_voice_edits_processing_on_ai_failure(
         self, mock_process, mock_transcribe, session: AsyncSession,
@@ -591,7 +591,7 @@ class TestOnboardingVoiceProcessing:
         edit_text = processing_msg.edit_text.call_args.args[0]
         assert edit_text == t("ai.not_understood", "ru")
 
-    @patch("app.handlers.start._transcribe_voice", new_callable=AsyncMock, return_value="свадьба завтра")
+    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="свадьба завтра")
     @patch("app.agents.graph.process_message", new_callable=AsyncMock, side_effect=RuntimeError("API error"))
     async def test_event_voice_edits_processing_on_exception(
         self, mock_process, mock_transcribe, session: AsyncSession,
@@ -609,7 +609,7 @@ class TestOnboardingVoiceProcessing:
         edit_text = processing_msg.edit_text.call_args.args[0]
         assert edit_text == t("ai.not_understood", "ru")
 
-    @patch("app.handlers.start._transcribe_voice", new_callable=AsyncMock, return_value="хочу наушники")
+    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="хочу наушники")
     @patch("app.handlers.start._create_wish_via_ai", new_callable=AsyncMock, return_value=True)
     @patch("app.handlers.start.update_user", new_callable=AsyncMock)
     @patch("app.handlers.start.log_user_action", new_callable=AsyncMock)
@@ -628,7 +628,7 @@ class TestOnboardingVoiceProcessing:
         first_call_text = msg.answer.call_args_list[0].args[0]
         assert first_call_text == t("ai.processing", "ru")
 
-    @patch("app.handlers.start._transcribe_voice", new_callable=AsyncMock, return_value=None)
+    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value=None)
     async def test_wish_voice_deletes_processing_on_transcription_fail(
         self, mock_transcribe, session: AsyncSession,
     ):
@@ -643,7 +643,7 @@ class TestOnboardingVoiceProcessing:
         processing_msg = msg.answer.return_value
         processing_msg.delete.assert_called_once()
 
-    @patch("app.handlers.start._transcribe_voice", new_callable=AsyncMock, return_value="хочу наушники")
+    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="хочу наушники")
     @patch("app.handlers.start._create_wish_via_ai", new_callable=AsyncMock, return_value=True)
     @patch("app.handlers.start.update_user", new_callable=AsyncMock)
     @patch("app.handlers.start.log_user_action", new_callable=AsyncMock)
@@ -664,7 +664,7 @@ class TestOnboardingVoiceProcessing:
         edit_text = processing_msg.edit_text.call_args.args[0]
         assert edit_text == t("wishes.created", "ru")
 
-    @patch("app.handlers.start._transcribe_voice", new_callable=AsyncMock, return_value="хочу наушники")
+    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="хочу наушники")
     @patch("app.handlers.start._create_wish_via_ai", new_callable=AsyncMock, side_effect=RuntimeError("API error"))
     async def test_wish_voice_edits_processing_on_exception(
         self, mock_create, mock_transcribe, session: AsyncSession,

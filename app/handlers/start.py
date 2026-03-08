@@ -17,33 +17,11 @@ from app.models.user import User
 from app.schemas.user import UserUpdate
 from app.services.action_logger import log_user_action
 from app.services.user_service import update_user
+from app.utils.bot_utils import transcribe_voice
 
 logger = logging.getLogger(__name__)
 
 router = Router(name="start")
-
-
-async def _transcribe_voice(message: Message, lang: str, user_id: int = 0) -> str | None:
-    from app.agents.whisper import transcribe_audio
-
-    if message.voice.duration > 60:  # type: ignore[union-attr]
-        await message.answer(t("ai.audio_too_long", lang))
-        return None
-
-    try:
-        file = await message.bot.get_file(message.voice.file_id)  # type: ignore[union-attr]
-        bio = await message.bot.download_file(file.file_path)  # type: ignore[union-attr]
-        audio_bytes = bio.read()  # type: ignore[union-attr]
-        filename = file.file_path.rsplit("/", 1)[-1] if file.file_path else "voice.oga"
-        text = await transcribe_audio(audio_bytes, filename=filename, user_id=user_id)
-        if not text.strip():
-            await message.answer(t("ai.audio_empty", lang))
-            return None
-        return text
-    except Exception:
-        logger.exception("Voice transcription failed")
-        await message.answer(t("errors.unknown", lang))
-        return None
 
 
 def _build_step2_text(lang: str, person_names: list[str]) -> str:
@@ -187,7 +165,7 @@ async def onboarding_first_event_voice(
 
     processing_msg = await message.answer(t("ai.processing", lang))
 
-    text = await _transcribe_voice(message, lang, user_id=user.id)
+    text = await transcribe_voice(message, lang, user_id=user.id)
     if text is None:
         await processing_msg.delete()
         return
@@ -396,7 +374,7 @@ async def onboarding_first_wish_voice(
 
     processing_msg = await message.answer(t("ai.processing", lang))
 
-    text = await _transcribe_voice(message, lang, user_id=user.id)
+    text = await transcribe_voice(message, lang, user_id=user.id)
     if text is None:
         await processing_msg.delete()
         return

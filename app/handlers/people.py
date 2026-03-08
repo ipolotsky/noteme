@@ -29,7 +29,7 @@ from app.services.person_service import (
     rename_person,
 )
 from app.services.wish_service import get_wishes_by_person_names
-from app.utils.bot_utils import BOT_MSG_KEY, reply_and_cleanup
+from app.utils.bot_utils import BOT_MSG_KEY, get_message_text, reply_and_cleanup
 
 router = Router(name="people")
 
@@ -216,7 +216,10 @@ async def person_create_name(
     lang: str,
     session: AsyncSession,
 ) -> None:
-    name = (message.text or "").strip()
+    raw = await get_message_text(message, lang, user_id=user.id)
+    if raw is None:
+        return
+    name = raw.strip()
     if not name:
         await reply_and_cleanup(
             message, state,
@@ -258,8 +261,11 @@ async def person_rename_name(
     lang: str,
     session: AsyncSession,
 ) -> None:
+    raw = await get_message_text(message, lang, user_id=user.id)
+    if raw is None:
+        return
     data = await state.get_data()
-    new_name = (message.text or "").strip()
+    new_name = raw.strip()
     if not new_name:
         await reply_and_cleanup(
             message, state,

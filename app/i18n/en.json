@@ -145,7 +145,8 @@
     "change_timezone": "Change timezone",
     "change_time": "Enter time (HH:MM):",
     "current_time": "Current time in your timezone: {time}",
-    "saved": "Settings saved."
+    "saved": "Settings saved.",
+    "timezone_examples": "Examples: Europe/Moscow, US/Eastern, Asia/Tokyo"
   },
 
   "notifications": {

@@ -15,7 +15,7 @@ from app.keyboards.wishes import wish_view_kb
 from app.models.user import User
 from app.services.person_service import get_person, get_user_people
 from app.services.wish_service import WishLimitError, create_wish_with_media
-from app.utils.bot_utils import BOT_MSG_KEY, reply_and_cleanup
+from app.utils.bot_utils import BOT_MSG_KEY, get_message_text, reply_and_cleanup
 
 router = Router(name="media")
 
@@ -179,7 +179,10 @@ async def media_new_person_name(
     lang: str,
     session: AsyncSession,
 ) -> None:
-    person_name = (message.text or "").strip()
+    raw = await get_message_text(message, lang, user_id=user.id)
+    if raw is None:
+        return
+    person_name = raw.strip()
     if not person_name:
         await reply_and_cleanup(message, state, t("errors.invalid_input", lang))
         return
