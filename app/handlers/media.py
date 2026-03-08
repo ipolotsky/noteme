@@ -15,6 +15,7 @@ from app.keyboards.wishes import wish_view_kb
 from app.models.user import User
 from app.services.person_service import get_person, get_user_people
 from app.services.wish_service import WishLimitError, create_wish_with_media
+from app.utils.bot_utils import BOT_MSG_KEY, reply_and_cleanup
 
 router = Router(name="media")
 
@@ -165,6 +166,7 @@ async def media_create_person(
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("media.create_person_first", lang)
     )
+    await state.update_data(**{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await state.set_state(MediaWishStates.waiting_new_person_name)
     await callback.answer()
 
@@ -179,10 +181,11 @@ async def media_new_person_name(
 ) -> None:
     person_name = (message.text or "").strip()
     if not person_name:
-        await message.answer(t("errors.invalid_input", lang))
+        await reply_and_cleanup(message, state, t("errors.invalid_input", lang))
         return
 
     data = await state.get_data()
+    bot_msg_id = data.get(BOT_MSG_KEY)
     wish_text = _media_wish_text(
         data["media_type"], lang, data.get("media_caption"),
         filename=data.get("media_filename"),
@@ -200,13 +203,20 @@ async def media_new_person_name(
             media_type=data["media_type"],
         )
     except WishLimitError:
-        await message.answer(
-            t("wishes.limit_reached", lang, max=str(user.max_wishes))
+        await reply_and_cleanup(
+            message, state,
+            t("wishes.limit_reached", lang, max=str(user.max_wishes)),
         )
         await state.clear()
         return
 
     await state.clear()
+
+    if bot_msg_id:
+        with contextlib.suppress(Exception):
+            await message.bot.delete_message(message.chat.id, bot_msg_id)  # type: ignore[union-attr]
+    with contextlib.suppress(Exception):
+        await message.delete()
 
     people_str = escape(person_name)
     card = (

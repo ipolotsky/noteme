@@ -30,6 +30,7 @@ from app.services.wish_service import (
     get_wish,
     update_wish,
 )
+from app.utils.bot_utils import BOT_MSG_KEY, reply_and_cleanup
 
 router = Router(name="wishes")
 
@@ -126,6 +127,7 @@ async def wish_create_start(
         t("wishes.create_text", lang),
         reply_markup=cancel_kb(lang),
     )
+    await state.update_data(**{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await state.set_state(WishCreateStates.waiting_text)
     await callback.answer()
 
@@ -137,7 +139,8 @@ async def wish_create_text(
     lang: str,
 ) -> None:
     await state.update_data(text=message.text)
-    await message.answer(
+    await reply_and_cleanup(
+        message, state,
         t("wishes.create_people", lang),
         reply_markup=wish_skip_kb(lang),
     )
@@ -187,15 +190,16 @@ async def _finish_wish_create(
     try:
         wish = await create_wish(session, user.id, wish_data)
     except WishLimitError:
-        await message.answer(t("wishes.limit_reached", lang, max=str(user.max_wishes)))
+        await reply_and_cleanup(message, state, t("wishes.limit_reached", lang, max=str(user.max_wishes)))
         await state.clear()
         return
 
-    await state.clear()
-    await message.answer(
+    await reply_and_cleanup(
+        message, state,
         t("wishes.created", lang),
         reply_markup=wish_view_kb(wish, lang),
     )
+    await state.clear()
 
 
 @router.callback_query(WishCb.filter(F.action == "edit"))
@@ -218,7 +222,7 @@ async def wish_edit_text_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(edit_wish_id=callback_data.id)
+    await state.update_data(edit_wish_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("wishes.create_text", lang),
         reply_markup=cancel_kb(lang),
@@ -240,14 +244,15 @@ async def wish_edit_text(
         session, uuid.UUID(data["edit_wish_id"]), WishUpdate(text=message.text),
         user_id=user.id,
     )
-    await state.clear()
     if wish:
-        await message.answer(
+        await reply_and_cleanup(
+            message, state,
             t("wishes.updated", lang),
             reply_markup=wish_view_kb(wish, lang),
         )
     else:
-        await message.answer(t("errors.not_found", lang))
+        await reply_and_cleanup(message, state, t("errors.not_found", lang))
+    await state.clear()
 
 
 @router.callback_query(WishEditCb.filter(F.field == "people"))
@@ -257,7 +262,7 @@ async def wish_edit_people_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(edit_wish_id=callback_data.id)
+    await state.update_data(edit_wish_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("wishes.create_people", lang),
         reply_markup=cancel_kb(lang),
@@ -280,14 +285,15 @@ async def wish_edit_people(
         session, uuid.UUID(data["edit_wish_id"]), WishUpdate(person_names=person_names),
         user_id=user.id,
     )
-    await state.clear()
     if wish:
-        await message.answer(
+        await reply_and_cleanup(
+            message, state,
             t("wishes.updated", lang),
             reply_markup=wish_view_kb(wish, lang),
         )
     else:
-        await message.answer(t("errors.not_found", lang))
+        await reply_and_cleanup(message, state, t("errors.not_found", lang))
+    await state.clear()
 
 
 @router.callback_query(WishCb.filter(F.action == "delete"))

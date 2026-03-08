@@ -31,6 +31,7 @@ from app.services.event_service import (
     get_user_events,
     update_event,
 )
+from app.utils.bot_utils import BOT_MSG_KEY, reply_and_cleanup
 
 router = Router(name="events")
 
@@ -259,6 +260,7 @@ async def event_create_start(
         t("events.create_title", lang),
         reply_markup=cancel_kb(lang),
     )
+    await state.update_data(**{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await state.set_state(EventCreateStates.waiting_title)
     await callback.answer()
 
@@ -270,7 +272,8 @@ async def event_create_title(
     lang: str,
 ) -> None:
     await state.update_data(title=message.text)
-    await message.answer(
+    await reply_and_cleanup(
+        message, state,
         t("events.create_date", lang),
         reply_markup=cancel_kb(lang),
     )
@@ -286,11 +289,16 @@ async def event_create_date(
     try:
         event_date = datetime.strptime(message.text or "", "%d.%m.%Y").date()
     except ValueError:
-        await message.answer(t("events.invalid_date", lang))
+        await reply_and_cleanup(
+            message, state,
+            t("events.invalid_date", lang),
+            reply_markup=cancel_kb(lang),
+        )
         return
 
     await state.update_data(event_date=event_date.isoformat())
-    await message.answer(
+    await reply_and_cleanup(
+        message, state,
         t("events.create_description", lang),
         reply_markup=event_skip_kb(lang),
     )
@@ -304,7 +312,8 @@ async def event_create_description(
     lang: str,
 ) -> None:
     await state.update_data(description=message.text)
-    await message.answer(
+    await reply_and_cleanup(
+        message, state,
         t("events.create_people", lang),
         reply_markup=event_skip_kb(lang),
     )
@@ -373,18 +382,19 @@ async def _finish_event_create(
     try:
         event = await create_event(session, user.id, event_data)
     except EventLimitError:
-        await message.answer(t("events.limit_reached", lang, max=str(user.max_events)))
+        await reply_and_cleanup(message, state, t("events.limit_reached", lang, max=str(user.max_events)))
         await state.clear()
         return
 
     from app.services.beautiful_dates.engine import recalculate_for_event
     await recalculate_for_event(session, event)
 
-    await state.clear()
-    await message.answer(
+    await reply_and_cleanup(
+        message, state,
         t("events.created", lang, title=escape(event.title)),
         reply_markup=event_view_kb(event, lang),
     )
+    await state.clear()
 
 
 @router.callback_query(EventCb.filter(F.action == "edit"))
@@ -407,7 +417,7 @@ async def event_edit_title_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(edit_event_id=callback_data.id)
+    await state.update_data(edit_event_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("events.create_title", lang),
         reply_markup=cancel_kb(lang),
@@ -429,14 +439,15 @@ async def event_edit_title(
         session, uuid.UUID(data["edit_event_id"]), EventUpdate(title=message.text),
         user_id=user.id,
     )
-    await state.clear()
     if event:
-        await message.answer(
+        await reply_and_cleanup(
+            message, state,
             t("events.updated", lang),
             reply_markup=event_view_kb(event, lang),
         )
     else:
-        await message.answer(t("errors.not_found", lang))
+        await reply_and_cleanup(message, state, t("errors.not_found", lang))
+    await state.clear()
 
 
 @router.callback_query(EventEditCb.filter(F.field == "date"))
@@ -446,7 +457,7 @@ async def event_edit_date_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(edit_event_id=callback_data.id)
+    await state.update_data(edit_event_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("events.create_date", lang),
         reply_markup=cancel_kb(lang),
@@ -466,7 +477,11 @@ async def event_edit_date(
     try:
         event_date = datetime.strptime(message.text or "", "%d.%m.%Y").date()
     except ValueError:
-        await message.answer(t("events.invalid_date", lang))
+        await reply_and_cleanup(
+            message, state,
+            t("events.invalid_date", lang),
+            reply_markup=cancel_kb(lang),
+        )
         return
 
     data = await state.get_data()
@@ -478,14 +493,15 @@ async def event_edit_date(
         from app.services.beautiful_dates.engine import recalculate_for_event
         await recalculate_for_event(session, event)
 
-    await state.clear()
     if event:
-        await message.answer(
+        await reply_and_cleanup(
+            message, state,
             t("events.updated", lang),
             reply_markup=event_view_kb(event, lang),
         )
     else:
-        await message.answer(t("errors.not_found", lang))
+        await reply_and_cleanup(message, state, t("errors.not_found", lang))
+    await state.clear()
 
 
 @router.callback_query(EventEditCb.filter(F.field == "description"))
@@ -495,7 +511,7 @@ async def event_edit_desc_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(edit_event_id=callback_data.id)
+    await state.update_data(edit_event_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("events.create_description", lang),
         reply_markup=cancel_kb(lang),
@@ -517,14 +533,15 @@ async def event_edit_desc(
         session, uuid.UUID(data["edit_event_id"]), EventUpdate(description=message.text),
         user_id=user.id,
     )
-    await state.clear()
     if event:
-        await message.answer(
+        await reply_and_cleanup(
+            message, state,
             t("events.updated", lang),
             reply_markup=event_view_kb(event, lang),
         )
     else:
-        await message.answer(t("errors.not_found", lang))
+        await reply_and_cleanup(message, state, t("errors.not_found", lang))
+    await state.clear()
 
 
 @router.callback_query(EventEditCb.filter(F.field == "people"))
@@ -534,7 +551,7 @@ async def event_edit_people_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(edit_event_id=callback_data.id)
+    await state.update_data(edit_event_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("events.create_people", lang),
         reply_markup=cancel_kb(lang),
@@ -557,14 +574,15 @@ async def event_edit_people(
         session, uuid.UUID(data["edit_event_id"]), EventUpdate(person_names=person_names),
         user_id=user.id,
     )
-    await state.clear()
     if event:
-        await message.answer(
+        await reply_and_cleanup(
+            message, state,
             t("events.updated", lang),
             reply_markup=event_view_kb(event, lang),
         )
     else:
-        await message.answer(t("errors.not_found", lang))
+        await reply_and_cleanup(message, state, t("errors.not_found", lang))
+    await state.clear()
 
 
 @router.callback_query(EventCb.filter(F.action == "delete"))

@@ -19,6 +19,7 @@ from app.keyboards.settings import (
 from app.models.user import User
 from app.schemas.user import UserUpdate
 from app.services.user_service import update_user
+from app.utils.bot_utils import BOT_MSG_KEY, reply_and_cleanup
 
 router = Router(name="settings")
 
@@ -96,6 +97,7 @@ async def settings_timezone(
         t("settings.change_timezone", lang) + "\n\nExamples: Europe/Moscow, US/Eastern, Asia/Tokyo",
         reply_markup=cancel_kb(lang),
     )
+    await state.update_data(**{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await state.set_state(SettingsStates.waiting_timezone)
     await callback.answer()
 
@@ -110,16 +112,21 @@ async def settings_set_timezone(
 ) -> None:
     tz = (message.text or "").strip()
     if not tz or "/" not in tz:
-        await message.answer(t("errors.invalid_input", lang))
+        await reply_and_cleanup(
+            message, state,
+            t("errors.invalid_input", lang),
+            reply_markup=cancel_kb(lang),
+        )
         return
 
     await update_user(session, user.id, UserUpdate(timezone=tz))
     user.timezone = tz
-    await state.clear()
-    await message.answer(
+    await reply_and_cleanup(
+        message, state,
         t("settings.saved", lang),
         reply_markup=settings_kb(user, lang),
     )
+    await state.clear()
 
 
 @router.callback_query(SettingsCb.filter(F.action == "notif_submenu"))
@@ -180,6 +187,7 @@ async def settings_day_before_time(
         text,
         reply_markup=cancel_kb(lang),
     )
+    await state.update_data(**{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await state.set_state(SettingsStates.waiting_day_before_time)
     await callback.answer()
 
@@ -196,16 +204,21 @@ async def settings_set_day_before_time(
         parts = (message.text or "").strip().split(":")
         new_time = time(int(parts[0]), int(parts[1]))
     except (ValueError, IndexError):
-        await message.answer(t("errors.invalid_input", lang))
+        await reply_and_cleanup(
+            message, state,
+            t("errors.invalid_input", lang),
+            reply_markup=cancel_kb(lang),
+        )
         return
 
     await update_user(session, user.id, UserUpdate(notify_day_before_time=new_time))
     user.notify_day_before_time = new_time
-    await state.clear()
-    await message.answer(
+    await reply_and_cleanup(
+        message, state,
         t("settings.saved", lang),
         reply_markup=notification_settings_kb(user, lang),
     )
+    await state.clear()
 
 
 @router.callback_query(SettingsCb.filter(F.action == "week_before_toggle"))
@@ -241,6 +254,7 @@ async def settings_week_before_time(
         text,
         reply_markup=cancel_kb(lang),
     )
+    await state.update_data(**{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await state.set_state(SettingsStates.waiting_week_before_time)
     await callback.answer()
 
@@ -257,16 +271,21 @@ async def settings_set_week_before_time(
         parts = (message.text or "").strip().split(":")
         new_time = time(int(parts[0]), int(parts[1]))
     except (ValueError, IndexError):
-        await message.answer(t("errors.invalid_input", lang))
+        await reply_and_cleanup(
+            message, state,
+            t("errors.invalid_input", lang),
+            reply_markup=cancel_kb(lang),
+        )
         return
 
     await update_user(session, user.id, UserUpdate(notify_week_before_time=new_time))
     user.notify_week_before_time = new_time
-    await state.clear()
-    await message.answer(
+    await reply_and_cleanup(
+        message, state,
         t("settings.saved", lang),
         reply_markup=notification_settings_kb(user, lang),
     )
+    await state.clear()
 
 
 @router.callback_query(SettingsCb.filter(F.action == "digest_toggle"))
@@ -330,6 +349,7 @@ async def settings_digest_time(
         text,
         reply_markup=cancel_kb(lang),
     )
+    await state.update_data(**{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
     await state.set_state(SettingsStates.waiting_digest_time)
     await callback.answer()
 
@@ -346,16 +366,21 @@ async def settings_set_digest_time(
         parts = (message.text or "").strip().split(":")
         new_time = time(int(parts[0]), int(parts[1]))
     except (ValueError, IndexError):
-        await message.answer(t("errors.invalid_input", lang))
+        await reply_and_cleanup(
+            message, state,
+            t("errors.invalid_input", lang),
+            reply_markup=cancel_kb(lang),
+        )
         return
 
     await update_user(session, user.id, UserUpdate(weekly_digest_time=new_time))
     user.weekly_digest_time = new_time
-    await state.clear()
-    await message.answer(
+    await reply_and_cleanup(
+        message, state,
         t("settings.saved", lang),
         reply_markup=notification_settings_kb(user, lang),
     )
+    await state.clear()
 
 
 @router.callback_query(SettingsCb.filter(F.action == "spoiler"))
