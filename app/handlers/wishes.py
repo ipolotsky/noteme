@@ -197,7 +197,13 @@ async def _finish_wish_create(
     try:
         wish = await create_wish(session, user.id, wish_data)
     except WishLimitError:
-        await reply_and_cleanup(message, state, t("wishes.limit_reached", lang, max=str(user.max_wishes)))
+        from app.keyboards.subscription import upgrade_kb
+
+        await reply_and_cleanup(
+            message, state,
+            t("wishes.limit_reached", lang, max=str(user.max_wishes)),
+            reply_markup=upgrade_kb(lang),
+        )
         await state.clear()
         return
 

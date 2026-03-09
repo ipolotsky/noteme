@@ -65,3 +65,8 @@ class LangCb(CallbackData, prefix="lang"):
 
 class OnboardCb(CallbackData, prefix="onb"):
     action: str  # "skip", "continue"
+
+
+class SubscribeCb(CallbackData, prefix="sub"):
+    action: str  # "plans", "buy", "referral"
+    id: str = ""

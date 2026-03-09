@@ -64,6 +64,7 @@ async def recalculate_for_event(
 
     today = date.today()
     created = 0
+    seen: set[tuple[int, str]] = set()
 
     for strategy_model in strategies:
         impl = _STRATEGY_REGISTRY.get(strategy_model.strategy_type)
@@ -78,9 +79,13 @@ async def recalculate_for_event(
         )
 
         for candidate in candidates:
-            # Only keep future dates (or today)
             if candidate.target_date < today:
                 continue
+
+            dedup_key = (candidate.interval_value, candidate.interval_unit)
+            if dedup_key in seen:
+                continue
+            seen.add(dedup_key)
 
             bd = BeautifulDate(
                 event_id=event.id,

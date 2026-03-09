@@ -128,8 +128,11 @@ async def media_person_selected(
             media_type=data["media_type"],
         )
     except WishLimitError:
+        from app.keyboards.subscription import upgrade_kb
+
         await callback.message.edit_text(  # type: ignore[union-attr]
-            t("wishes.limit_reached", lang, max=str(user.max_wishes))
+            t("wishes.limit_reached", lang, max=str(user.max_wishes)),
+            reply_markup=upgrade_kb(lang),
         )
         await state.clear()
         await callback.answer()
@@ -206,9 +209,12 @@ async def media_new_person_name(
             media_type=data["media_type"],
         )
     except WishLimitError:
+        from app.keyboards.subscription import upgrade_kb
+
         await reply_and_cleanup(
             message, state,
             t("wishes.limit_reached", lang, max=str(user.max_wishes)),
+            reply_markup=upgrade_kb(lang),
         )
         await state.clear()
         return

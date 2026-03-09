@@ -41,7 +41,7 @@
     "cannot_delete_system": "System events cannot be deleted, but you can rename them.",
     "updated": "Event updated.",
     "beautiful_dates": "Beautiful Dates",
-    "limit_reached": "Event limit reached ({max}). Delete an existing one or contact the admin.",
+    "limit_reached": "Event limit reached ({max}). Subscribe to remove all limits.",
     "invalid_date": "Invalid date. Please use the DD.MM.YYYY format.",
     "view_title": "Event: {title}",
     "date_label": "Date: {date}",
@@ -67,7 +67,7 @@
     "delete_confirm": "Are you sure you want to delete this wish?",
     "deleted": "Wish deleted.",
     "updated": "Wish updated.",
-    "limit_reached": "Wish limit reached ({max}). Delete an existing one or contact the admin.",
+    "limit_reached": "Wish limit reached ({max}). Subscribe to remove all limits.",
     "view_title": "Wish",
     "people_label": "People: {people}",
     "no_people": "No people"
@@ -206,6 +206,26 @@
     "download_stories": "Download for Stories",
     "save_hint": "Long-press the image to save",
     "share_native": "Share"
+  },
+
+  "subscription": {
+    "choose_plan": "Choose a plan:",
+    "current_lifetime": "You have unlimited access forever.",
+    "current_expires": "Subscription active until {date}.",
+    "no_subscription": "You are on the free plan with limits.",
+    "activated": "Subscription activated! All limits removed.",
+    "extended": "Subscription extended until {date}.",
+    "upgrade_button": "Get unlimited",
+    "lifetime_label": "Forever",
+    "monthly_label": "{months} mo.",
+    "yearly_label": "Yearly",
+    "price_label": "{stars} Stars",
+    "discount_label": "-{percent}%",
+    "referral_link": "Invite a friend and get {months} mo. free!\n\nYour link:\n{link}",
+    "referral_bonus": "You got {months} mo. of subscription for inviting a friend!",
+    "referral_stats": "Friends invited: {count}",
+    "invite_friend": "Invite a friend",
+    "my_subscription": "My subscription"
   },
 
   "declension": {

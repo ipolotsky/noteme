@@ -3,7 +3,7 @@ from datetime import date
 from html import escape
 
 from aiogram import F, Router
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,9 +38,28 @@ async def cmd_start(
     user: User,
     lang: str,
     session: AsyncSession,
+    command: CommandObject | None = None,
 ) -> None:
     await state.clear()
     await log_user_action(user.id, "start")
+
+    if command and command.args and command.args.startswith("ref_"):
+        try:
+            referrer_id = int(command.args[4:])
+            if referrer_id != user.id and user.referred_by is None:
+                from app.services.user_service import get_user
+
+                referrer = await get_user(session, referrer_id)
+                if referrer is not None:
+                    user.referred_by = referrer_id
+                    await session.flush()
+                    from app.services.referral_service import process_referral
+
+                    await process_referral(session, referrer_id, user.id)
+        except ValueError:
+            logger.warning("Invalid referral args: %s", command.args)
+        except Exception:
+            logger.exception("Referral processing failed for args: %s", command.args)
 
     if user.onboarding_completed:
         await message.answer(

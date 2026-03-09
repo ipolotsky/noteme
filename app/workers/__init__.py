@@ -6,6 +6,7 @@ from arq.connections import RedisSettings
 from app.config import settings
 from app.workers.action_logs import persist_action_logs_task
 from app.workers.ai_logs import persist_ai_logs_task
+from app.workers.cleanup import cleanup_past_beautiful_dates, deactivate_expired_subscriptions_task
 from app.workers.notifications import check_and_send_notifications
 
 
@@ -33,10 +34,14 @@ class WorkerSettings:
         "app.workers.notifications.check_and_send_notifications",
         "app.workers.ai_logs.persist_ai_logs_task",
         "app.workers.action_logs.persist_action_logs_task",
+        "app.workers.cleanup.cleanup_past_beautiful_dates",
+        "app.workers.cleanup.deactivate_expired_subscriptions_task",
     ]
 
     cron_jobs = [
         cron(check_and_send_notifications, minute=set(range(60))),
-        cron(persist_ai_logs_task, minute=set(range(60))),  # Drain AI logs every minute
-        cron(persist_action_logs_task, minute=set(range(60))),  # Drain user action logs every minute
+        cron(persist_ai_logs_task, minute=set(range(60))),
+        cron(persist_action_logs_task, minute=set(range(60))),
+        cron(cleanup_past_beautiful_dates, hour={3}, minute={0}),
+        cron(deactivate_expired_subscriptions_task, hour={0}, minute={5}),
     ]

@@ -224,3 +224,45 @@ class TestEngineIntegration:
         today = date.today()
         for bd in dates:
             assert bd.target_date >= today
+
+    @pytest.mark.asyncio
+    async def test_no_duplicate_intervals(self, session):
+        """Verify deduplication by (interval_value, interval_unit)."""
+        from app.models.event import Event
+        from app.models.user import User
+        from app.services.beautiful_dates.engine import recalculate_for_event
+        from app.utils.seed import STRATEGIES
+
+        user = User(id=987654321, first_name="Dedup")
+        session.add(user)
+        await session.flush()
+
+        event = Event(
+            user_id=user.id,
+            title="Test",
+            event_date=date(2022, 1, 1),
+        )
+        session.add(event)
+        await session.flush()
+
+        from app.models.beautiful_date_strategy import BeautifulDateStrategy
+        for data in STRATEGIES:
+            s = BeautifulDateStrategy(**data)
+            session.add(s)
+        await session.flush()
+
+        await recalculate_for_event(session, event)
+
+        from sqlalchemy import select
+
+        from app.models.beautiful_date import BeautifulDate
+        result = await session.execute(
+            select(BeautifulDate).where(BeautifulDate.event_id == event.id)
+        )
+        dates = list(result.scalars().all())
+
+        seen = set()
+        for bd in dates:
+            key = (bd.interval_value, bd.interval_unit)
+            assert key not in seen, f"Duplicate interval: {key}"
+            seen.add(key)

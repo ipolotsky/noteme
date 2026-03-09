@@ -5,6 +5,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqladmin import Admin
+from sqladmin._menu import ItemMenu
 from sqladmin.authentication import AuthenticationBackend
 from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
@@ -37,6 +38,9 @@ class AdminAuth(AuthenticationBackend):
 
 # Tables to truncate (in FK-safe order, CASCADE handles the rest)
 _CLEAR_TABLES = [
+    "referral_rewards",
+    "payments",
+    "subscriptions",
     "media_links",
     "wish_people",
     "event_people",
@@ -58,6 +62,41 @@ def setup_admin(app: FastAPI) -> Admin:
     app.add_middleware(SessionMiddleware, secret_key=settings.admin_secret_key)
 
     # --- Custom endpoints MUST be registered BEFORE Admin() mount ---
+
+    @app.get("/admin/stars-balance", response_class=HTMLResponse)
+    async def stars_balance_page(request: Request) -> HTMLResponse:
+        if not request.session.get("authenticated"):
+            return RedirectResponse(url="/admin/login", status_code=302)  # type: ignore[return-value]
+
+        from app.bot import bot
+
+        balance = 0
+        transactions: list[dict] = []
+        error = ""
+        try:
+            result = await bot.get_star_transactions(limit=100)
+            balance = sum(
+                t.amount if t.source else -t.amount
+                for t in result.transactions
+            )
+            for t in result.transactions[:50]:
+                incoming = t.source is not None
+                transactions.append({
+                    "id": t.id,
+                    "amount": t.amount,
+                    "incoming": incoming,
+                    "date": t.date.strftime("%d.%m.%Y %H:%M"),
+                })
+        except Exception:
+            logger.exception("[admin] Failed to get star transactions")
+            error = "Failed to fetch data from Telegram API."
+
+        rendered = await request.app.state.admin.templates.TemplateResponse(
+            request,
+            "stars_balance.html",
+            {"balance": balance, "transactions": transactions, "error": error},
+        )
+        return HTMLResponse(content=rendered.body, status_code=rendered.status_code)
 
     @app.get("/admin/clear-db", response_class=HTMLResponse)
     async def clear_db_page(request: Request) -> HTMLResponse:
@@ -189,6 +228,99 @@ def setup_admin(app: FastAPI) -> Admin:
             "</body></html>"
         )
 
+    @app.get("/admin/grant-premium/{user_id}", response_class=HTMLResponse)
+    async def grant_premium_page(request: Request, user_id: int) -> HTMLResponse:
+        if not request.session.get("authenticated"):
+            return RedirectResponse(url="/admin/login", status_code=302)  # type: ignore[return-value]
+
+        from sqlalchemy import select
+
+        from app.models.subscription import Subscription
+        from app.models.user import User
+
+        async with async_session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return HTMLResponse(
+                    "<html><body style='font-family:sans-serif;text-align:center;margin-top:80px'>"
+                    f"<h2>User {user_id} not found</h2>"
+                    "<br><a href='/admin'>Back</a></body></html>"
+                )
+
+            result = await session.execute(
+                select(Subscription)
+                .where(Subscription.user_id == user_id, Subscription.is_active.is_(True))
+                .order_by(Subscription.created_at.desc())
+                .limit(1)
+            )
+            active_sub = result.scalar_one_or_none()
+
+        sub_info = "No active subscription"
+        if active_sub:
+            if active_sub.is_lifetime:
+                sub_info = "Lifetime subscription (active)"
+            elif active_sub.expires_at:
+                sub_info = f"Active until {active_sub.expires_at.strftime('%d.%m.%Y')}"
+
+        from html import escape
+
+        username = escape(user.username or user.first_name or str(user_id))
+        return HTMLResponse(
+            "<html><body style='font-family:sans-serif;text-align:center;margin-top:80px'>"
+            f"<h2>Grant Premium to {username}</h2>"
+            f"<p>Current: <b>{sub_info}</b></p>"
+            "<form method='POST' style='margin-top:20px'>"
+            "<label>Months: <input type='number' name='months' value='1' min='1' max='120' "
+            "style='padding:6px;width:80px'></label>"
+            "<br><br>"
+            "<label><input type='checkbox' name='lifetime'> Lifetime</label>"
+            "<br><br>"
+            "<button type='submit' style='padding:12px 32px;font-size:16px;"
+            "background:#198754;color:#fff;border:none;border-radius:6px;cursor:pointer'>"
+            "Grant Premium</button>"
+            "</form>"
+            "<br><a href='/admin'>Cancel</a>"
+            "</body></html>"
+        )
+
+    @app.post("/admin/grant-premium/{user_id}", response_class=HTMLResponse)
+    async def grant_premium_action(request: Request, user_id: int) -> HTMLResponse:
+        if not request.session.get("authenticated"):
+            return RedirectResponse(url="/admin/login", status_code=302)  # type: ignore[return-value]
+
+        form = await request.form()
+        is_lifetime = form.get("lifetime") == "on"
+        months = int(form.get("months", 1))
+
+        from app.services.subscription_service import grant_subscription
+
+        try:
+            async with async_session_factory() as session:
+                sub = await grant_subscription(
+                    session, user_id, months=months, is_lifetime=is_lifetime, source="admin"
+                )
+                await session.commit()
+
+            if sub.is_lifetime:
+                status = f"Lifetime premium granted to user <b>{user_id}</b>."
+            elif sub.expires_at:
+                date_str = sub.expires_at.strftime("%d.%m.%Y")
+                status = f"Premium granted to user <b>{user_id}</b> until <b>{date_str}</b>."
+            else:
+                status = f"Premium granted to user <b>{user_id}</b>."
+        except Exception:
+            logger.exception("[admin] Failed to grant premium to user %s", user_id)
+            status = "Error: failed to grant premium. Check logs."
+
+        return HTMLResponse(
+            "<html><body style='font-family:sans-serif;text-align:center;margin-top:80px'>"
+            "<h2>Grant Premium</h2>"
+            f"<p>{status}</p>"
+            f"<br><a href='/admin/user/details/{user_id}'>Back to user</a>"
+            " | <a href='/admin'>Admin home</a>"
+            "</body></html>"
+        )
+
     # --- Now mount sqladmin (catches remaining /admin/* paths) ---
 
     auth_backend = AdminAuth(secret_key=settings.admin_secret_key)
@@ -202,11 +334,16 @@ def setup_admin(app: FastAPI) -> Admin:
 
     from app.admin.views import (
         AILogAdmin,
+        AppSettingsAdmin,
         BeautifulDateAdmin,
         BeautifulDateStrategyAdmin,
         EventAdmin,
         NotificationLogAdmin,
+        PaymentAdmin,
         PersonAdmin,
+        ReferralRewardAdmin,
+        SubscriptionAdmin,
+        SubscriptionPlanAdmin,
         UserActionLogAdmin,
         UserAdmin,
         WishAdmin,
@@ -218,8 +355,28 @@ def setup_admin(app: FastAPI) -> Admin:
     admin.add_view(PersonAdmin)
     admin.add_view(BeautifulDateStrategyAdmin)
     admin.add_view(BeautifulDateAdmin)
+    admin.add_view(SubscriptionPlanAdmin)
+    admin.add_view(SubscriptionAdmin)
+    admin.add_view(PaymentAdmin)
+    admin.add_view(ReferralRewardAdmin)
+    admin.add_view(AppSettingsAdmin)
     admin.add_view(NotificationLogAdmin)
     admin.add_view(AILogAdmin)
     admin.add_view(UserActionLogAdmin)
+
+    class StarsMenuItem(ItemMenu):
+        @property
+        def type_(self) -> str:
+            return "View"
+
+        def url(self, request: Request) -> str:
+            return "/admin/stars-balance"
+
+        def is_active(self, request: Request) -> bool:
+            return request.url.path == "/admin/stars-balance"
+
+    admin._menu.items.append(StarsMenuItem(name="Stars Balance", icon="fa-solid fa-star"))
+
+    app.state.admin = admin
 
     return admin

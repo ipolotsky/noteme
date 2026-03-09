@@ -6,7 +6,18 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage
 
 from app.config import settings
-from app.handlers import ai, common, errors, events, feed, media, people, start, wishes
+from app.handlers import (
+    ai,
+    common,
+    errors,
+    events,
+    feed,
+    media,
+    people,
+    start,
+    subscription,
+    wishes,
+)
 from app.handlers import settings as settings_handler
 from app.middlewares import (
     DbSessionMiddleware,
@@ -39,6 +50,9 @@ dp.callback_query.outer_middleware(DbSessionMiddleware())
 dp.callback_query.outer_middleware(UserMiddleware())
 dp.callback_query.outer_middleware(I18nMiddleware())
 
+# Pre-checkout query middlewares
+dp.pre_checkout_query.outer_middleware(DbSessionMiddleware())
+
 # --- Register routers (order matters for handler priority) ---
 dp.include_router(errors.router)
 dp.include_router(start.router)
@@ -48,5 +62,6 @@ dp.include_router(feed.router)
 dp.include_router(wishes.router)
 dp.include_router(people.router)
 dp.include_router(settings_handler.router)
+dp.include_router(subscription.router)
 dp.include_router(media.router)  # Before AI — catches photo/video/document
 dp.include_router(ai.router)  # Must be last — catches all text/voice
