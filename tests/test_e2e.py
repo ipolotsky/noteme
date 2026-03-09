@@ -39,6 +39,7 @@ from app.services.wish_service import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 async def _user(session: AsyncSession, uid: int = 100500, **kw) -> User:
     defaults = dict(first_name="Ilya", username="ilya_t")
     defaults.update(kw)
@@ -88,9 +89,14 @@ class TestUserLifecycle:
     async def test_update_user_language_and_timezone(self, session: AsyncSession):
         """Change language and timezone."""
         user = await _user(session)
-        updated = await update_user(session, user.id, UserUpdate(
-            language="en", timezone="America/New_York",
-        ))
+        updated = await update_user(
+            session,
+            user.id,
+            UserUpdate(
+                language="en",
+                timezone="America/New_York",
+            ),
+        )
         assert updated is not None
         assert updated.language == "en"
         assert updated.timezone == "America/New_York"
@@ -105,7 +111,9 @@ class TestUserLifecycle:
     async def test_second_create_returns_existing(self, session: AsyncSession):
         """get_or_create_user returns existing user on second call."""
         user1 = await _user(session, uid=555)
-        user2, created = await get_or_create_user(session, UserCreate(id=555, first_name="New Name"))
+        user2, created = await get_or_create_user(
+            session, UserCreate(id=555, first_name="New Name")
+        )
         assert not created
         assert user2.id == user1.id
 
@@ -123,11 +131,18 @@ class TestEventToFeedFlow:
         from app.services.beautiful_dates.engine import recalculate_for_event
 
         user = await _user(session)
-        strategy = await _seed_strategy(session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"})
+        strategy = await _seed_strategy(
+            session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"}
+        )
 
-        event = await create_event(session, user.id, EventCreate(
-            title="Wedding", event_date=date(2020, 1, 1),
-        ))
+        event = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Wedding",
+                event_date=date(2020, 1, 1),
+            ),
+        )
         count = await recalculate_for_event(session, event, [strategy])
         assert count > 0
 
@@ -137,11 +152,18 @@ class TestEventToFeedFlow:
         from app.services.beautiful_dates.engine import recalculate_for_event
 
         user = await _user(session, uid=200)
-        strategy = await _seed_strategy(session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"})
+        strategy = await _seed_strategy(
+            session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"}
+        )
 
-        event = await create_event(session, user.id, EventCreate(
-            title="Birthday", event_date=date(2020, 5, 15),
-        ))
+        event = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Birthday",
+                event_date=date(2020, 5, 15),
+            ),
+        )
         await recalculate_for_event(session, event, [strategy])
 
         feed = await get_user_feed(session, user.id)
@@ -159,11 +181,18 @@ class TestEventToFeedFlow:
         from app.services.beautiful_dates.engine import recalculate_for_event
 
         user = await _user(session, uid=300)
-        strategy = await _seed_strategy(session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"})
+        strategy = await _seed_strategy(
+            session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"}
+        )
 
-        event = await create_event(session, user.id, EventCreate(
-            title="Test Event", event_date=date(2020, 1, 1),
-        ))
+        event = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Test Event",
+                event_date=date(2020, 1, 1),
+            ),
+        )
         await recalculate_for_event(session, event, [strategy])
         assert await count_user_feed(session, user.id) > 0
 
@@ -177,20 +206,34 @@ class TestEventToFeedFlow:
         from app.services.beautiful_dates.engine import recalculate_for_event
 
         user = await _user(session, uid=400)
-        strategy = await _seed_strategy(session, "anniversary", {
-            "years": [1, 2, 3, 5, 10],
-        })
+        strategy = await _seed_strategy(
+            session,
+            "anniversary",
+            {
+                "years": [1, 2, 3, 5, 10],
+            },
+        )
 
-        event = await create_event(session, user.id, EventCreate(
-            title="Start", event_date=date(2020, 1, 1),
-        ))
+        event = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Start",
+                event_date=date(2020, 1, 1),
+            ),
+        )
         await recalculate_for_event(session, event, [strategy])
         feed_before = await get_user_feed(session, user.id)
 
         # Change date
-        event = await update_event(session, event.id, EventUpdate(
-            event_date=date(2022, 6, 15),
-        ), user_id=user.id)
+        event = await update_event(
+            session,
+            event.id,
+            EventUpdate(
+                event_date=date(2022, 6, 15),
+            ),
+            user_id=user.id,
+        )
         await recalculate_for_event(session, event, [strategy])
         feed_after = await get_user_feed(session, user.id)
 
@@ -205,14 +248,26 @@ class TestEventToFeedFlow:
         from app.services.beautiful_dates.engine import recalculate_for_event
 
         user = await _user(session, uid=500)
-        strategy = await _seed_strategy(session, "multiples", {"base": 500, "min": 500, "max": 5000, "unit": "days"})
+        strategy = await _seed_strategy(
+            session, "multiples", {"base": 500, "min": 500, "max": 5000, "unit": "days"}
+        )
 
-        e1 = await create_event(session, user.id, EventCreate(
-            title="Event A", event_date=date(2015, 1, 1),
-        ))
-        e2 = await create_event(session, user.id, EventCreate(
-            title="Event B", event_date=date(2018, 6, 1),
-        ))
+        e1 = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Event A",
+                event_date=date(2015, 1, 1),
+            ),
+        )
+        e2 = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Event B",
+                event_date=date(2018, 6, 1),
+            ),
+        )
         await recalculate_for_event(session, e1, [strategy])
         await recalculate_for_event(session, e2, [strategy])
 
@@ -228,9 +283,14 @@ class TestEventToFeedFlow:
         strategy.is_active = False
         await session.flush()
 
-        event = await create_event(session, user.id, EventCreate(
-            title="Test", event_date=date(2020, 1, 1),
-        ))
+        event = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Test",
+                event_date=date(2020, 1, 1),
+            ),
+        )
         # Pass empty active strategies list
         count = await recalculate_for_event(session, event, [])
         assert count == 0
@@ -248,14 +308,23 @@ class TestWishesPeopleCrosslinking:
         """Create event with person 'Max', wish with person 'Max' -> wishes_by_person_names finds it."""
         user = await _user(session, uid=700)
 
-        await create_event(session, user.id, EventCreate(
-            title="Wedding with Max", event_date=date(2022, 8, 17),
-            person_names=["Max"],
-        ))
-        wish = await create_wish(session, user.id, WishCreate(
-            text="Max wants Sony headphones",
-            person_names=["Max"],
-        ))
+        await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Wedding with Max",
+                event_date=date(2022, 8, 17),
+                person_names=["Max"],
+            ),
+        )
+        wish = await create_wish(
+            session,
+            user.id,
+            WishCreate(
+                text="Max wants Sony headphones",
+                person_names=["Max"],
+            ),
+        )
 
         related = await get_wishes_by_person_names(session, user.id, ["Max"])
         assert len(related) >= 1
@@ -273,9 +342,14 @@ class TestWishesPeopleCrosslinking:
         """Wish with multiple people found via any of them."""
         user = await _user(session, uid=900)
 
-        await create_wish(session, user.id, WishCreate(
-            text="Gift idea", person_names=["Family", "Birthday"],
-        ))
+        await create_wish(
+            session,
+            user.id,
+            WishCreate(
+                text="Gift idea",
+                person_names=["Family", "Birthday"],
+            ),
+        )
 
         found_by_family = await get_wishes_by_person_names(session, user.id, ["Family"])
         found_by_birthday = await get_wishes_by_person_names(session, user.id, ["Birthday"])
@@ -288,9 +362,14 @@ class TestWishesPeopleCrosslinking:
         from app.services.person_service import delete_person
 
         user = await _user(session, uid=1000)
-        wish = await create_wish(session, user.id, WishCreate(
-            text="Important", person_names=["Work"],
-        ))
+        wish = await create_wish(
+            session,
+            user.id,
+            WishCreate(
+                text="Important",
+                person_names=["Work"],
+            ),
+        )
         people = await get_user_people(session, user.id)
         assert len(people) == 1
 
@@ -319,7 +398,9 @@ class TestLimitsEnforcement:
         await create_event(session, user.id, EventCreate(title="E2", event_date=date(2023, 2, 1)))
 
         try:
-            await create_event(session, user.id, EventCreate(title="E3", event_date=date(2023, 3, 1)))
+            await create_event(
+                session, user.id, EventCreate(title="E3", event_date=date(2023, 3, 1))
+            )
             raise AssertionError("Should raise EventLimitError")
         except EventLimitError as e:
             assert e.max_events == 2
@@ -362,14 +443,22 @@ class TestSharingFlow:
         from app.services.beautiful_dates.engine import recalculate_for_event
 
         user = await _user(session, uid=1400)
-        strategy = await _seed_strategy(session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"})
+        strategy = await _seed_strategy(
+            session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"}
+        )
 
-        event = await create_event(session, user.id, EventCreate(
-            title="Share Test", event_date=date(2020, 1, 1),
-        ))
+        event = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Share Test",
+                event_date=date(2020, 1, 1),
+            ),
+        )
         await recalculate_for_event(session, event, [strategy])
 
         from app.services.beautiful_date_service import get_user_feed
+
         feed = await get_user_feed(session, user.id)
         assert len(feed) > 0
 
@@ -389,12 +478,14 @@ class TestSharingFlow:
     async def test_share_nonexistent_returns_none(self, session: AsyncSession):
         """Sharing nonexistent beautiful date returns None."""
         from app.services.beautiful_date_service import generate_share_uuid
+
         result = await generate_share_uuid(session, uuid.uuid4())
         assert result is None
 
     async def test_get_by_invalid_share_uuid(self, session: AsyncSession):
         """Querying nonexistent share UUID returns None."""
         from app.services.beautiful_date_service import get_by_share_uuid
+
         result = await get_by_share_uuid(session, uuid.uuid4())
         assert result is None
 
@@ -413,14 +504,23 @@ class TestNotificationFlow:
         from app.services.notification_service import get_dates_for_range
 
         user = await _user(session, uid=1500)
-        strategy = await _seed_strategy(session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"})
+        strategy = await _seed_strategy(
+            session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"}
+        )
 
-        event = await create_event(session, user.id, EventCreate(
-            title="Notification Test", event_date=date(2020, 1, 1),
-        ))
+        event = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Notification Test",
+                event_date=date(2020, 1, 1),
+            ),
+        )
         await recalculate_for_event(session, event, [strategy])
 
-        dates = await get_dates_for_range(session, user.id, date.today(), date.today() + timedelta(days=3650))
+        dates = await get_dates_for_range(
+            session, user.id, date.today(), date.today() + timedelta(days=3650)
+        )
         assert len(dates) > 0
 
     async def test_get_dates_for_range_empty_no_events(self, session: AsyncSession):
@@ -428,7 +528,9 @@ class TestNotificationFlow:
         from app.services.notification_service import get_dates_for_range
 
         user = await _user(session, uid=1600)
-        dates = await get_dates_for_range(session, user.id, date.today(), date.today() + timedelta(days=365))
+        dates = await get_dates_for_range(
+            session, user.id, date.today(), date.today() + timedelta(days=365)
+        )
         assert len(dates) == 0
 
     async def test_notification_users_filter(self, session: AsyncSession):
@@ -465,6 +567,7 @@ class TestNotificationFlow:
         from sqlalchemy import select
 
         from app.models.notification_log import NotificationLog
+
         result = await session.execute(
             select(NotificationLog).where(NotificationLog.user_id == user.id)
         )
@@ -486,7 +589,9 @@ class TestBeautifulDatesStrategies:
         from app.services.beautiful_dates.engine import recalculate_for_user
 
         user = await _user(session, uid=2600)
-        await _seed_strategy(session, "multiples", {"base": 500, "min": 500, "max": 5000, "unit": "days"})
+        await _seed_strategy(
+            session, "multiples", {"base": 500, "min": 500, "max": 5000, "unit": "days"}
+        )
 
         await create_event(session, user.id, EventCreate(title="A", event_date=date(2015, 1, 1)))
         await create_event(session, user.id, EventCreate(title="B", event_date=date(2018, 6, 1)))
@@ -500,7 +605,9 @@ class TestBeautifulDatesStrategies:
 
         u1 = await _user(session, uid=2700)
         u2 = await _user(session, uid=2800)
-        await _seed_strategy(session, "multiples", {"base": 1000, "min": 1000, "max": 10000, "unit": "days"})
+        await _seed_strategy(
+            session, "multiples", {"base": 1000, "min": 1000, "max": 10000, "unit": "days"}
+        )
 
         await create_event(session, u1.id, EventCreate(title="U1", event_date=date(2010, 1, 1)))
         await create_event(session, u2.id, EventCreate(title="U2", event_date=date(2015, 1, 1)))
@@ -514,11 +621,18 @@ class TestBeautifulDatesStrategies:
         from app.services.beautiful_dates.engine import recalculate_for_event
 
         user = await _user(session, uid=2900)
-        strategy = await _seed_strategy(session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"})
+        strategy = await _seed_strategy(
+            session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"}
+        )
 
-        event = await create_event(session, user.id, EventCreate(
-            title="Specific", event_date=date(2020, 1, 1),
-        ))
+        event = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Specific",
+                event_date=date(2020, 1, 1),
+            ),
+        )
         await recalculate_for_event(session, event, [strategy])
 
         dates = await get_event_beautiful_dates(session, event.id)
@@ -531,17 +645,27 @@ class TestBeautifulDatesStrategies:
         from app.services.beautiful_dates.engine import recalculate_for_event
 
         user = await _user(session, uid=3000)
-        strategy = await _seed_strategy(session, "anniversary", {
-            "years": [1, 2, 3, 5, 10, 25, 50],
-        })
+        strategy = await _seed_strategy(
+            session,
+            "anniversary",
+            {
+                "years": [1, 2, 3, 5, 10, 25, 50],
+            },
+        )
 
-        event = await create_event(session, user.id, EventCreate(
-            title="Anniversary Test", event_date=date(2024, 6, 15),
-        ))
+        event = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Anniversary Test",
+                event_date=date(2024, 6, 15),
+            ),
+        )
         count = await recalculate_for_event(session, event, [strategy])
         assert count > 0
 
         from app.services.beautiful_date_service import get_event_beautiful_dates
+
         dates = await get_event_beautiful_dates(session, event.id, limit=50)
         target_dates = {bd.target_date for bd in dates}
         # 1-year anniversary should be June 15, 2025
@@ -552,16 +676,30 @@ class TestBeautifulDatesStrategies:
         from app.services.beautiful_dates.engine import recalculate_for_event
 
         user = await _user(session, uid=3100)
-        s1 = await _seed_strategy(session, "multiples", {"base": 500, "min": 500, "max": 5000, "unit": "days"}, name_ru="M", name_en="M")
-        s2 = await _seed_strategy(session, "anniversary", {"years": [1, 2, 5, 10]}, name_ru="A", name_en="A")
+        s1 = await _seed_strategy(
+            session,
+            "multiples",
+            {"base": 500, "min": 500, "max": 5000, "unit": "days"},
+            name_ru="M",
+            name_en="M",
+        )
+        s2 = await _seed_strategy(
+            session, "anniversary", {"years": [1, 2, 5, 10]}, name_ru="A", name_en="A"
+        )
 
-        event = await create_event(session, user.id, EventCreate(
-            title="Multi Strategy", event_date=date(2020, 1, 1),
-        ))
+        event = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Multi Strategy",
+                event_date=date(2020, 1, 1),
+            ),
+        )
         count = await recalculate_for_event(session, event, [s1, s2])
         assert count > 0
 
         from app.services.beautiful_date_service import get_event_beautiful_dates
+
         dates = await get_event_beautiful_dates(session, event.id, limit=100)
         strategy_ids = {bd.strategy_id for bd in dates}
         assert len(strategy_ids) >= 2  # dates from both strategies
@@ -580,9 +718,14 @@ class TestOwnershipSecurity:
         u1 = await _user(session, uid=3200)
         u2 = await _user(session, uid=3300)
 
-        event = await create_event(session, u1.id, EventCreate(
-            title="Private", event_date=date(2023, 1, 1),
-        ))
+        event = await create_event(
+            session,
+            u1.id,
+            EventCreate(
+                title="Private",
+                event_date=date(2023, 1, 1),
+            ),
+        )
 
         found = await get_event(session, event.id, user_id=u2.id)
         assert found is None
@@ -592,9 +735,14 @@ class TestOwnershipSecurity:
         u1 = await _user(session, uid=3400)
         u2 = await _user(session, uid=3500)
 
-        event = await create_event(session, u1.id, EventCreate(
-            title="Protected", event_date=date(2023, 1, 1),
-        ))
+        event = await create_event(
+            session,
+            u1.id,
+            EventCreate(
+                title="Protected",
+                event_date=date(2023, 1, 1),
+            ),
+        )
 
         deleted = await delete_event(session, event.id, user_id=u2.id)
         assert deleted is False
@@ -608,9 +756,14 @@ class TestOwnershipSecurity:
         u1 = await _user(session, uid=3600)
         u2 = await _user(session, uid=3700)
 
-        event = await create_event(session, u1.id, EventCreate(
-            title="Owned", event_date=date(2023, 1, 1),
-        ))
+        event = await create_event(
+            session,
+            u1.id,
+            EventCreate(
+                title="Owned",
+                event_date=date(2023, 1, 1),
+            ),
+        )
 
         result = await update_event(session, event.id, EventUpdate(title="Hacked"), user_id=u2.id)
         assert result is None
@@ -657,10 +810,17 @@ class TestWorkerTasks:
         from app.services.beautiful_dates.engine import recalculate_for_event
 
         user = await _user(session, uid=4200)
-        strategy = await _seed_strategy(session, "multiples", {"base": 500, "min": 500, "max": 5000, "unit": "days"})
-        event = await create_event(session, user.id, EventCreate(
-            title="Worker Test", event_date=date(2020, 1, 1),
-        ))
+        strategy = await _seed_strategy(
+            session, "multiples", {"base": 500, "min": 500, "max": 5000, "unit": "days"}
+        )
+        event = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Worker Test",
+                event_date=date(2020, 1, 1),
+            ),
+        )
 
         # Directly test the engine function (worker wraps this)
         count = await recalculate_for_event(session, event, [strategy])
@@ -672,19 +832,32 @@ class TestWorkerTasks:
         from app.services.notification_service import get_dates_for_range
 
         user = await _user(session, uid=4300)
-        strategy = await _seed_strategy(session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"})
+        strategy = await _seed_strategy(
+            session, "multiples", {"base": 100, "min": 100, "max": 5000, "unit": "days"}
+        )
 
-        event = await create_event(session, user.id, EventCreate(
-            title="Tagged Event", event_date=date(2020, 1, 1),
-            person_names=["Gift"],
-        ))
-        await create_wish(session, user.id, WishCreate(
-            text="Buy flowers for the event",
-            person_names=["Gift"],
-        ))
+        event = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Tagged Event",
+                event_date=date(2020, 1, 1),
+                person_names=["Gift"],
+            ),
+        )
+        await create_wish(
+            session,
+            user.id,
+            WishCreate(
+                text="Buy flowers for the event",
+                person_names=["Gift"],
+            ),
+        )
         await recalculate_for_event(session, event, [strategy])
 
-        dates = await get_dates_for_range(session, user.id, date.today(), date.today() + timedelta(days=3650))
+        dates = await get_dates_for_range(
+            session, user.id, date.today(), date.today() + timedelta(days=3650)
+        )
         assert len(dates) > 0
         assert any(x.event_id == event.id for x in dates)
 
@@ -716,55 +889,66 @@ class TestDateUtils:
 
     def test_parse_date_dd_mm_yyyy(self):
         from app.utils.date_utils import parse_date
+
         assert parse_date("15.06.2023") == date(2023, 6, 15)
 
     def test_parse_date_slash_format(self):
         from app.utils.date_utils import parse_date
+
         assert parse_date("15/06/2023") == date(2023, 6, 15)
 
     def test_parse_date_iso_format(self):
         from app.utils.date_utils import parse_date
+
         assert parse_date("2023-06-15") == date(2023, 6, 15)
 
     def test_parse_date_invalid(self):
         from app.utils.date_utils import parse_date
+
         assert parse_date("not a date") is None
         assert parse_date("32.13.2023") is None
 
     def test_days_between(self):
         from app.utils.date_utils import days_between
+
         assert days_between(date(2023, 1, 1), date(2023, 1, 11)) == 10
         assert days_between(date(2023, 1, 11), date(2023, 1, 1)) == 10
 
     def test_format_date_ru(self):
         from app.utils.date_utils import format_date
+
         result = format_date(date(2023, 3, 15), "ru")
         assert "15" in result
         assert "марта" in result
 
     def test_format_date_en(self):
         from app.utils.date_utils import format_date
+
         result = format_date(date(2023, 3, 15), "en")
         assert "March" in result
         assert "15" in result
 
     def test_format_relative_today(self):
         from app.utils.date_utils import format_relative_date
+
         result = format_relative_date(date.today(), "ru")
         # Should contain "today" equivalent
         assert len(result) > 0
 
     def test_format_relative_tomorrow(self):
         from app.utils.date_utils import format_relative_date
+
         result = format_relative_date(date.today() + timedelta(days=1), "ru")
         assert len(result) > 0
 
     def test_format_relative_in_week(self):
         from app.utils.date_utils import format_relative_date
+
         result = format_relative_date(date.today() + timedelta(days=7), "ru")
         assert len(result) > 0
 
     def test_format_relative_in_n_days(self):
         from app.utils.date_utils import format_relative_date
+
         result = format_relative_date(date.today() + timedelta(days=5), "ru")
         assert len(result) > 0

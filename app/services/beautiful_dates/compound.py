@@ -39,14 +39,16 @@ class CompoundStrategy(BaseStrategy):
             label_ru = _format_label_ru(n, parts, event_title)
             label_en = _format_label_en(n, parts, event_title)
 
-            results.append(BeautifulDateCandidate(
-                target_date=target,
-                interval_value=total_days,
-                interval_unit="compound",
-                label_ru=label_ru,
-                label_en=label_en,
-                compound_parts=parts_dict,
-            ))
+            results.append(
+                BeautifulDateCandidate(
+                    target_date=target,
+                    interval_value=total_days,
+                    interval_unit="compound",
+                    label_ru=label_ru,
+                    label_en=label_en,
+                    compound_parts=parts_dict,
+                )
+            )
 
         return results
 
@@ -76,4 +78,4 @@ def _format_label_ru(n: int, parts: list[str], title: str) -> str:
 
 def _format_label_en(n: int, parts: list[str], title: str) -> str:
     items = [decline(n, _UNIT_MAP[p], "en") for p in parts]
-    return " ".join(items) + f" since \"{title}\""
+    return " ".join(items) + f' since "{title}"'

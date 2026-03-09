@@ -31,12 +31,8 @@ async def get_or_create_user(session: AsyncSession, data: UserCreate) -> tuple[U
 
     from app.services.app_settings_service import get_int_setting
 
-    max_events = await get_int_setting(
-        session, "default_max_events", settings.default_max_events
-    )
-    max_wishes = await get_int_setting(
-        session, "default_max_wishes", settings.default_max_wishes
-    )
+    max_events = await get_int_setting(session, "default_max_events", settings.default_max_events)
+    max_wishes = await get_int_setting(session, "default_max_wishes", settings.default_max_wishes)
     max_people = await get_int_setting(
         session, "default_max_people_per_entity", settings.default_max_people_per_entity
     )

@@ -34,6 +34,7 @@ def create_app() -> FastAPI:
 
     # Admin panel
     from app.admin.setup import setup_admin
+
     setup_admin(app)
 
     app.mount("/static", StaticFiles(directory="app/static"), name="static")

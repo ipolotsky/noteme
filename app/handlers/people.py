@@ -91,12 +91,12 @@ async def person_view(
         await callback.answer(t("errors.not_found", lang), show_alert=True)
         return
 
-    events_count = (await session.execute(
-        select(func.count()).where(EventPerson.person_id == person.id)
-    )).scalar_one()
-    wishes_count = (await session.execute(
-        select(func.count()).where(WishPerson.person_id == person.id)
-    )).scalar_one()
+    events_count = (
+        await session.execute(select(func.count()).where(EventPerson.person_id == person.id))
+    ).scalar_one()
+    wishes_count = (
+        await session.execute(select(func.count()).where(WishPerson.person_id == person.id))
+    ).scalar_one()
 
     text = (
         f"<b>\U0001f464 {escape(person.name)}</b>\n\n"
@@ -106,7 +106,9 @@ async def person_view(
 
     await callback.message.edit_text(  # type: ignore[union-attr]
         text,
-        reply_markup=person_view_kb(person, lang, events_count=events_count, wishes_count=wishes_count),
+        reply_markup=person_view_kb(
+            person, lang, events_count=events_count, wishes_count=wishes_count
+        ),
     )
     await callback.answer()
 
@@ -131,18 +133,28 @@ async def person_events(
         text += t("events.empty", lang)
     else:
         for ev in events:
-            text += f"\U0001f4c5 <b>{escape(ev.title)}</b> — {ev.event_date.strftime('%d.%m.%Y')}\n"
+            text += (
+                f"\U0001f4c5 <b>{escape(ev.title)}</b> — {ev.event_date.strftime('%d.%m.%Y')}\n"
+            )
 
     rows: list[list[InlineKeyboardButton]] = []
     for ev in events:
-        rows.append([InlineKeyboardButton(
-            text=f"\U0001f4c5 {ev.title}",
-            callback_data=EventCb(action="view", id=str(ev.id)).pack(),
-        )])
-    rows.append([InlineKeyboardButton(
-        text=f"\u25c0 {t('menu.back', lang)}",
-        callback_data=PersonCb(action="view", id=callback_data.id).pack(),
-    )])
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=f"\U0001f4c5 {ev.title}",
+                    callback_data=EventCb(action="view", id=str(ev.id)).pack(),
+                )
+            ]
+        )
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=f"\u25c0 {t('menu.back', lang)}",
+                callback_data=PersonCb(action="view", id=callback_data.id).pack(),
+            )
+        ]
+    )
 
     await callback.message.edit_text(  # type: ignore[union-attr]
         text,
@@ -177,14 +189,22 @@ async def person_wishes(
     rows: list[list[InlineKeyboardButton]] = []
     for nt in wishes:
         preview = nt.text[:40] + ("..." if len(nt.text) > 40 else "")
-        rows.append([InlineKeyboardButton(
-            text=f"\U0001f4dd {preview}",
-            callback_data=WishCb(action="view", id=str(nt.id)).pack(),
-        )])
-    rows.append([InlineKeyboardButton(
-        text=f"\u25c0 {t('menu.back', lang)}",
-        callback_data=PersonCb(action="view", id=callback_data.id).pack(),
-    )])
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=f"\U0001f4dd {preview}",
+                    callback_data=WishCb(action="view", id=str(nt.id)).pack(),
+                )
+            ]
+        )
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=f"\u25c0 {t('menu.back', lang)}",
+                callback_data=PersonCb(action="view", id=callback_data.id).pack(),
+            )
+        ]
+    )
 
     await callback.message.edit_text(  # type: ignore[union-attr]
         text,
@@ -222,7 +242,8 @@ async def person_create_name(
     name = raw.strip()
     if not name:
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("errors.invalid_input", lang),
             reply_markup=cancel_kb(lang),
         )
@@ -230,7 +251,8 @@ async def person_create_name(
 
     person = await create_person(session, user.id, name)
     await reply_and_cleanup(
-        message, state,
+        message,
+        state,
         t("people.created", lang, name=escape(person.name)),
         reply_markup=person_view_kb(person, lang),
     )
@@ -244,7 +266,9 @@ async def person_rename_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(rename_person_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
+    await state.update_data(
+        rename_person_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id}
+    )  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("people.rename_prompt", lang),
         reply_markup=cancel_kb(lang),
@@ -268,7 +292,8 @@ async def person_rename_name(
     new_name = raw.strip()
     if not new_name:
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("errors.invalid_input", lang),
             reply_markup=cancel_kb(lang),
         )
@@ -280,8 +305,10 @@ async def person_rename_name(
 
     if person is None:
         from app.keyboards.main_menu import main_menu_kb
+
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("people.already_exists", lang, name=escape(new_name)),
             reply_markup=main_menu_kb(lang),
         )
@@ -289,7 +316,8 @@ async def person_rename_name(
         return
 
     await reply_and_cleanup(
-        message, state,
+        message,
+        state,
         t("people.renamed", lang, name=escape(person.name)),
         reply_markup=person_view_kb(person, lang),
     )

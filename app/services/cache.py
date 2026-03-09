@@ -78,7 +78,9 @@ async def get_cached_card_file_id(bd_id: uuid.UUID, lang: str) -> str | None:
 
 
 async def set_cached_card_file_id(
-    bd_id: uuid.UUID, lang: str, file_id: str,
+    bd_id: uuid.UUID,
+    lang: str,
+    file_id: str,
 ) -> None:
     try:
         r = _get_redis()

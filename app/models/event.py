@@ -20,13 +20,9 @@ from app.models.base import Base
 
 class Event(Base):
     __tablename__ = "events"
-    __table_args__ = (
-        Index("ix_events_user_id", "user_id"),
-    )
+    __table_args__ = (Index("ix_events_user_id", "user_id"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )

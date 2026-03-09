@@ -55,9 +55,15 @@ async def router_node(state: AgentState) -> AgentState:
     usage = getattr(response, "usage_metadata", None) or {}
     al.set_response(
         text=intent,
-        tokens_prompt=usage.get("input_tokens") if isinstance(usage, dict) else getattr(usage, "input_tokens", None),
-        tokens_completion=usage.get("output_tokens") if isinstance(usage, dict) else getattr(usage, "output_tokens", None),
-        tokens_total=usage.get("total_tokens") if isinstance(usage, dict) else getattr(usage, "total_tokens", None),
+        tokens_prompt=usage.get("input_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "input_tokens", None),
+        tokens_completion=usage.get("output_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "output_tokens", None),
+        tokens_total=usage.get("total_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "total_tokens", None),
     )
     await al.flush()
 

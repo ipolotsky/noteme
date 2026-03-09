@@ -126,7 +126,8 @@ async def _build_card(
     if bd.event.people:
         wishes = await get_wishes_by_person_names(session, user_id, person_names, limit=10)
         wish = await _select_best_wish(
-            wishes, label,
+            wishes,
+            label,
             event_title=bd.event.title,
             target_date_str=calendar,
             relative_date_str=relative,
@@ -138,41 +139,55 @@ async def _build_card(
 
     nav_row: list[InlineKeyboardButton] = []
     if offset > 0:
-        nav_row.append(InlineKeyboardButton(
-            text=f"\u25c0 {t('feed.prev', lang)}",
-            callback_data=FeedCb(action="card", page=offset - 1).pack(),
-        ))
+        nav_row.append(
+            InlineKeyboardButton(
+                text=f"\u25c0 {t('feed.prev', lang)}",
+                callback_data=FeedCb(action="card", page=offset - 1).pack(),
+            )
+        )
     if offset < total - 1:
-        nav_row.append(InlineKeyboardButton(
-            text=f"{t('feed.next', lang)} \u25b6",
-            callback_data=FeedCb(action="card", page=offset + 1).pack(),
-        ))
+        nav_row.append(
+            InlineKeyboardButton(
+                text=f"{t('feed.next', lang)} \u25b6",
+                callback_data=FeedCb(action="card", page=offset + 1).pack(),
+            )
+        )
     if nav_row:
         rows.append(nav_row)
 
-    rows.append([
-        InlineKeyboardButton(
-            text=f"\U0001f4c5 {t('feed.to_event', lang)}",
-            callback_data=EventCb(action="view_new", id=str(bd.event_id)).pack(),
-        ),
-        InlineKeyboardButton(
-            text=f"\U0001f4cb {t('feed.all_wishes', lang)}",
-            callback_data=FeedCb(action="wishes", id=str(bd.id)).pack(),
-        ),
-    ])
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=f"\U0001f4c5 {t('feed.to_event', lang)}",
+                callback_data=EventCb(action="view_new", id=str(bd.event_id)).pack(),
+            ),
+            InlineKeyboardButton(
+                text=f"\U0001f4cb {t('feed.all_wishes', lang)}",
+                callback_data=FeedCb(action="wishes", id=str(bd.id)).pack(),
+            ),
+        ]
+    )
 
     share_uuid = await generate_share_uuid(session, bd.id)
     if share_uuid:
         mini_app_url = f"{settings.app_base_url}/mini-app/card/{share_uuid}"
-        rows.append([InlineKeyboardButton(
-            text=f"\U0001f517 {t('feed.share', lang)}",
-            web_app=WebAppInfo(url=mini_app_url),
-        )])
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=f"\U0001f517 {t('feed.share', lang)}",
+                    web_app=WebAppInfo(url=mini_app_url),
+                )
+            ]
+        )
 
-    rows.append([InlineKeyboardButton(
-        text=f"\u25c0 {t('menu.back', lang)}",
-        callback_data=MenuCb(action="main").pack(),
-    )])
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=f"\u25c0 {t('menu.back', lang)}",
+                callback_data=MenuCb(action="main").pack(),
+            )
+        ]
+    )
 
     return image_data, caption, InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -205,7 +220,11 @@ async def _show_card_new(
 
     bd = items[0]
     image_data, caption, kb = await _build_card(bd, offset, total, lang, session, user.id)
-    photo = image_data if isinstance(image_data, str) else BufferedInputFile(image_data, filename="card.png")
+    photo = (
+        image_data
+        if isinstance(image_data, str)
+        else BufferedInputFile(image_data, filename="card.png")
+    )
     msg = await send_to.answer_photo(photo=photo, caption=caption, reply_markup=kb)
     if isinstance(image_data, bytes) and msg.photo:
         await set_cached_card_file_id(bd.id, lang, msg.photo[-1].file_id)
@@ -288,7 +307,11 @@ async def feed_card(
 
     bd = items[0]
     image_data, caption, kb = await _build_card(bd, offset, total, lang, session, user.id)
-    photo = image_data if isinstance(image_data, str) else BufferedInputFile(image_data, filename="card.png")
+    photo = (
+        image_data
+        if isinstance(image_data, str)
+        else BufferedInputFile(image_data, filename="card.png")
+    )
     result = await callback.message.edit_media(  # type: ignore[union-attr]
         InputMediaPhoto(media=photo, caption=caption),
         reply_markup=kb,
@@ -331,5 +354,3 @@ async def feed_wishes(
 
     await callback.message.answer(text)  # type: ignore[union-attr]
     await callback.answer()
-
-

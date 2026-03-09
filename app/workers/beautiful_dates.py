@@ -15,9 +15,7 @@ async def recalculate_event_task(ctx: dict, event_id: str) -> int:
     async with async_session_factory() as session:
         from sqlalchemy import select
 
-        result = await session.execute(
-            select(Event).where(Event.id == uuid.UUID(event_id))
-        )
+        result = await session.execute(select(Event).where(Event.id == uuid.UUID(event_id)))
         event = result.scalar_one_or_none()
         if event is None:
             logger.warning("Event %s not found for recalculation", event_id)

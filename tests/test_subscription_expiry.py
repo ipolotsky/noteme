@@ -45,7 +45,10 @@ class TestSendSubscriptionExpiryNotification:
         self.mock_session_ctx.__aexit__ = AsyncMock(return_value=False)
 
         self.patches = [
-            patch("app.workers.notifications.async_session_factory", return_value=self.mock_session_ctx),
+            patch(
+                "app.workers.notifications.async_session_factory",
+                return_value=self.mock_session_ctx,
+            ),
             patch("app.bot.bot", self.mock_bot),
         ]
         for p in self.patches:
@@ -62,9 +65,19 @@ class TestSendSubscriptionExpiryNotification:
         self.mock_session.get = AsyncMock(return_value=user)
 
         with (
-            patch("app.services.subscription_service.get_active_subscription", new_callable=AsyncMock, return_value=sub),
-            patch("app.workers.notifications.has_notification_been_sent", new_callable=AsyncMock, return_value=False),
-            patch("app.workers.notifications.log_notification", new_callable=AsyncMock) as mock_log,
+            patch(
+                "app.services.subscription_service.get_active_subscription",
+                new_callable=AsyncMock,
+                return_value=sub,
+            ),
+            patch(
+                "app.workers.notifications.has_notification_been_sent",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.workers.notifications.log_notification", new_callable=AsyncMock
+            ) as mock_log,
         ):
             result = await send_subscription_expiry_notification({}, 100, 7)
 
@@ -83,8 +96,16 @@ class TestSendSubscriptionExpiryNotification:
         self.mock_session.get = AsyncMock(return_value=user)
 
         with (
-            patch("app.services.subscription_service.get_active_subscription", new_callable=AsyncMock, return_value=sub),
-            patch("app.workers.notifications.has_notification_been_sent", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.services.subscription_service.get_active_subscription",
+                new_callable=AsyncMock,
+                return_value=sub,
+            ),
+            patch(
+                "app.workers.notifications.has_notification_been_sent",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
             patch("app.workers.notifications.log_notification", new_callable=AsyncMock),
         ):
             result = await send_subscription_expiry_notification({}, 100, 1)
@@ -120,7 +141,11 @@ class TestSendSubscriptionExpiryNotification:
         sub = _make_mock_subscription(is_lifetime=True)
         self.mock_session.get = AsyncMock(return_value=user)
 
-        with patch("app.services.subscription_service.get_active_subscription", new_callable=AsyncMock, return_value=sub):
+        with patch(
+            "app.services.subscription_service.get_active_subscription",
+            new_callable=AsyncMock,
+            return_value=sub,
+        ):
             result = await send_subscription_expiry_notification({}, 100, 7)
 
         assert result is False
@@ -132,7 +157,11 @@ class TestSendSubscriptionExpiryNotification:
         user = _make_mock_user()
         self.mock_session.get = AsyncMock(return_value=user)
 
-        with patch("app.services.subscription_service.get_active_subscription", new_callable=AsyncMock, return_value=None):
+        with patch(
+            "app.services.subscription_service.get_active_subscription",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
             result = await send_subscription_expiry_notification({}, 100, 7)
 
         assert result is False
@@ -146,8 +175,16 @@ class TestSendSubscriptionExpiryNotification:
         self.mock_session.get = AsyncMock(return_value=user)
 
         with (
-            patch("app.services.subscription_service.get_active_subscription", new_callable=AsyncMock, return_value=sub),
-            patch("app.workers.notifications.has_notification_been_sent", new_callable=AsyncMock, return_value=True),
+            patch(
+                "app.services.subscription_service.get_active_subscription",
+                new_callable=AsyncMock,
+                return_value=sub,
+            ),
+            patch(
+                "app.workers.notifications.has_notification_been_sent",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
         ):
             result = await send_subscription_expiry_notification({}, 100, 7)
 
@@ -160,11 +197,21 @@ class TestSendSubscriptionExpiryNotification:
         user = _make_mock_user()
         sub = _make_mock_subscription()
         self.mock_session.get = AsyncMock(return_value=user)
-        self.mock_bot.send_message.side_effect = TelegramForbiddenError(method=MagicMock(), message="Forbidden")
+        self.mock_bot.send_message.side_effect = TelegramForbiddenError(
+            method=MagicMock(), message="Forbidden"
+        )
 
         with (
-            patch("app.services.subscription_service.get_active_subscription", new_callable=AsyncMock, return_value=sub),
-            patch("app.workers.notifications.has_notification_been_sent", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.services.subscription_service.get_active_subscription",
+                new_callable=AsyncMock,
+                return_value=sub,
+            ),
+            patch(
+                "app.workers.notifications.has_notification_been_sent",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
         ):
             result = await send_subscription_expiry_notification({}, 100, 7)
 

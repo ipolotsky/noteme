@@ -10,13 +10,9 @@ from app.models.base import Base
 
 class Person(Base):
     __tablename__ = "people"
-    __table_args__ = (
-        UniqueConstraint("user_id", "name", name="uq_people_user_name"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_people_user_name"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )

@@ -16,9 +16,7 @@ from app.services.notification_service import (
 logger = logging.getLogger(__name__)
 
 
-async def _send_date_card(
-    bot, user_id: int, bd, lang: str, spoiler: bool, session
-) -> None:
+async def _send_date_card(bot, user_id: int, bd, lang: str, spoiler: bool, session) -> None:
     from html import escape
 
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -41,6 +39,7 @@ async def _send_date_card(
         wishes = await get_wishes_by_person_names(session, user_id, person_names, limit=50)
         if wishes:
             from app.i18n.loader import t
+
             text += f"\n\n{t('feed.related_wishes', lang)}"
             for x in wishes:
                 preview = escape(x.text[:60]) + ("..." if len(x.text) > 60 else "")
@@ -50,16 +49,21 @@ async def _send_date_card(
         text = f"<tg-spoiler>{text}</tg-spoiler>"
 
     from app.i18n.loader import t
-    kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(
-            text=f"\U0001f4c5 {t('feed.to_event', lang)}",
-            callback_data=EventCb(action="view_new", id=str(bd.event_id)).pack(),
-        ),
-        InlineKeyboardButton(
-            text=f"\U0001f517 {t('feed.share', lang)}",
-            callback_data=FeedCb(action="share", id=str(bd.id)).pack(),
-        ),
-    ]])
+
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=f"\U0001f4c5 {t('feed.to_event', lang)}",
+                    callback_data=EventCb(action="view_new", id=str(bd.event_id)).pack(),
+                ),
+                InlineKeyboardButton(
+                    text=f"\U0001f517 {t('feed.share', lang)}",
+                    callback_data=FeedCb(action="share", id=str(bd.id)).pack(),
+                ),
+            ]
+        ]
+    )
     await bot.send_message(user_id, text, reply_markup=kb)
 
 
@@ -68,6 +72,7 @@ async def send_day_before_notification(ctx: dict, user_id: int, force: bool = Fa
 
     async with async_session_factory() as session:
         from app.models.user import User
+
         user = await session.get(User, user_id)
         if user is None or not user.is_active:
             return False
@@ -82,6 +87,7 @@ async def send_day_before_notification(ctx: dict, user_id: int, force: bool = Fa
 
         try:
             from app.i18n.loader import t
+
             header = f"\U0001f514 {t('notifications.day_before', lang)}"
             await bot.send_message(user_id, header)
 
@@ -106,6 +112,7 @@ async def send_week_before_notification(ctx: dict, user_id: int, force: bool = F
 
     async with async_session_factory() as session:
         from app.models.user import User
+
         user = await session.get(User, user_id)
         if user is None or not user.is_active:
             return False
@@ -120,6 +127,7 @@ async def send_week_before_notification(ctx: dict, user_id: int, force: bool = F
 
         try:
             from app.i18n.loader import t
+
             header = f"\U0001f514 {t('notifications.week_before', lang)}"
             await bot.send_message(user_id, header)
 
@@ -144,6 +152,7 @@ async def send_weekly_digest_notification(ctx: dict, user_id: int, force: bool =
 
     async with async_session_factory() as session:
         from app.models.user import User
+
         user = await session.get(User, user_id)
         if user is None or not user.is_active:
             return False
@@ -159,6 +168,7 @@ async def send_weekly_digest_notification(ctx: dict, user_id: int, force: bool =
 
         try:
             from app.i18n.loader import t
+
             header = f"\U0001f4c5 {t('notifications.weekly_greeting', lang)}"
             await bot.send_message(user_id, header)
 
@@ -226,9 +236,7 @@ async def check_and_send_notifications(ctx: dict) -> int:
 SUBSCRIPTION_EXPIRY_SEND_TIME = time(10, 0)
 
 
-async def send_subscription_expiry_notification(
-    ctx: dict, user_id: int, days_left: int
-) -> bool:
+async def send_subscription_expiry_notification(ctx: dict, user_id: int, days_left: int) -> bool:
     from app.bot import bot
     from app.i18n.loader import t
     from app.keyboards.subscription import upgrade_kb
@@ -238,6 +246,7 @@ async def send_subscription_expiry_notification(
 
     async with async_session_factory() as session:
         from app.models.user import User
+
         user = await session.get(User, user_id)
         if user is None or not user.is_active or not user.notifications_enabled:
             return False
@@ -251,7 +260,9 @@ async def send_subscription_expiry_notification(
             return False
 
         lang = user.language
-        expiry_date = subscription.expires_at.strftime("%d.%m.%Y") if subscription.expires_at else ""
+        expiry_date = (
+            subscription.expires_at.strftime("%d.%m.%Y") if subscription.expires_at else ""
+        )
         i18n_key = f"notifications.{notification_type}"
         text = t(i18n_key, lang, date=expiry_date)
 

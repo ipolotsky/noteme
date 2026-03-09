@@ -32,7 +32,9 @@ def _get_client() -> AsyncOpenAI:
     return _client
 
 
-async def transcribe_audio(audio_data: bytes, filename: str = "voice.ogg", user_id: int = 0) -> str:
+async def transcribe_audio(
+    audio_data: bytes, filename: str = "voice.ogg", user_id: int = 0
+) -> str:
     """Transcribe audio bytes using Whisper API."""
     client = _get_client()
     audio_size = len(audio_data)
@@ -41,7 +43,9 @@ async def transcribe_audio(audio_data: bytes, filename: str = "voice.ogg", user_
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "ogg"
     mime = _MIME_TYPES.get(ext, "audio/ogg")
 
-    logger.info("[whisper] user=%s uploading %d bytes as %s (%s)", user_id, audio_size, filename, mime)
+    logger.info(
+        "[whisper] user=%s uploading %d bytes as %s (%s)", user_id, audio_size, filename, mime
+    )
 
     try:
         transcription = await client.audio.transcriptions.create(
@@ -50,7 +54,12 @@ async def transcribe_audio(audio_data: bytes, filename: str = "voice.ogg", user_
         )
 
         latency_ms = int((time.monotonic() - start) * 1000)
-        logger.info("[whisper] user=%s transcribed in %dms: %r", user_id, latency_ms, transcription.text[:200])
+        logger.info(
+            "[whisper] user=%s transcribed in %dms: %r",
+            user_id,
+            latency_ms,
+            transcription.text[:200],
+        )
         await log_whisper_call(user_id, audio_size, transcription.text, latency_ms)
         return transcription.text
     except Exception as e:

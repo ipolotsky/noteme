@@ -48,10 +48,12 @@ async def shutdown() -> None:
 
     # Close DB engine
     from app.database import engine
+
     await engine.dispose()
 
     # Close Redis cache
     from app.services.cache import close_cache
+
     await close_cache()
 
     logger.info("Shutdown complete.")

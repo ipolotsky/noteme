@@ -30,12 +30,14 @@ class PowersOfTwoStrategy(BaseStrategy):
                     continue
 
                 singular = unit.rstrip("s")
-                results.append(BeautifulDateCandidate(
-                    target_date=target,
-                    interval_value=n,
-                    interval_unit=unit,
-                    label_ru=f"{decline(n, singular, 'ru')} с «{event_title}»",
-                    label_en=f"{decline(n, singular, 'en')} since \"{event_title}\"",
-                ))
+                results.append(
+                    BeautifulDateCandidate(
+                        target_date=target,
+                        interval_value=n,
+                        interval_unit=unit,
+                        label_ru=f"{decline(n, singular, 'ru')} с «{event_title}»",
+                        label_en=f'{decline(n, singular, "en")} since "{event_title}"',
+                    )
+                )
 
         return results

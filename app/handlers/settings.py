@@ -116,7 +116,8 @@ async def settings_set_timezone(
     tz = raw.strip()
     if not tz or "/" not in tz:
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("errors.invalid_input", lang),
             reply_markup=cancel_kb(lang),
         )
@@ -125,7 +126,8 @@ async def settings_set_timezone(
     await update_user(session, user.id, UserUpdate(timezone=tz))
     user.timezone = tz
     await reply_and_cleanup(
-        message, state,
+        message,
+        state,
         t("settings.saved", lang),
         reply_markup=settings_kb(user, lang),
     )
@@ -211,7 +213,8 @@ async def settings_set_day_before_time(
         new_time = time(int(parts[0]), int(parts[1]))
     except (ValueError, IndexError):
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("errors.invalid_input", lang),
             reply_markup=cancel_kb(lang),
         )
@@ -220,7 +223,8 @@ async def settings_set_day_before_time(
     await update_user(session, user.id, UserUpdate(notify_day_before_time=new_time))
     user.notify_day_before_time = new_time
     await reply_and_cleanup(
-        message, state,
+        message,
+        state,
         t("settings.saved", lang),
         reply_markup=notification_settings_kb(user, lang),
     )
@@ -281,7 +285,8 @@ async def settings_set_week_before_time(
         new_time = time(int(parts[0]), int(parts[1]))
     except (ValueError, IndexError):
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("errors.invalid_input", lang),
             reply_markup=cancel_kb(lang),
         )
@@ -290,7 +295,8 @@ async def settings_set_week_before_time(
     await update_user(session, user.id, UserUpdate(notify_week_before_time=new_time))
     user.notify_week_before_time = new_time
     await reply_and_cleanup(
-        message, state,
+        message,
+        state,
         t("settings.saved", lang),
         reply_markup=notification_settings_kb(user, lang),
     )
@@ -379,7 +385,8 @@ async def settings_set_digest_time(
         new_time = time(int(parts[0]), int(parts[1]))
     except (ValueError, IndexError):
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("errors.invalid_input", lang),
             reply_markup=cancel_kb(lang),
         )
@@ -388,7 +395,8 @@ async def settings_set_digest_time(
     await update_user(session, user.id, UserUpdate(weekly_digest_time=new_time))
     user.weekly_digest_time = new_time
     await reply_and_cleanup(
-        message, state,
+        message,
+        state,
         t("settings.saved", lang),
         reply_markup=notification_settings_kb(user, lang),
     )

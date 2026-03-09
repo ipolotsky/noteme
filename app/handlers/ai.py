@@ -46,6 +46,7 @@ async def handle_voice(
 ) -> None:
     if not user.onboarding_completed:
         from app.handlers.start import cmd_start
+
         await cmd_start(message, state, user, lang, session)
         return
 
@@ -112,6 +113,7 @@ async def handle_text(
 
     if not user.onboarding_completed:
         from app.handlers.start import cmd_start
+
         await cmd_start(message, state, user, lang, session)
         return
 
@@ -156,8 +158,12 @@ async def _handle_agent_result(
     intent = state.intent
     logger.info(
         "[handler] user=%s intent=%s title=%r date=%s wish=%r error=%r",
-        user.id, intent, state.event_title, state.event_date,
-        state.wish_text[:80] if state.wish_text else "", state.error,
+        user.id,
+        intent,
+        state.event_title,
+        state.event_date,
+        state.wish_text[:80] if state.wish_text else "",
+        state.error,
     )
 
     raw_text = state.raw_text or ""
@@ -168,8 +174,15 @@ async def _handle_agent_result(
 
     if intent == "create_event" and state.event_title and state.event_date:
         try:
-            description = _format_user_text(raw_text) if raw_text else (state.event_description or None)
-            logger.info("[handler] user=%s → creating event %r on %s", user.id, state.event_title, state.event_date)
+            description = (
+                _format_user_text(raw_text) if raw_text else (state.event_description or None)
+            )
+            logger.info(
+                "[handler] user=%s → creating event %r on %s",
+                user.id,
+                state.event_title,
+                state.event_date,
+            )
             event = await create_event(
                 session,
                 user.id,
@@ -183,14 +196,19 @@ async def _handle_agent_result(
             logger.info("[handler] user=%s → event created id=%s", user.id, event.id)
             await log_user_action(user.id, "create_event", f"{event.title} ({event.event_date})")
             from app.services.beautiful_dates.engine import recalculate_for_event
+
             await recalculate_for_event(session, event)
 
             from app.handlers.events import _build_event_card
-            card, related_count, person_counts = await _build_event_card(event, user, lang, session)
+
+            card, related_count, person_counts = await _build_event_card(
+                event, user, lang, session
+            )
             await processing_msg.edit_text(
                 card,
                 reply_markup=event_view_kb(
-                    event, lang,
+                    event,
+                    lang,
                     related_wishes_count=related_count,
                     person_event_counts=person_counts,
                 ),
@@ -222,7 +240,11 @@ async def _handle_agent_result(
             )
             logger.info("[handler] user=%s → wish created id=%s", user.id, wish.id)
             await log_user_action(user.id, "create_wish", state.wish_text[:100])
-            people_str = ", ".join(escape(x.name) for x in wish.people) if wish.people else t("wishes.no_people", lang)
+            people_str = (
+                ", ".join(escape(x.name) for x in wish.people)
+                if wish.people
+                else t("wishes.no_people", lang)
+            )
             card = (
                 f"<b>{t('wishes.view_title', lang)}</b>\n\n"
                 f"{escape(wish.text)}\n\n"
@@ -250,6 +272,8 @@ async def _handle_agent_result(
         )
         return
 
-    logger.warning("[handler] user=%s → FALLTHROUGH intent=%s, showing response_text", user.id, intent)
+    logger.warning(
+        "[handler] user=%s → FALLTHROUGH intent=%s, showing response_text", user.id, intent
+    )
     text = state.response_text or t("ai.not_understood", lang)
     await processing_msg.edit_text(text)

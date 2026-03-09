@@ -75,18 +75,17 @@ def setup_admin(app: FastAPI) -> Admin:
         error = ""
         try:
             result = await bot.get_star_transactions(limit=100)
-            balance = sum(
-                t.amount if t.source else -t.amount
-                for t in result.transactions
-            )
+            balance = sum(t.amount if t.source else -t.amount for t in result.transactions)
             for t in result.transactions[:50]:
                 incoming = t.source is not None
-                transactions.append({
-                    "id": t.id,
-                    "amount": t.amount,
-                    "incoming": incoming,
-                    "date": t.date.strftime("%d.%m.%Y %H:%M"),
-                })
+                transactions.append(
+                    {
+                        "id": t.id,
+                        "amount": t.amount,
+                        "incoming": incoming,
+                        "date": t.date.strftime("%d.%m.%Y %H:%M"),
+                    }
+                )
         except Exception:
             logger.exception("[admin] Failed to get star transactions")
             error = "Failed to fetch data from Telegram API."
@@ -139,9 +138,7 @@ def setup_admin(app: FastAPI) -> Admin:
         from app.utils.seed import STRATEGIES
 
         async with async_session_factory() as session:
-            result = await session.execute(
-                select(func.count(BeautifulDateStrategy.id))
-            )
+            result = await session.execute(select(func.count(BeautifulDateStrategy.id)))
             current = result.scalar() or 0
 
         return HTMLResponse(
@@ -209,10 +206,18 @@ def setup_admin(app: FastAPI) -> Admin:
 
         try:
             pool = await create_pool(parse_redis_url())
-            await pool.enqueue_job("app.workers.notifications.send_day_before_notification", user_id, True)
-            await pool.enqueue_job("app.workers.notifications.send_week_before_notification", user_id, True)
-            await pool.enqueue_job("app.workers.notifications.send_weekly_digest_notification", user_id, True)
-            await pool.enqueue_job("app.workers.notifications.send_wish_reminders_task", user_id, True)
+            await pool.enqueue_job(
+                "app.workers.notifications.send_day_before_notification", user_id, True
+            )
+            await pool.enqueue_job(
+                "app.workers.notifications.send_week_before_notification", user_id, True
+            )
+            await pool.enqueue_job(
+                "app.workers.notifications.send_weekly_digest_notification", user_id, True
+            )
+            await pool.enqueue_job(
+                "app.workers.notifications.send_wish_reminders_task", user_id, True
+            )
             await pool.close()
             status = f"Jobs enqueued for user <b>{user_id}</b>. Check bot chat for results."
         except Exception:

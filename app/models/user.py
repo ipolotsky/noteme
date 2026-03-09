@@ -47,7 +47,15 @@ class User(Base):
         DateTime(timezone=True), onupdate=func.now(), nullable=True
     )
 
-    people: Mapped[list["Person"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]  # noqa: F821
-    events: Mapped[list["Event"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]  # noqa: F821
-    wishes: Mapped[list["Wish"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]  # noqa: F821
-    subscriptions: Mapped[list["Subscription"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # type: ignore[name-defined]  # noqa: F821
+    people: Mapped[list["Person"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    events: Mapped[list["Event"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    wishes: Mapped[list["Wish"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    subscriptions: Mapped[list["Subscription"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
+        back_populates="user", cascade="all, delete-orphan"
+    )

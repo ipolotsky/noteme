@@ -42,7 +42,10 @@ async def formatter_node(state: AgentState) -> AgentState:
         else:
             state.response_text = t("wishes.create_text", lang)
 
-    elif intent in ("view_events", "view_wishes", "view_feed", "view_people") or intent == "settings":
+    elif (
+        intent in ("view_events", "view_wishes", "view_feed", "view_people")
+        or intent == "settings"
+    ):
         state.response_text = ""
 
     elif intent == "help":
@@ -51,5 +54,10 @@ async def formatter_node(state: AgentState) -> AgentState:
     else:
         state.response_text = t("ai.not_understood", lang)
 
-    logger.info("[formatter] user=%s intent=%s → response=%r", state.user_id, intent, state.response_text[:100])
+    logger.info(
+        "[formatter] user=%s intent=%s → response=%r",
+        state.user_id,
+        intent,
+        state.response_text[:100],
+    )
     return state

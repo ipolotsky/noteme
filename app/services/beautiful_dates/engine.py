@@ -55,9 +55,7 @@ async def recalculate_for_event(
     Returns number of beautiful dates created.
     """
     # Delete existing beautiful dates for this event
-    await session.execute(
-        delete(BeautifulDate).where(BeautifulDate.event_id == event.id)
-    )
+    await session.execute(delete(BeautifulDate).where(BeautifulDate.event_id == event.id))
 
     if strategies is None:
         strategies = await get_active_strategies(session)
@@ -69,14 +67,10 @@ async def recalculate_for_event(
     for strategy_model in strategies:
         impl = _STRATEGY_REGISTRY.get(strategy_model.strategy_type)
         if impl is None:
-            logger.warning(
-                "Unknown strategy type: %s", strategy_model.strategy_type
-            )
+            logger.warning("Unknown strategy type: %s", strategy_model.strategy_type)
             continue
 
-        candidates = impl.calculate(
-            event.event_date, event.title, strategy_model.params
-        )
+        candidates = impl.calculate(event.event_date, event.title, strategy_model.params)
 
         for candidate in candidates:
             if candidate.target_date < today:
@@ -112,9 +106,7 @@ async def recalculate_for_event(
 
 async def recalculate_for_user(session: AsyncSession, user_id: int) -> int:
     """Recalculate beautiful dates for all events of a user."""
-    result = await session.execute(
-        select(Event).where(Event.user_id == user_id)
-    )
+    result = await session.execute(select(Event).where(Event.user_id == user_id))
     events = list(result.scalars().all())
     strategies = await get_active_strategies(session)
 

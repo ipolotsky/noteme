@@ -32,9 +32,7 @@ async def has_active_subscription(session: AsyncSession, user_id: int) -> bool:
     return result.scalar_one_or_none() is not None
 
 
-async def get_active_subscription(
-    session: AsyncSession, user_id: int
-) -> Subscription | None:
+async def get_active_subscription(session: AsyncSession, user_id: int) -> Subscription | None:
     result = await session.execute(
         select(Subscription)
         .where(

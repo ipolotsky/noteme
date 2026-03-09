@@ -14,9 +14,7 @@ SETTINGS_CACHE_TTL = 300
 SETTINGS_CACHE_PREFIX = "app_setting:"
 
 
-async def get_setting(
-    session: AsyncSession, key: str, default: str | None = None
-) -> str | None:
+async def get_setting(session: AsyncSession, key: str, default: str | None = None) -> str | None:
     try:
         r = _get_redis()
         cached = await r.get(f"{SETTINGS_CACHE_PREFIX}{key}")
@@ -25,9 +23,7 @@ async def get_setting(
     except Exception:
         pass
 
-    result = await session.execute(
-        select(AppSettings.value).where(AppSettings.key == key)
-    )
+    result = await session.execute(select(AppSettings.value).where(AppSettings.key == key))
     value = result.scalar_one_or_none()
     if value is None:
         return default
@@ -41,9 +37,7 @@ async def get_setting(
     return value
 
 
-async def get_int_setting(
-    session: AsyncSession, key: str, default: int = 0
-) -> int:
+async def get_int_setting(session: AsyncSession, key: str, default: int = 0) -> int:
     value = await get_setting(session, key)
     if value is None:
         return default
@@ -56,9 +50,7 @@ async def get_int_setting(
 async def set_setting(
     session: AsyncSession, key: str, value: str, description: str | None = None
 ) -> None:
-    result = await session.execute(
-        select(AppSettings).where(AppSettings.key == key)
-    )
+    result = await session.execute(select(AppSettings).where(AppSettings.key == key))
     existing = result.scalar_one_or_none()
     if existing is not None:
         existing.value = value

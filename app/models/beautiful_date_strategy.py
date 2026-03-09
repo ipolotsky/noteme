@@ -10,9 +10,7 @@ from app.models.base import Base
 class BeautifulDateStrategy(Base):
     __tablename__ = "beautiful_date_strategies"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name_ru: Mapped[str] = mapped_column(String(255), nullable=False)
     name_en: Mapped[str] = mapped_column(String(255), nullable=False)
     strategy_type: Mapped[str] = mapped_column(String(50), nullable=False)

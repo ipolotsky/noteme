@@ -44,18 +44,20 @@ class TestPersonCountQueries:
     """
 
     @pytest.mark.asyncio
-    async def test_person_counts_zero_when_no_associations(self, session: AsyncSession, user_id: int):
+    async def test_person_counts_zero_when_no_associations(
+        self, session: AsyncSession, user_id: int
+    ):
         await _make_user(session, user_id)
         from app.services.person_service import create_person
 
         person = await create_person(session, user_id, "Orphan")
 
-        events_count = (await session.execute(
-            select(func.count()).where(EventPerson.person_id == person.id)
-        )).scalar_one()
-        wishes_count = (await session.execute(
-            select(func.count()).where(WishPerson.person_id == person.id)
-        )).scalar_one()
+        events_count = (
+            await session.execute(select(func.count()).where(EventPerson.person_id == person.id))
+        ).scalar_one()
+        wishes_count = (
+            await session.execute(select(func.count()).where(WishPerson.person_id == person.id))
+        ).scalar_one()
 
         assert events_count == 0
         assert wishes_count == 0
@@ -65,7 +67,8 @@ class TestPersonCountQueries:
         await _make_user(session, user_id)
 
         await create_event(
-            session, user_id,
+            session,
+            user_id,
             EventCreate(title="Wedding", event_date=date(2022, 8, 17), person_names=["Max"]),
         )
         from app.services.person_service import get_person_by_name
@@ -73,9 +76,9 @@ class TestPersonCountQueries:
         person = await get_person_by_name(session, user_id, "Max")
         assert person is not None
 
-        events_count = (await session.execute(
-            select(func.count()).where(EventPerson.person_id == person.id)
-        )).scalar_one()
+        events_count = (
+            await session.execute(select(func.count()).where(EventPerson.person_id == person.id))
+        ).scalar_one()
         assert events_count == 1
 
     @pytest.mark.asyncio
@@ -83,7 +86,8 @@ class TestPersonCountQueries:
         await _make_user(session, user_id)
 
         await create_wish(
-            session, user_id,
+            session,
+            user_id,
             WishCreate(text="Buy headphones", person_names=["Max"]),
         )
         from app.services.person_service import get_person_by_name
@@ -91,33 +95,40 @@ class TestPersonCountQueries:
         person = await get_person_by_name(session, user_id, "Max")
         assert person is not None
 
-        wishes_count = (await session.execute(
-            select(func.count()).where(WishPerson.person_id == person.id)
-        )).scalar_one()
+        wishes_count = (
+            await session.execute(select(func.count()).where(WishPerson.person_id == person.id))
+        ).scalar_one()
         assert wishes_count == 1
 
     @pytest.mark.asyncio
-    async def test_person_counts_with_multiple_associations(self, session: AsyncSession, user_id: int):
+    async def test_person_counts_with_multiple_associations(
+        self, session: AsyncSession, user_id: int
+    ):
         await _make_user(session, user_id)
 
         await create_event(
-            session, user_id,
+            session,
+            user_id,
             EventCreate(title="Wedding", event_date=date(2022, 8, 17), person_names=["Max"]),
         )
         await create_event(
-            session, user_id,
+            session,
+            user_id,
             EventCreate(title="Birthday", event_date=date(2023, 1, 1), person_names=["Max"]),
         )
         await create_wish(
-            session, user_id,
+            session,
+            user_id,
             WishCreate(text="Headphones", person_names=["Max"]),
         )
         await create_wish(
-            session, user_id,
+            session,
+            user_id,
             WishCreate(text="Restaurant", person_names=["Max"]),
         )
         await create_wish(
-            session, user_id,
+            session,
+            user_id,
             WishCreate(text="Book", person_names=["Max"]),
         )
 
@@ -125,12 +136,12 @@ class TestPersonCountQueries:
 
         person = await get_person_by_name(session, user_id, "Max")
 
-        events_count = (await session.execute(
-            select(func.count()).where(EventPerson.person_id == person.id)
-        )).scalar_one()
-        wishes_count = (await session.execute(
-            select(func.count()).where(WishPerson.person_id == person.id)
-        )).scalar_one()
+        events_count = (
+            await session.execute(select(func.count()).where(EventPerson.person_id == person.id))
+        ).scalar_one()
+        wishes_count = (
+            await session.execute(select(func.count()).where(WishPerson.person_id == person.id))
+        ).scalar_one()
 
         assert events_count == 2
         assert wishes_count == 3
@@ -150,26 +161,28 @@ class TestProcessMessageDictConversion:
     async def test_dict_result_converted_to_agent_state(self, mock_get_graph):
         """graph.ainvoke() returns dict → process_message returns AgentState."""
         mock_graph = AsyncMock()
-        mock_graph.ainvoke = AsyncMock(return_value={
-            "user_id": 123,
-            "user_language": "ru",
-            "raw_text": "Свадьба 17.08.2022",
-            "is_voice": False,
-            "transcribed_text": "Свадьба 17.08.2022",
-            "is_valid": True,
-            "rejection_reason": "",
-            "intent": "create_event",
-            "event_title": "Свадьба",
-            "event_date": date(2022, 8, 17),
-            "event_description": "",
-            "person_names": ["Макс"],
-            "wish_text": "",
-            "query_type": "",
-            "target_entity_id": "",
-            "response_text": "Создать событие?",
-            "needs_confirmation": True,
-            "error": "",
-        })
+        mock_graph.ainvoke = AsyncMock(
+            return_value={
+                "user_id": 123,
+                "user_language": "ru",
+                "raw_text": "Свадьба 17.08.2022",
+                "is_voice": False,
+                "transcribed_text": "Свадьба 17.08.2022",
+                "is_valid": True,
+                "rejection_reason": "",
+                "intent": "create_event",
+                "event_title": "Свадьба",
+                "event_date": date(2022, 8, 17),
+                "event_description": "",
+                "person_names": ["Макс"],
+                "wish_text": "",
+                "query_type": "",
+                "target_entity_id": "",
+                "response_text": "Создать событие?",
+                "needs_confirmation": True,
+                "error": "",
+            }
+        )
         mock_get_graph.return_value = mock_graph
 
         result = await process_message("Свадьба 17.08.2022", user_id=123)
@@ -204,26 +217,28 @@ class TestProcessMessageDictConversion:
     async def test_handler_can_access_all_fields(self, mock_get_graph):
         """Ensure all fields needed by _handle_agent_result are accessible."""
         mock_graph = AsyncMock()
-        mock_graph.ainvoke = AsyncMock(return_value={
-            "user_id": 42,
-            "user_language": "en",
-            "raw_text": "test",
-            "is_voice": False,
-            "transcribed_text": "test",
-            "is_valid": True,
-            "rejection_reason": "",
-            "intent": "create_event",
-            "event_title": "Test Event",
-            "event_date": date(2024, 1, 1),
-            "event_description": "desc",
-            "person_names": ["tag1", "tag2"],
-            "wish_text": "",
-            "query_type": "",
-            "target_entity_id": "",
-            "response_text": "",
-            "needs_confirmation": True,
-            "error": "",
-        })
+        mock_graph.ainvoke = AsyncMock(
+            return_value={
+                "user_id": 42,
+                "user_language": "en",
+                "raw_text": "test",
+                "is_voice": False,
+                "transcribed_text": "test",
+                "is_valid": True,
+                "rejection_reason": "",
+                "intent": "create_event",
+                "event_title": "Test Event",
+                "event_date": date(2024, 1, 1),
+                "event_description": "desc",
+                "person_names": ["tag1", "tag2"],
+                "wish_text": "",
+                "query_type": "",
+                "target_entity_id": "",
+                "response_text": "",
+                "needs_confirmation": True,
+                "error": "",
+            }
+        )
         mock_get_graph.return_value = mock_graph
 
         state = await process_message("test", user_id=42, user_language="en")
@@ -261,7 +276,8 @@ class TestSharingEagerLoad:
         await session.flush()
 
         event = await create_event(
-            session, user_id,
+            session,
+            user_id,
             EventCreate(title="Wedding", event_date=date(2022, 8, 17)),
         )
         await recalculate_for_event(session, event)

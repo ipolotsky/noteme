@@ -69,9 +69,7 @@ async def cmd_start(
         return
 
     await message.answer(
-        t("welcome", lang, name=user.first_name)
-        + "\n\n"
-        + t("choose_language", lang),
+        t("welcome", lang, name=user.first_name) + "\n\n" + t("choose_language", lang),
         reply_markup=language_select_kb(),
     )
     await state.set_state(OnboardingStates.waiting_language)
@@ -144,7 +142,8 @@ async def onboarding_first_event_text(
         if result.intent == "create_event" and result.event_title and result.event_date:
             person_names = result.person_names or []
             event = await create_event(
-                session, user.id,
+                session,
+                user.id,
                 EventCreate(
                     title=result.event_title,
                     event_date=result.event_date,
@@ -152,6 +151,7 @@ async def onboarding_first_event_text(
                 ),
             )
             from app.services.beautiful_dates.engine import recalculate_for_event
+
             await recalculate_for_event(session, event)
             await processing_msg.edit_text(t("events.created", lang, title=escape(event.title)))
             await state.update_data(event_created=True)
@@ -194,12 +194,15 @@ async def onboarding_first_event_voice(
         from app.schemas.event import EventCreate
         from app.services.event_service import create_event
 
-        result = await process_message(text=text, user_id=user.id, user_language=lang, is_voice=True)
+        result = await process_message(
+            text=text, user_id=user.id, user_language=lang, is_voice=True
+        )
 
         if result.intent == "create_event" and result.event_title and result.event_date:
             person_names = result.person_names or []
             event = await create_event(
-                session, user.id,
+                session,
+                user.id,
                 EventCreate(
                     title=result.event_title,
                     event_date=result.event_date,
@@ -207,16 +210,21 @@ async def onboarding_first_event_voice(
                 ),
             )
             from app.services.beautiful_dates.engine import recalculate_for_event
+
             await recalculate_for_event(session, event)
             await processing_msg.edit_text(t("events.created", lang, title=escape(event.title)))
             await state.update_data(event_created=True)
             await log_user_action(user.id, "onboarding_create_event_voice", event.title)
         else:
-            await processing_msg.edit_text(t("ai.not_understood", lang), reply_markup=onboarding_event_kb(lang))
+            await processing_msg.edit_text(
+                t("ai.not_understood", lang), reply_markup=onboarding_event_kb(lang)
+            )
             return
     except Exception:
         logger.exception("Onboarding voice event failed for user %s", user.id)
-        await processing_msg.edit_text(t("ai.not_understood", lang), reply_markup=onboarding_event_kb(lang))
+        await processing_msg.edit_text(
+            t("ai.not_understood", lang), reply_markup=onboarding_event_kb(lang)
+        )
         return
 
     await _handle_event_created(message, state, lang, person_names)
@@ -241,10 +249,12 @@ async def onboarding_quick_event(
     title = t("onboarding.quick_event", lang)
     person_names = ["Личное" if lang == "ru" else "Personal"]
     event = await create_event(
-        session, user.id,
+        session,
+        user.id,
         EventCreate(title=title, event_date=date.today(), person_names=person_names),
     )
     from app.services.beautiful_dates.engine import recalculate_for_event
+
     await recalculate_for_event(session, event)
 
     await callback.message.edit_text(  # type: ignore[union-attr]
@@ -281,10 +291,12 @@ async def onboarding_skip_event(
     title = t("onboarding.quick_event", lang)
     person_names = ["Личное" if lang == "ru" else "Personal"]
     event = await create_event(
-        session, user.id,
+        session,
+        user.id,
         EventCreate(title=title, event_date=date.today(), person_names=person_names),
     )
     from app.services.beautiful_dates.engine import recalculate_for_event
+
     await recalculate_for_event(session, event)
     await state.update_data(event_created=True)
 
@@ -327,7 +339,10 @@ async def _finish_onboarding(
 
 
 async def _create_wish_via_ai(
-    text: str, user: User, lang: str, session: AsyncSession,
+    text: str,
+    user: User,
+    lang: str,
+    session: AsyncSession,
 ) -> bool:
     from app.agents.graph import process_message
     from app.schemas.wish import WishCreate
@@ -346,7 +361,8 @@ async def _create_wish_via_ai(
             wish_text += "."
 
     await create_wish(
-        session, user.id,
+        session,
+        user.id,
         WishCreate(
             text=wish_text,
             person_names=person_names,
@@ -404,7 +420,9 @@ async def onboarding_first_wish_voice(
         await log_user_action(user.id, "onboarding_create_wish_voice")
     except Exception:
         logger.exception("Onboarding voice wish failed for user %s", user.id)
-        await processing_msg.edit_text(t("ai.not_understood", lang), reply_markup=onboarding_skip_kb(lang))
+        await processing_msg.edit_text(
+            t("ai.not_understood", lang), reply_markup=onboarding_skip_kb(lang)
+        )
         return
 
     await _finish_onboarding(message, state, user, lang, session)
@@ -428,6 +446,10 @@ async def onboarding_skip_wish(
         t("onboarding.step2_personal", lang).split("\n")[0] + " \u2714",
     )
     await _finish_onboarding(
-        callback.message, state, user, lang, session,  # type: ignore[arg-type]
+        callback.message,
+        state,
+        user,
+        lang,
+        session,  # type: ignore[arg-type]
     )
     await callback.answer()

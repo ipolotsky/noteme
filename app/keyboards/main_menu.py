@@ -10,61 +10,79 @@ from app.keyboards.callbacks import MenuCb
 
 
 def cancel_kb(lang: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text=f"\u2716 {t('menu.cancel', lang)}",
-            callback_data="cancel",
-        )],
-    ])
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=f"\u2716 {t('menu.cancel', lang)}",
+                    callback_data="cancel",
+                )
+            ],
+        ]
+    )
 
 
 def onboarding_event_kb(lang: str) -> InlineKeyboardMarkup:
     from app.keyboards.callbacks import OnboardCb
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text="\u23ed",
-            callback_data=OnboardCb(action="skip").pack(),
-        )],
-    ])
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="\u23ed",
+                    callback_data=OnboardCb(action="skip").pack(),
+                )
+            ],
+        ]
+    )
 
 
 def onboarding_skip_kb(lang: str) -> InlineKeyboardMarkup:
     from app.keyboards.callbacks import OnboardCb
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text="\u23ed",
-            callback_data=OnboardCb(action="skip").pack(),
-        )],
-    ])
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="\u23ed",
+                    callback_data=OnboardCb(action="skip").pack(),
+                )
+            ],
+        ]
+    )
 
 
 def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text=f"\U0001f4c5 {t('menu.feed', lang)}",
-            callback_data=MenuCb(action="feed").pack(),
-        )],
-        [
-            InlineKeyboardButton(
-                text=f"\U0001f4cb {t('menu.events', lang)}",
-                callback_data=MenuCb(action="events").pack(),
-            ),
-            InlineKeyboardButton(
-                text=f"\U0001f381 {t('menu.wishes', lang)}",
-                callback_data=MenuCb(action="wishes").pack(),
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                text=f"\U0001f464 {t('menu.people', lang)}",
-                callback_data=MenuCb(action="people").pack(),
-            ),
-            InlineKeyboardButton(
-                text=f"\u2699\ufe0f {t('menu.settings', lang)}",
-                callback_data=MenuCb(action="settings").pack(),
-            ),
-        ],
-    ])
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=f"\U0001f4c5 {t('menu.feed', lang)}",
+                    callback_data=MenuCb(action="feed").pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"\U0001f4cb {t('menu.events', lang)}",
+                    callback_data=MenuCb(action="events").pack(),
+                ),
+                InlineKeyboardButton(
+                    text=f"\U0001f381 {t('menu.wishes', lang)}",
+                    callback_data=MenuCb(action="wishes").pack(),
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"\U0001f464 {t('menu.people', lang)}",
+                    callback_data=MenuCb(action="people").pack(),
+                ),
+                InlineKeyboardButton(
+                    text=f"\u2699\ufe0f {t('menu.settings', lang)}",
+                    callback_data=MenuCb(action="settings").pack(),
+                ),
+            ],
+        ]
+    )
 
 
 def persistent_menu_kb(lang: str) -> ReplyKeyboardMarkup:

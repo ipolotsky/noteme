@@ -132,9 +132,15 @@ async def log_llm_call(
 
     al.set_response(
         text=content,
-        tokens_prompt=usage.get("input_tokens") if isinstance(usage, dict) else getattr(usage, "input_tokens", None),
-        tokens_completion=usage.get("output_tokens") if isinstance(usage, dict) else getattr(usage, "output_tokens", None),
-        tokens_total=usage.get("total_tokens") if isinstance(usage, dict) else getattr(usage, "total_tokens", None),
+        tokens_prompt=usage.get("input_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "input_tokens", None),
+        tokens_completion=usage.get("output_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "output_tokens", None),
+        tokens_total=usage.get("total_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "total_tokens", None),
     )
     al._latency_ms = 0  # Set by caller if needed
     await al.flush()

@@ -194,9 +194,7 @@ async def test_get_subscription_plans(session: AsyncSession):
     plan2 = SubscriptionPlan(
         name_ru="B", name_en="B", price_stars=100, sort_order=1, is_active=True
     )
-    plan3 = SubscriptionPlan(
-        name_ru="C", name_en="C", price_stars=200, is_active=False
-    )
+    plan3 = SubscriptionPlan(name_ru="C", name_en="C", price_stars=200, is_active=False)
     session.add_all([plan1, plan2, plan3])
     await session.flush()
 

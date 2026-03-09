@@ -148,9 +148,9 @@ def _mock_wish_llm(response_content: str = "1", *, side_effect=None):
 
 
 class TestOnboardingSkipCreatesEvent:
-
     def test_onboarding_event_kb_has_only_skip_ru(self):
         from app.keyboards.main_menu import onboarding_event_kb
+
         kb = onboarding_event_kb("ru")
         all_buttons = [btn for row in kb.inline_keyboard for btn in row]
         assert len(all_buttons) == 1
@@ -158,13 +158,16 @@ class TestOnboardingSkipCreatesEvent:
 
     def test_onboarding_event_kb_has_only_skip_en(self):
         from app.keyboards.main_menu import onboarding_event_kb
+
         kb = onboarding_event_kb("en")
         all_buttons = [btn for row in kb.inline_keyboard for btn in row]
         assert len(all_buttons) == 1
         assert "skip" in all_buttons[0].callback_data
 
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
-    async def test_skip_event_sets_state_and_event_created_ru(self, mock_recalc, session: AsyncSession):
+    async def test_skip_event_sets_state_and_event_created_ru(
+        self, mock_recalc, session: AsyncSession
+    ):
         from app.handlers.start import onboarding_skip_event
         from app.handlers.states import OnboardingStates
 
@@ -178,7 +181,9 @@ class TestOnboardingSkipCreatesEvent:
         state.set_state.assert_called_once_with(OnboardingStates.waiting_first_wish)
 
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
-    async def test_skip_event_sets_state_and_event_created_en(self, mock_recalc, session: AsyncSession):
+    async def test_skip_event_sets_state_and_event_created_en(
+        self, mock_recalc, session: AsyncSession
+    ):
         from app.handlers.start import onboarding_skip_event
         from app.handlers.states import OnboardingStates
 
@@ -192,7 +197,9 @@ class TestOnboardingSkipCreatesEvent:
         state.update_data.assert_any_call(event_created=True)
 
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
-    async def test_skip_event_edits_message_with_skipped_text(self, mock_recalc, session: AsyncSession):
+    async def test_skip_event_edits_message_with_skipped_text(
+        self, mock_recalc, session: AsyncSession
+    ):
         from app.handlers.start import onboarding_skip_event
 
         user = await _make_user(session, user_id=55557, onboarding_completed=False)
@@ -232,7 +239,9 @@ class TestOnboardingSkipCreatesEvent:
         mock_recalc.assert_called_once()
 
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
-    async def test_skip_then_skip_wish_completes_onboarding(self, mock_recalc, session: AsyncSession):
+    async def test_skip_then_skip_wish_completes_onboarding(
+        self, mock_recalc, session: AsyncSession
+    ):
         from app.handlers.start import onboarding_skip_event, onboarding_skip_wish
 
         user = await _make_user(session, user_id=55563, onboarding_completed=False)
@@ -257,8 +266,9 @@ _SHARE_UUID = uuid.uuid4()
 
 
 class TestFeedCardNoCounter:
-
-    @patch("app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID)
+    @patch(
+        "app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID
+    )
     @patch("app.handlers.feed.generate_share_image", return_value=b"fake")
     @patch("app.handlers.feed.get_wishes_by_person_names", new_callable=AsyncMock, return_value=[])
     async def test_returns_image_bytes(self, mock_wishes, mock_img, mock_share):
@@ -270,7 +280,9 @@ class TestFeedCardNoCounter:
         assert image_bytes == b"fake"
         mock_img.assert_called_once()
 
-    @patch("app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID)
+    @patch(
+        "app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID
+    )
     @patch("app.handlers.feed.generate_share_image", return_value=b"fake")
     @patch("app.handlers.feed.get_wishes_by_person_names", new_callable=AsyncMock, return_value=[])
     async def test_no_counter_in_caption(self, mock_wishes, mock_img, mock_share):
@@ -281,7 +293,9 @@ class TestFeedCardNoCounter:
 
         assert not re.search(r"\d+\s+of\s+\d+", caption)
 
-    @patch("app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID)
+    @patch(
+        "app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID
+    )
     @patch("app.handlers.feed.generate_share_image", return_value=b"fake")
     @patch("app.handlers.feed.get_wishes_by_person_names", new_callable=AsyncMock, return_value=[])
     async def test_image_gets_label_ru(self, mock_wishes, mock_img, mock_share):
@@ -292,7 +306,9 @@ class TestFeedCardNoCounter:
 
         assert mock_img.call_args.kwargs["label"] == "500 дней"
 
-    @patch("app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID)
+    @patch(
+        "app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID
+    )
     @patch("app.handlers.feed.generate_share_image", return_value=b"fake")
     @patch("app.handlers.feed.get_wishes_by_person_names", new_callable=AsyncMock, return_value=[])
     async def test_image_gets_label_en(self, mock_wishes, mock_img, mock_share):
@@ -303,7 +319,9 @@ class TestFeedCardNoCounter:
 
         assert mock_img.call_args.kwargs["label"] == "500 days"
 
-    @patch("app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID)
+    @patch(
+        "app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID
+    )
     @patch("app.handlers.feed.generate_share_image", return_value=b"fake")
     @patch("app.handlers.feed.get_wishes_by_person_names", new_callable=AsyncMock, return_value=[])
     async def test_image_gets_event_title(self, mock_wishes, mock_img, mock_share):
@@ -321,7 +339,6 @@ class TestFeedCardNoCounter:
 
 
 class TestExistingPeopleInPipeline:
-
     def test_agent_state_has_existing_people_field(self):
         state = AgentState()
         assert hasattr(state, "existing_people")
@@ -338,22 +355,28 @@ class TestExistingPeopleInPipeline:
 
     def test_event_agent_prompt_has_placeholder(self):
         from app.agents.prompts import EVENT_AGENT_SYSTEM
+
         assert "{existing_people_block}" in EVENT_AGENT_SYSTEM
 
     def test_wish_agent_prompt_has_placeholder(self):
         from app.agents.prompts import WISH_AGENT_SYSTEM
+
         assert "{existing_people_block}" in WISH_AGENT_SYSTEM
 
     def test_event_agent_prompt_formats_without_people(self):
         from app.agents.prompts import EVENT_AGENT_SYSTEM
+
         formatted = EVENT_AGENT_SYSTEM.format(
-            today="2026-03-06", user_language="ru", existing_people_block="",
+            today="2026-03-06",
+            user_language="ru",
+            existing_people_block="",
         )
         assert "{existing_people_block}" not in formatted
         assert "IMPORTANT: The user already has" not in formatted
 
     def test_event_agent_prompt_formats_with_people(self):
         from app.agents.prompts import EVENT_AGENT_SYSTEM
+
         block = (
             "\nIMPORTANT: The user already has these people saved: [Max, Leva]. "
             "If the message mentions a name that is similar to one of these "
@@ -361,12 +384,15 @@ class TestExistingPeopleInPipeline:
             "Дэйзи/Дейзи, or diminutive), use the EXISTING name exactly as written above."
         )
         formatted = EVENT_AGENT_SYSTEM.format(
-            today="2026-03-06", user_language="en", existing_people_block=block,
+            today="2026-03-06",
+            user_language="en",
+            existing_people_block=block,
         )
         assert "Max, Leva" in formatted
 
     def test_wish_agent_prompt_formats_with_people(self):
         from app.agents.prompts import WISH_AGENT_SYSTEM
+
         block = (
             "\nIMPORTANT: The user already has these people saved: [Daisy]. "
             "If the message mentions a name that is similar..."
@@ -380,7 +406,12 @@ class TestExistingPeopleInPipeline:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_handle_text_passes_existing_people(
-        self, mock_rate, mock_log, mock_people, mock_process, mock_handle,
+        self,
+        mock_rate,
+        mock_log,
+        mock_people,
+        mock_process,
+        mock_handle,
     ):
         from app.handlers.ai import handle_text
 
@@ -408,7 +439,13 @@ class TestExistingPeopleInPipeline:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_handle_voice_passes_existing_people(
-        self, mock_rate, mock_log, mock_people, mock_transcribe, mock_process, mock_handle,
+        self,
+        mock_rate,
+        mock_log,
+        mock_people,
+        mock_transcribe,
+        mock_process,
+        mock_handle,
     ):
         from app.handlers.ai import handle_voice
 
@@ -433,7 +470,12 @@ class TestExistingPeopleInPipeline:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_handle_text_empty_people_passes_empty_list(
-        self, mock_rate, mock_log, mock_people, mock_process, mock_handle,
+        self,
+        mock_rate,
+        mock_log,
+        mock_people,
+        mock_process,
+        mock_handle,
     ):
         from app.handlers.ai import handle_text
 
@@ -454,9 +496,13 @@ class TestExistingPeopleInPipeline:
 
         with patch("app.agents.graph.get_graph") as mock_graph:
             mock_compiled = AsyncMock()
-            mock_compiled.ainvoke = AsyncMock(return_value={
-                "intent": "help", "user_language": "ru", "existing_people": ["Max"],
-            })
+            mock_compiled.ainvoke = AsyncMock(
+                return_value={
+                    "intent": "help",
+                    "user_language": "ru",
+                    "existing_people": ["Max"],
+                }
+            )
             mock_graph.return_value = mock_compiled
 
             await process_message(text="test", user_id=1, existing_people=["Max"])
@@ -469,9 +515,13 @@ class TestExistingPeopleInPipeline:
 
         with patch("app.agents.graph.get_graph") as mock_graph:
             mock_compiled = AsyncMock()
-            mock_compiled.ainvoke = AsyncMock(return_value={
-                "intent": "help", "user_language": "ru", "existing_people": [],
-            })
+            mock_compiled.ainvoke = AsyncMock(
+                return_value={
+                    "intent": "help",
+                    "user_language": "ru",
+                    "existing_people": [],
+                }
+            )
             mock_graph.return_value = mock_compiled
 
             await process_message(text="test", user_id=1, existing_people=None)
@@ -499,13 +549,20 @@ class TestExistingPeopleInPipeline:
 
 
 class TestOnboardingVoiceProcessing:
-
-    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="свадьба завтра")
+    @patch(
+        "app.handlers.start.transcribe_voice",
+        new_callable=AsyncMock,
+        return_value="свадьба завтра",
+    )
     @patch("app.agents.graph.process_message", new_callable=AsyncMock)
     @patch("app.services.event_service.create_event", new_callable=AsyncMock)
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
     async def test_event_voice_shows_processing_message(
-        self, mock_recalc, mock_create, mock_process, mock_transcribe,
+        self,
+        mock_recalc,
+        mock_create,
+        mock_process,
+        mock_transcribe,
         session: AsyncSession,
     ):
         from app.handlers.start import onboarding_first_event_voice
@@ -513,8 +570,10 @@ class TestOnboardingVoiceProcessing:
         mock_event = MagicMock(title="Wedding")
         mock_create.return_value = mock_event
         mock_process.return_value = AgentState(
-            intent="create_event", event_title="Wedding",
-            event_date=date(2026, 3, 7), person_names=[],
+            intent="create_event",
+            event_title="Wedding",
+            event_date=date(2026, 3, 7),
+            person_names=[],
         )
 
         user = await _make_user(session, user_id=55580, onboarding_completed=False)
@@ -528,7 +587,9 @@ class TestOnboardingVoiceProcessing:
 
     @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value=None)
     async def test_event_voice_deletes_processing_on_transcription_fail(
-        self, mock_transcribe, session: AsyncSession,
+        self,
+        mock_transcribe,
+        session: AsyncSession,
     ):
         from app.handlers.start import onboarding_first_event_voice
 
@@ -541,12 +602,20 @@ class TestOnboardingVoiceProcessing:
         processing_msg = msg.answer.return_value
         processing_msg.delete.assert_called_once()
 
-    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="свадьба завтра")
+    @patch(
+        "app.handlers.start.transcribe_voice",
+        new_callable=AsyncMock,
+        return_value="свадьба завтра",
+    )
     @patch("app.agents.graph.process_message", new_callable=AsyncMock)
     @patch("app.services.event_service.create_event", new_callable=AsyncMock)
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
     async def test_event_voice_edits_processing_on_success(
-        self, mock_recalc, mock_create, mock_process, mock_transcribe,
+        self,
+        mock_recalc,
+        mock_create,
+        mock_process,
+        mock_transcribe,
         session: AsyncSession,
     ):
         from app.handlers.start import onboarding_first_event_voice
@@ -554,8 +623,10 @@ class TestOnboardingVoiceProcessing:
         mock_event = MagicMock(title="Wedding")
         mock_create.return_value = mock_event
         mock_process.return_value = AgentState(
-            intent="create_event", event_title="Wedding",
-            event_date=date(2026, 3, 7), person_names=[],
+            intent="create_event",
+            event_title="Wedding",
+            event_date=date(2026, 3, 7),
+            person_names=[],
         )
 
         user = await _make_user(session, user_id=55582, onboarding_completed=False)
@@ -569,15 +640,24 @@ class TestOnboardingVoiceProcessing:
         edit_text = processing_msg.edit_text.call_args.args[0]
         assert t("events.created", "ru", title="Wedding") == edit_text
 
-    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="свадьба завтра")
+    @patch(
+        "app.handlers.start.transcribe_voice",
+        new_callable=AsyncMock,
+        return_value="свадьба завтра",
+    )
     @patch("app.agents.graph.process_message", new_callable=AsyncMock)
     async def test_event_voice_edits_processing_on_ai_failure(
-        self, mock_process, mock_transcribe, session: AsyncSession,
+        self,
+        mock_process,
+        mock_transcribe,
+        session: AsyncSession,
     ):
         from app.handlers.start import onboarding_first_event_voice
 
         mock_process.return_value = AgentState(
-            intent="help", event_title="", event_date=None,
+            intent="help",
+            event_title="",
+            event_date=None,
         )
 
         user = await _make_user(session, user_id=55583, onboarding_completed=False)
@@ -591,10 +671,21 @@ class TestOnboardingVoiceProcessing:
         edit_text = processing_msg.edit_text.call_args.args[0]
         assert edit_text == t("ai.not_understood", "ru")
 
-    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="свадьба завтра")
-    @patch("app.agents.graph.process_message", new_callable=AsyncMock, side_effect=RuntimeError("API error"))
+    @patch(
+        "app.handlers.start.transcribe_voice",
+        new_callable=AsyncMock,
+        return_value="свадьба завтра",
+    )
+    @patch(
+        "app.agents.graph.process_message",
+        new_callable=AsyncMock,
+        side_effect=RuntimeError("API error"),
+    )
     async def test_event_voice_edits_processing_on_exception(
-        self, mock_process, mock_transcribe, session: AsyncSession,
+        self,
+        mock_process,
+        mock_transcribe,
+        session: AsyncSession,
     ):
         from app.handlers.start import onboarding_first_event_voice
 
@@ -609,12 +700,18 @@ class TestOnboardingVoiceProcessing:
         edit_text = processing_msg.edit_text.call_args.args[0]
         assert edit_text == t("ai.not_understood", "ru")
 
-    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="хочу наушники")
+    @patch(
+        "app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="хочу наушники"
+    )
     @patch("app.handlers.start._create_wish_via_ai", new_callable=AsyncMock, return_value=True)
     @patch("app.handlers.start.update_user", new_callable=AsyncMock)
     @patch("app.handlers.start.log_user_action", new_callable=AsyncMock)
     async def test_wish_voice_shows_processing_message(
-        self, mock_log, mock_update, mock_create, mock_transcribe,
+        self,
+        mock_log,
+        mock_update,
+        mock_create,
+        mock_transcribe,
         session: AsyncSession,
     ):
         from app.handlers.start import onboarding_first_wish_voice
@@ -630,7 +727,9 @@ class TestOnboardingVoiceProcessing:
 
     @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value=None)
     async def test_wish_voice_deletes_processing_on_transcription_fail(
-        self, mock_transcribe, session: AsyncSession,
+        self,
+        mock_transcribe,
+        session: AsyncSession,
     ):
         from app.handlers.start import onboarding_first_wish_voice
 
@@ -643,12 +742,18 @@ class TestOnboardingVoiceProcessing:
         processing_msg = msg.answer.return_value
         processing_msg.delete.assert_called_once()
 
-    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="хочу наушники")
+    @patch(
+        "app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="хочу наушники"
+    )
     @patch("app.handlers.start._create_wish_via_ai", new_callable=AsyncMock, return_value=True)
     @patch("app.handlers.start.update_user", new_callable=AsyncMock)
     @patch("app.handlers.start.log_user_action", new_callable=AsyncMock)
     async def test_wish_voice_edits_processing_on_success(
-        self, mock_log, mock_update, mock_create, mock_transcribe,
+        self,
+        mock_log,
+        mock_update,
+        mock_create,
+        mock_transcribe,
         session: AsyncSession,
     ):
         from app.handlers.start import onboarding_first_wish_voice
@@ -664,10 +769,19 @@ class TestOnboardingVoiceProcessing:
         edit_text = processing_msg.edit_text.call_args.args[0]
         assert edit_text == t("wishes.created", "ru")
 
-    @patch("app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="хочу наушники")
-    @patch("app.handlers.start._create_wish_via_ai", new_callable=AsyncMock, side_effect=RuntimeError("API error"))
+    @patch(
+        "app.handlers.start.transcribe_voice", new_callable=AsyncMock, return_value="хочу наушники"
+    )
+    @patch(
+        "app.handlers.start._create_wish_via_ai",
+        new_callable=AsyncMock,
+        side_effect=RuntimeError("API error"),
+    )
     async def test_wish_voice_edits_processing_on_exception(
-        self, mock_create, mock_transcribe, session: AsyncSession,
+        self,
+        mock_create,
+        mock_transcribe,
+        session: AsyncSession,
     ):
         from app.handlers.start import onboarding_first_wish_voice
 
@@ -689,18 +803,20 @@ class TestOnboardingVoiceProcessing:
 
 
 class TestImprovedWishSelection:
-
     async def test_no_wishes_returns_none(self):
         from app.handlers.feed import _select_best_wish
+
         assert await _select_best_wish([], "1000 days") is None
 
     async def test_single_wish_returns_it(self):
         from app.handlers.feed import _select_best_wish
+
         wishes = _make_wishes("Buy flowers")
         assert await _select_best_wish(wishes, "1000 days") == "Buy flowers"
 
     async def test_no_api_key_returns_first(self):
         from app.handlers.feed import _select_best_wish
+
         wishes = _make_wishes("First", "Second")
         with patch("app.handlers.feed.settings") as mock_settings:
             mock_settings.openai_api_key = None
@@ -708,9 +824,11 @@ class TestImprovedWishSelection:
 
     async def test_single_wish_with_context_params(self):
         from app.handlers.feed import _select_best_wish
+
         wishes = _make_wishes("Single")
         result = await _select_best_wish(
-            wishes, "500 days",
+            wishes,
+            "500 days",
             event_title="Wedding",
             target_date_str="15 июня 2026",
             relative_date_str="через 3 месяца",
@@ -719,11 +837,13 @@ class TestImprovedWishSelection:
 
     async def test_llm_prompt_includes_context(self):
         from app.handlers.feed import _select_best_wish
+
         wishes = _make_wishes("Buy flowers", "Buy chocolates")
 
         with _mock_wish_llm("1") as mock_llm:
             await _select_best_wish(
-                wishes, "1000 days",
+                wishes,
+                "1000 days",
                 event_title="Wedding",
                 target_date_str="15 июня 2026",
                 relative_date_str="через 3 месяца",
@@ -737,42 +857,49 @@ class TestImprovedWishSelection:
 
     async def test_llm_picks_first(self):
         from app.handlers.feed import _select_best_wish
+
         wishes = _make_wishes("First", "Second")
         with _mock_wish_llm("1"):
             assert await _select_best_wish(wishes, "label") == "First"
 
     async def test_llm_picks_second(self):
         from app.handlers.feed import _select_best_wish
+
         wishes = _make_wishes("First", "Second")
         with _mock_wish_llm("2"):
             assert await _select_best_wish(wishes, "label") == "Second"
 
     async def test_llm_returns_zero_falls_to_first(self):
         from app.handlers.feed import _select_best_wish
+
         wishes = _make_wishes("First", "Second")
         with _mock_wish_llm("0"):
             assert await _select_best_wish(wishes, "label") == "First"
 
     async def test_llm_returns_text_falls_to_first(self):
         from app.handlers.feed import _select_best_wish
+
         wishes = _make_wishes("First", "Second")
         with _mock_wish_llm("The best option is number 1"):
             assert await _select_best_wish(wishes, "label") == "First"
 
     async def test_llm_returns_out_of_range_falls_to_first(self):
         from app.handlers.feed import _select_best_wish
+
         wishes = _make_wishes("Only", "Two")
         with _mock_wish_llm("99"):
             assert await _select_best_wish(wishes, "label") == "Only"
 
     async def test_llm_error_falls_to_first(self):
         from app.handlers.feed import _select_best_wish
+
         wishes = _make_wishes("First", "Second")
         with _mock_wish_llm(side_effect=RuntimeError("API down")):
             assert await _select_best_wish(wishes, "label") == "First"
 
     async def test_llm_truncates_long_text(self):
         from app.handlers.feed import _select_best_wish
+
         wishes = _make_wishes("A" * 500, "Short")
 
         with _mock_wish_llm("1") as mock_llm:
@@ -781,11 +908,15 @@ class TestImprovedWishSelection:
             user_msg = mock_llm.ainvoke.call_args[0][0][1]["content"]
             assert "A" * 201 not in user_msg
 
-    @patch("app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID)
+    @patch(
+        "app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID
+    )
     @patch("app.handlers.feed.generate_share_image", return_value=b"fake")
     @patch("app.handlers.feed._select_best_wish", new_callable=AsyncMock, return_value="Best wish")
     @patch("app.handlers.feed.get_wishes_by_person_names", new_callable=AsyncMock)
-    async def test_build_card_passes_context_to_selector(self, mock_wishes, mock_selector, mock_img, mock_share):
+    async def test_build_card_passes_context_to_selector(
+        self, mock_wishes, mock_selector, mock_img, mock_share
+    ):
         from app.handlers.feed import _build_card
 
         person = MagicMock(name="Max")
@@ -812,7 +943,6 @@ class TestImprovedWishSelection:
 
 
 class TestEditWishesButtonPlural:
-
     def test_ru_is_plural(self):
         text = t("events.edit_wish", "ru")
         assert "желания" in text.lower()
@@ -835,8 +965,9 @@ class TestEditWishesButtonPlural:
 
 
 class TestBuildCardStructure:
-
-    @patch("app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID)
+    @patch(
+        "app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID
+    )
     @patch("app.handlers.feed.generate_share_image", return_value=b"fake")
     @patch("app.handlers.feed.get_wishes_by_person_names", new_callable=AsyncMock, return_value=[])
     async def test_no_people_skips_wish_section(self, mock_wishes, mock_img, mock_share):
@@ -850,11 +981,15 @@ class TestBuildCardStructure:
         mock_wishes.assert_not_called()
         assert t("feed.wish", "ru") not in caption
 
-    @patch("app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID)
+    @patch(
+        "app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID
+    )
     @patch("app.handlers.feed.generate_share_image", return_value=b"fake")
     @patch("app.handlers.feed._select_best_wish", new_callable=AsyncMock, return_value=None)
     @patch("app.handlers.feed.get_wishes_by_person_names", new_callable=AsyncMock, return_value=[])
-    async def test_wish_selector_none_omits_wish_text(self, mock_wishes, mock_selector, mock_img, mock_share):
+    async def test_wish_selector_none_omits_wish_text(
+        self, mock_wishes, mock_selector, mock_img, mock_share
+    ):
         from app.handlers.feed import _build_card
 
         bd = _make_bd_mock(people=[MagicMock(name="Max")])
@@ -864,7 +999,9 @@ class TestBuildCardStructure:
 
         assert t("feed.wish", "ru") not in caption
 
-    @patch("app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID)
+    @patch(
+        "app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID
+    )
     @patch("app.handlers.feed.generate_share_image", return_value=b"fake")
     @patch("app.handlers.feed.get_wishes_by_person_names", new_callable=AsyncMock, return_value=[])
     async def test_first_page_shows_next_only(self, mock_wishes, mock_img, mock_share):
@@ -873,11 +1010,18 @@ class TestBuildCardStructure:
         bd = _make_bd_mock()
         _image, _caption, kb = await _build_card(bd, 0, 5, "ru", AsyncMock(), 55555)
 
-        nav_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row if btn.callback_data and "card" in btn.callback_data]
+        nav_cbs = [
+            btn.callback_data
+            for row in kb.inline_keyboard
+            for btn in row
+            if btn.callback_data and "card" in btn.callback_data
+        ]
         assert len(nav_cbs) == 1
         assert nav_cbs[0].endswith(":1")
 
-    @patch("app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID)
+    @patch(
+        "app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID
+    )
     @patch("app.handlers.feed.generate_share_image", return_value=b"fake")
     @patch("app.handlers.feed.get_wishes_by_person_names", new_callable=AsyncMock, return_value=[])
     async def test_middle_page_shows_both_nav(self, mock_wishes, mock_img, mock_share):
@@ -886,12 +1030,19 @@ class TestBuildCardStructure:
         bd = _make_bd_mock()
         _image, _caption, kb = await _build_card(bd, 2, 5, "ru", AsyncMock(), 55555)
 
-        nav_cbs = sorted(btn.callback_data for row in kb.inline_keyboard for btn in row if btn.callback_data and "card" in btn.callback_data)
+        nav_cbs = sorted(
+            btn.callback_data
+            for row in kb.inline_keyboard
+            for btn in row
+            if btn.callback_data and "card" in btn.callback_data
+        )
         assert len(nav_cbs) == 2
         assert nav_cbs[0].endswith(":1")
         assert nav_cbs[1].endswith(":3")
 
-    @patch("app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID)
+    @patch(
+        "app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID
+    )
     @patch("app.handlers.feed.generate_share_image", return_value=b"fake")
     @patch("app.handlers.feed.get_wishes_by_person_names", new_callable=AsyncMock, return_value=[])
     async def test_last_page_shows_prev_only(self, mock_wishes, mock_img, mock_share):
@@ -900,11 +1051,18 @@ class TestBuildCardStructure:
         bd = _make_bd_mock()
         _image, _caption, kb = await _build_card(bd, 4, 5, "ru", AsyncMock(), 55555)
 
-        nav_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row if btn.callback_data and "card" in btn.callback_data]
+        nav_cbs = [
+            btn.callback_data
+            for row in kb.inline_keyboard
+            for btn in row
+            if btn.callback_data and "card" in btn.callback_data
+        ]
         assert len(nav_cbs) == 1
         assert nav_cbs[0].endswith(":3")
 
-    @patch("app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID)
+    @patch(
+        "app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID
+    )
     @patch("app.handlers.feed.generate_share_image", return_value=b"fake")
     @patch("app.handlers.feed.get_wishes_by_person_names", new_callable=AsyncMock, return_value=[])
     async def test_single_item_no_nav(self, mock_wishes, mock_img, mock_share):
@@ -913,19 +1071,30 @@ class TestBuildCardStructure:
         bd = _make_bd_mock()
         _image, _caption, kb = await _build_card(bd, 0, 1, "ru", AsyncMock(), 55555)
 
-        nav_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row if btn.callback_data and "card" in btn.callback_data]
+        nav_cbs = [
+            btn.callback_data
+            for row in kb.inline_keyboard
+            for btn in row
+            if btn.callback_data and "card" in btn.callback_data
+        ]
         assert len(nav_cbs) == 0
 
-    @patch("app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID)
+    @patch(
+        "app.handlers.feed.generate_share_uuid", new_callable=AsyncMock, return_value=_SHARE_UUID
+    )
     @patch("app.handlers.feed.generate_share_image", return_value=b"fake")
     @patch("app.handlers.feed.get_wishes_by_person_names", new_callable=AsyncMock, return_value=[])
-    async def test_card_always_has_event_wishes_share_back_buttons(self, mock_wishes, mock_img, mock_share):
+    async def test_card_always_has_event_wishes_share_back_buttons(
+        self, mock_wishes, mock_img, mock_share
+    ):
         from app.handlers.feed import _build_card
 
         bd = _make_bd_mock()
         _image, _caption, kb = await _build_card(bd, 0, 1, "ru", AsyncMock(), 55555)
 
-        all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row if btn.callback_data]
+        all_cbs = [
+            btn.callback_data for row in kb.inline_keyboard for btn in row if btn.callback_data
+        ]
         all_webapps = [btn.web_app for row in kb.inline_keyboard for btn in row if btn.web_app]
         assert any("view_new" in cb for cb in all_cbs)
         assert any("wishes" in cb for cb in all_cbs)
@@ -939,33 +1108,38 @@ class TestBuildCardStructure:
 
 
 class TestBuildStep2Text:
-
     def test_personal_only_ru(self):
         from app.handlers.start import _build_step2_text
+
         assert _build_step2_text("ru", ["Личное"]) == t("onboarding.step2_personal", "ru")
 
     def test_personal_only_en(self):
         from app.handlers.start import _build_step2_text
+
         assert _build_step2_text("en", ["Personal"]) == t("onboarding.step2_personal", "en")
 
     def test_real_person_ru(self):
         from app.handlers.start import _build_step2_text
+
         text = _build_step2_text("ru", ["Max"])
         assert text == t("onboarding.step2_with_person", "ru", name="Max")
         assert "Max" in text
 
     def test_real_person_en(self):
         from app.handlers.start import _build_step2_text
+
         text = _build_step2_text("en", ["Daisy"])
         assert text == t("onboarding.step2_with_person", "en", name="Daisy")
         assert "Daisy" in text
 
     def test_empty_list_falls_to_personal(self):
         from app.handlers.start import _build_step2_text
+
         assert _build_step2_text("ru", []) == t("onboarding.step2_personal", "ru")
 
     def test_mixed_names_uses_first_real(self):
         from app.handlers.start import _build_step2_text
+
         assert "Max" in _build_step2_text("ru", ["Личное", "Max"])
 
 
@@ -975,9 +1149,10 @@ class TestBuildStep2Text:
 
 
 class TestOnboardingSkipE2E:
-
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
-    async def test_skip_creates_event_with_correct_data_ru(self, mock_recalc, session: AsyncSession):
+    async def test_skip_creates_event_with_correct_data_ru(
+        self, mock_recalc, session: AsyncSession
+    ):
         from app.handlers.start import onboarding_skip_event
         from app.services.event_service import get_user_events
 
@@ -995,7 +1170,9 @@ class TestOnboardingSkipE2E:
         assert events[0].people[0].name == "Личное"
 
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
-    async def test_skip_creates_event_with_correct_data_en(self, mock_recalc, session: AsyncSession):
+    async def test_skip_creates_event_with_correct_data_en(
+        self, mock_recalc, session: AsyncSession
+    ):
         from app.handlers.start import onboarding_skip_event
         from app.services.event_service import get_user_events
 
@@ -1017,7 +1194,6 @@ class TestOnboardingSkipE2E:
 
 
 class TestExistingPeopleE2E:
-
     async def test_people_loaded_from_db(self, session: AsyncSession):
         from app.services.person_service import create_person, get_user_people
 
@@ -1037,9 +1213,15 @@ class TestExistingPeopleE2E:
         user = await _make_user(session, user_id=55611)
         await create_person(session, user.id, "Max")
 
-        event = await create_event(session, user.id, EventCreate(
-            title="Party", event_date=date(2026, 1, 1), person_names=["Max"],
-        ))
+        event = await create_event(
+            session,
+            user.id,
+            EventCreate(
+                title="Party",
+                event_date=date(2026, 1, 1),
+                person_names=["Max"],
+            ),
+        )
 
         people = await get_user_people(session, user.id)
         assert len(people) == 1

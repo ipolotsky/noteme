@@ -27,6 +27,7 @@ from app.services.wish_service import create_wish
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 async def _make_user(
     session: AsyncSession,
     user_id: int = 123456789,
@@ -135,7 +136,9 @@ class TestOnboarding:
         state.set_state.assert_called_once()
 
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
-    async def test_04_onboarding_skip_event_advances_to_wish(self, mock_recalc, session: AsyncSession):
+    async def test_04_onboarding_skip_event_advances_to_wish(
+        self, mock_recalc, session: AsyncSession
+    ):
         """S04: Skip event step -> create registration event and advance to step 2."""
         from app.handlers.start import onboarding_skip_event
         from app.handlers.states import OnboardingStates
@@ -260,7 +263,9 @@ class TestEventCRUD:
         state = _mock_state()
         data = {"title": "Свадьба", "event_date": "2022-08-17"}
 
-        with patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock):
+        with patch(
+            "app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock
+        ):
             await _finish_event_create(msg, state, user, "ru", session, data, [])
 
         state.clear.assert_called_once()
@@ -273,7 +278,8 @@ class TestEventCRUD:
 
         user = await _make_user(session)
         event = await create_event(
-            session, user.id,
+            session,
+            user.id,
             EventCreate(title="Birthday", event_date=date(2000, 1, 15)),
         )
         cb = _mock_callback()
@@ -291,7 +297,8 @@ class TestEventCRUD:
 
         user = await _make_user(session)
         event = await create_event(
-            session, user.id,
+            session,
+            user.id,
             EventCreate(title="System", event_date=date(2022, 1, 1), is_system=True),
         )
         cb = _mock_callback()
@@ -309,13 +316,17 @@ class TestEventCRUD:
 
         user = await _make_user(session, max_events=1)
         # Create 1 event to hit the limit
-        await create_event(session, user.id, EventCreate(title="First", event_date=date(2020, 1, 1)))
+        await create_event(
+            session, user.id, EventCreate(title="First", event_date=date(2020, 1, 1))
+        )
 
         msg = _mock_message()
         state = _mock_state()
         data = {"title": "Second", "event_date": "2021-01-01"}
 
-        with patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock):
+        with patch(
+            "app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock
+        ):
             await _finish_event_create(msg, state, user, "ru", session, data, [])
 
         text = msg.answer.call_args.args[0]
@@ -390,7 +401,8 @@ class TestWishCRUD:
 
         user = await _make_user(session)
         wish = await create_wish(
-            session, user.id,
+            session,
+            user.id,
             WishCreate(text="Test wish"),
         )
         cb = _mock_callback()
@@ -473,7 +485,8 @@ class TestPersonCRUD:
         user = await _make_user(session)
         person = await create_person(session, user.id, "Family")
         await create_event(
-            session, user.id,
+            session,
+            user.id,
             EventCreate(title="Bday", event_date=date(2020, 5, 1), person_names=["Family"]),
         )
         cb = _mock_callback()
@@ -502,7 +515,9 @@ class TestPersonCRUD:
         text = msg.answer.call_args.args[0]
         assert "New" in text
 
-    async def test_28_person_rename_duplicate_shows_error_with_keyboard(self, session: AsyncSession):
+    async def test_28_person_rename_duplicate_shows_error_with_keyboard(
+        self, session: AsyncSession
+    ):
         """S28: Rename person to existing name → error + main_menu_kb (not dead-end)."""
         from app.handlers.people import person_rename_name
 
@@ -730,7 +745,8 @@ class TestFeed:
 
         user = await _make_user(session)
         event = await create_event(
-            session, user.id,
+            session,
+            user.id,
             EventCreate(title="Wedding", event_date=date(2020, 8, 17)),
         )
         await recalculate_for_event(session, event)
@@ -810,7 +826,8 @@ class TestEdgeCases:
         user = await _make_user(session)
         malicious_title = "<b>HACKED</b><script>alert(1)</script>"
         event = await create_event(
-            session, user.id,
+            session,
+            user.id,
             EventCreate(title=malicious_title, event_date=date(2023, 1, 1)),
         )
         cb = _mock_callback()
@@ -830,7 +847,8 @@ class TestEdgeCases:
         user = await _make_user(session)
         malicious_text = "<img src=x onerror=alert(1)>Hello"
         wish = await create_wish(
-            session, user.id,
+            session,
+            user.id,
             WishCreate(text=malicious_text),
         )
         cb = _mock_callback()

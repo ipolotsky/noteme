@@ -18,6 +18,7 @@ from app.services.user_service import get_or_create_user
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 async def _make_user(
     session: AsyncSession,
     user_id: int = 111222333,
@@ -75,6 +76,7 @@ class TestCallbackData:
 
     def test_menu_cb_pack_unpack(self):
         from app.keyboards.callbacks import MenuCb
+
         cb = MenuCb(action="feed")
         packed = cb.pack()
         assert "feed" in packed
@@ -83,6 +85,7 @@ class TestCallbackData:
 
     def test_event_cb_with_defaults(self):
         from app.keyboards.callbacks import EventCb
+
         cb = EventCb(action="list")
         packed = cb.pack()
         unpacked = EventCb.unpack(packed)
@@ -92,6 +95,7 @@ class TestCallbackData:
 
     def test_event_cb_with_values(self):
         from app.keyboards.callbacks import EventCb
+
         test_id = str(uuid.uuid4())
         cb = EventCb(action="view", id=test_id, page=3)
         unpacked = EventCb.unpack(cb.pack())
@@ -100,23 +104,27 @@ class TestCallbackData:
 
     def test_wish_cb_roundtrip(self):
         from app.keyboards.callbacks import WishCb
+
         cb = WishCb(action="create")
         assert WishCb.unpack(cb.pack()).action == "create"
 
     def test_person_cb_roundtrip(self):
         from app.keyboards.callbacks import PersonCb
+
         cb = PersonCb(action="view", id="abc-123")
         unpacked = PersonCb.unpack(cb.pack())
         assert unpacked.id == "abc-123"
 
     def test_settings_cb_roundtrip(self):
         from app.keyboards.callbacks import SettingsCb
+
         cb = SettingsCb(action="timezone", value="Europe/London")
         unpacked = SettingsCb.unpack(cb.pack())
         assert unpacked.value == "Europe/London"
 
     def test_feed_cb_roundtrip(self):
         from app.keyboards.callbacks import FeedCb
+
         cb = FeedCb(action="share", id="test-id", page=2)
         unpacked = FeedCb.unpack(cb.pack())
         assert unpacked.action == "share"
@@ -124,6 +132,7 @@ class TestCallbackData:
 
     def test_page_cb_roundtrip(self):
         from app.keyboards.callbacks import PageCb
+
         cb = PageCb(target="events", page=5)
         unpacked = PageCb.unpack(cb.pack())
         assert unpacked.target == "events"
@@ -131,11 +140,13 @@ class TestCallbackData:
 
     def test_lang_cb_roundtrip(self):
         from app.keyboards.callbacks import LangCb
+
         cb = LangCb(code="en")
         assert LangCb.unpack(cb.pack()).code == "en"
 
     def test_onboard_cb_roundtrip(self):
         from app.keyboards.callbacks import OnboardCb
+
         cb = OnboardCb(action="skip")
         assert OnboardCb.unpack(cb.pack()).action == "skip"
 
@@ -150,24 +161,30 @@ class TestMainMenuKeyboard:
 
     def test_main_menu_has_five_buttons(self):
         from app.keyboards.main_menu import main_menu_kb
+
         kb = main_menu_kb("ru")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
         assert len(buttons) == 5  # feed, events, wishes, people, settings
 
     def test_main_menu_en(self):
         from app.keyboards.main_menu import main_menu_kb
+
         kb = main_menu_kb("en")
         all_text = " ".join(btn.text for row in kb.inline_keyboard for btn in row)
-        assert any(word in all_text.lower() for word in ["feed", "events", "wishes", "people", "settings"])
+        assert any(
+            word in all_text.lower() for word in ["feed", "events", "wishes", "people", "settings"]
+        )
 
     def test_cancel_kb_has_cancel_button(self):
         from app.keyboards.main_menu import cancel_kb
+
         kb = cancel_kb("ru")
         assert len(kb.inline_keyboard) == 1
         assert kb.inline_keyboard[0][0].callback_data == "cancel"
 
     def test_onboarding_skip_kb_emoji_only(self):
         from app.keyboards.main_menu import onboarding_skip_kb
+
         kb = onboarding_skip_kb("en")
         assert len(kb.inline_keyboard) == 1
         btn = kb.inline_keyboard[0][0]
@@ -176,6 +193,7 @@ class TestMainMenuKeyboard:
 
     def test_onboarding_event_kb_skip_button(self):
         from app.keyboards.main_menu import onboarding_event_kb
+
         kb = onboarding_event_kb("ru")
         assert len(kb.inline_keyboard) == 1
         buttons = kb.inline_keyboard[0]
@@ -188,6 +206,7 @@ class TestEventsKeyboard:
 
     def test_events_list_empty(self):
         from app.keyboards.events import events_list_kb
+
         kb = events_list_kb([], 0, 0, "ru")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
         assert len(buttons) >= 2
@@ -195,6 +214,7 @@ class TestEventsKeyboard:
 
     def test_events_list_with_items(self):
         from app.keyboards.events import events_list_kb
+
         evs = [_make_event_obj(title=f"Event {i}") for i in range(3)]
         kb = events_list_kb(evs, 0, 3, "ru")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
@@ -202,6 +222,7 @@ class TestEventsKeyboard:
 
     def test_events_list_pagination_appears(self):
         from app.keyboards.events import PAGE_SIZE, events_list_kb
+
         evs = [_make_event_obj() for _ in range(PAGE_SIZE)]
         kb = events_list_kb(evs, 0, PAGE_SIZE + 5, "ru")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
@@ -209,6 +230,7 @@ class TestEventsKeyboard:
 
     def test_event_view_kb_has_edit_delete_dates(self):
         from app.keyboards.events import event_view_kb
+
         ev = _make_event_obj()
         kb = event_view_kb(ev, "en")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
@@ -218,6 +240,7 @@ class TestEventsKeyboard:
 
     def test_event_edit_kb_has_fields(self):
         from app.keyboards.events import event_edit_kb
+
         kb = event_edit_kb("test-id", "ru")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
         assert any("title" in cb for cb in all_cbs)
@@ -227,12 +250,14 @@ class TestEventsKeyboard:
 
     def test_event_delete_confirm_kb(self):
         from app.keyboards.events import event_delete_confirm_kb
+
         kb = event_delete_confirm_kb("test-id", "ru")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
         assert len(buttons) == 2
 
     def test_event_skip_kb_has_cancel(self):
         from app.keyboards.events import event_skip_kb
+
         kb = event_skip_kb("ru")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
         assert "skip" in all_cbs
@@ -244,12 +269,14 @@ class TestWishesKeyboard:
 
     def test_wishes_list_empty(self):
         from app.keyboards.wishes import wishes_list_kb
+
         kb = wishes_list_kb([], 0, 0, "en")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
         assert len(buttons) >= 2  # create + back
 
     def test_wishes_list_text_preview_truncation(self):
         from app.keyboards.wishes import wishes_list_kb
+
         long_wish = _make_wish_obj(text="A" * 100)
         kb = wishes_list_kb([long_wish], 0, 1, "ru")
         first_btn = kb.inline_keyboard[0][0]
@@ -257,6 +284,7 @@ class TestWishesKeyboard:
 
     def test_wish_view_kb(self):
         from app.keyboards.wishes import wish_view_kb
+
         n = _make_wish_obj()
         kb = wish_view_kb(n, "ru")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
@@ -265,6 +293,7 @@ class TestWishesKeyboard:
 
     def test_wish_skip_kb_has_cancel(self):
         from app.keyboards.wishes import wish_skip_kb
+
         kb = wish_skip_kb("en")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
         assert "skip" in all_cbs
@@ -276,12 +305,14 @@ class TestPeopleKeyboard:
 
     def test_people_list_empty(self):
         from app.keyboards.people import people_list_kb
+
         kb = people_list_kb([], 0, 0, "ru")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
         assert len(buttons) >= 2  # create + back
 
     def test_people_list_with_items(self):
         from app.keyboards.people import people_list_kb
+
         people_items = [_make_person_obj(name=f"Person{i}") for i in range(3)]
         kb = people_list_kb(people_items, 0, 3, "en")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
@@ -289,6 +320,7 @@ class TestPeopleKeyboard:
 
     def test_person_view_kb(self):
         from app.keyboards.people import person_view_kb
+
         tg = _make_person_obj()
         kb = person_view_kb(tg, "ru")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
@@ -297,6 +329,7 @@ class TestPeopleKeyboard:
 
     def test_person_delete_confirm_kb(self):
         from app.keyboards.people import person_delete_confirm_kb
+
         kb = person_delete_confirm_kb("test-id", "en")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
         assert len(buttons) == 2
@@ -307,6 +340,7 @@ class TestSettingsKeyboard:
 
     def test_settings_kb_has_all_options(self, session: AsyncSession):
         from app.keyboards.settings import settings_kb
+
         user = MagicMock(spec=User)
         user.notifications_enabled = True
         user.spoiler_enabled = False
@@ -317,6 +351,7 @@ class TestSettingsKeyboard:
 
     def test_settings_kb_language_label_ru(self):
         from app.keyboards.settings import settings_kb
+
         user = MagicMock(spec=User)
         user.notifications_enabled = True
         user.spoiler_enabled = True
@@ -327,11 +362,13 @@ class TestSettingsKeyboard:
 
     def test_language_select_kb_no_back(self):
         from app.keyboards.settings import language_select_kb
+
         kb = language_select_kb()
         assert len(kb.inline_keyboard) == 1  # only language row, no back
 
     def test_language_select_kb_with_back(self):
         from app.keyboards.settings import language_select_kb
+
         kb = language_select_kb(back_lang="en")
         assert len(kb.inline_keyboard) == 2  # language row + back row
         back_btn = kb.inline_keyboard[1][0]
@@ -339,9 +376,9 @@ class TestSettingsKeyboard:
 
 
 class TestFeedKeyboard:
-
     def test_feed_card_kb_first_page(self):
         from app.keyboards.feed import feed_card_kb
+
         bd = _make_bd_obj()
         kb = feed_card_kb(bd, 0, 5, "ru")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
@@ -351,6 +388,7 @@ class TestFeedKeyboard:
 
     def test_feed_card_kb_middle_page(self):
         from app.keyboards.feed import feed_card_kb
+
         bd = _make_bd_obj()
         kb = feed_card_kb(bd, 2, 5, "en")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
@@ -359,6 +397,7 @@ class TestFeedKeyboard:
 
     def test_feed_card_kb_single_item(self):
         from app.keyboards.feed import feed_card_kb
+
         bd = _make_bd_obj()
         kb = feed_card_kb(bd, 0, 1, "ru")
         all_cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
@@ -370,13 +409,17 @@ class TestPagination:
 
     def test_first_page_no_prev(self):
         from app.keyboards.pagination import pagination_row
+
         row = pagination_row("events", 0, 20, 5, "ru")
         cbs = [btn.callback_data for btn in row]
-        assert not any("page=0" in cb and "pg:" in cb for cb in cbs if cb != "noop")  # no prev on first page
+        assert not any(
+            "page=0" in cb and "pg:" in cb for cb in cbs if cb != "noop"
+        )  # no prev on first page
         assert any("noop" in cb for cb in cbs)  # page counter
 
     def test_last_page_no_next(self):
         from app.keyboards.pagination import pagination_row
+
         row = pagination_row("events", 3, 20, 5, "ru")
         texts = [btn.text for btn in row]
         assert "4/4" in texts
@@ -384,16 +427,19 @@ class TestPagination:
 
     def test_middle_page_both_arrows(self):
         from app.keyboards.pagination import pagination_row
+
         row = pagination_row("wishes", 1, 15, 5, "ru")
         assert len(row) == 3  # prev + counter + next
 
     def test_single_page_no_arrows(self):
         from app.keyboards.pagination import pagination_row
+
         row = pagination_row("people", 0, 3, 5, "ru")
         assert len(row) == 1  # just counter
 
     def test_page_counter_text(self):
         from app.keyboards.pagination import pagination_row
+
         row = pagination_row("feed", 2, 30, 5, "ru")
         counter = next(btn for btn in row if btn.callback_data == "noop")
         assert counter.text == "3/6"
@@ -409,12 +455,14 @@ class TestFSMStates:
 
     def test_onboarding_states(self):
         from app.handlers.states import OnboardingStates
+
         assert OnboardingStates.waiting_language
         assert OnboardingStates.waiting_first_event
         assert OnboardingStates.waiting_first_wish
 
     def test_event_create_states(self):
         from app.handlers.states import EventCreateStates
+
         assert EventCreateStates.waiting_title
         assert EventCreateStates.waiting_date
         assert EventCreateStates.waiting_description
@@ -422,6 +470,7 @@ class TestFSMStates:
 
     def test_event_edit_states(self):
         from app.handlers.states import EventEditStates
+
         assert EventEditStates.waiting_title
         assert EventEditStates.waiting_date
         assert EventEditStates.waiting_description
@@ -429,21 +478,25 @@ class TestFSMStates:
 
     def test_wish_create_states(self):
         from app.handlers.states import WishCreateStates
+
         assert WishCreateStates.waiting_text
         assert WishCreateStates.waiting_people
 
     def test_wish_edit_states(self):
         from app.handlers.states import WishEditStates
+
         assert WishEditStates.waiting_text
         assert WishEditStates.waiting_people
 
     def test_person_states(self):
         from app.handlers.states import PersonCreateStates, PersonRenameStates
+
         assert PersonCreateStates.waiting_name
         assert PersonRenameStates.waiting_name
 
     def test_settings_states(self):
         from app.handlers.states import SettingsStates
+
         assert SettingsStates.waiting_timezone
         assert SettingsStates.waiting_day_before_time
         assert SettingsStates.waiting_week_before_time
@@ -462,6 +515,7 @@ class TestSchemas:
         from pydantic import ValidationError
 
         from app.schemas.user import UserCreate
+
         try:
             UserCreate()  # type: ignore[call-arg]
             raise AssertionError("Should require id")
@@ -470,6 +524,7 @@ class TestSchemas:
 
     def test_user_create_defaults(self):
         from app.schemas.user import UserCreate
+
         u = UserCreate(id=123)
         assert u.language == "ru"
         assert u.timezone == "Europe/Moscow"
@@ -479,6 +534,7 @@ class TestSchemas:
         from pydantic import ValidationError
 
         from app.schemas.event import EventCreate
+
         try:
             EventCreate()  # type: ignore[call-arg]
             raise AssertionError("Should require title and event_date")
@@ -487,11 +543,13 @@ class TestSchemas:
 
     def test_event_create_person_names_default_empty(self):
         from app.schemas.event import EventCreate
+
         e = EventCreate(title="Test", event_date=date(2023, 1, 1))
         assert e.person_names == []
 
     def test_event_update_all_optional(self):
         from app.schemas.event import EventUpdate
+
         u = EventUpdate()
         assert u.title is None
         assert u.person_names is None
@@ -500,6 +558,7 @@ class TestSchemas:
         from pydantic import ValidationError
 
         from app.schemas.wish import WishCreate
+
         try:
             WishCreate()  # type: ignore[call-arg]
             raise AssertionError("Should require text")
@@ -508,46 +567,54 @@ class TestSchemas:
 
     def test_wish_create_person_names_default_empty(self):
         from app.schemas.wish import WishCreate
+
         w = WishCreate(text="Hello")
         assert w.person_names == []
 
     def test_wish_update_all_optional(self):
         from app.schemas.wish import WishUpdate
+
         u = WishUpdate()
         assert u.text is None
 
     def test_parse_person_names_comma(self):
         import re
+
         text = "Маша, Петя, Дима"
         result = [x for x in re.split(r"[,\s]+", text.strip()) if x]
         assert result == ["Маша", "Петя", "Дима"]
 
     def test_parse_person_names_space(self):
         import re
+
         text = "Маша Петя Дима"
         result = [x for x in re.split(r"[,\s]+", text.strip()) if x]
         assert result == ["Маша", "Петя", "Дима"]
 
     def test_parse_person_names_mixed(self):
         import re
+
         text = "Маша, Петя Дима"
         result = [x for x in re.split(r"[,\s]+", text.strip()) if x]
         assert result == ["Маша", "Петя", "Дима"]
 
     def test_parse_person_names_extra_whitespace(self):
         import re
+
         text = "  Маша ,  Петя  "
         result = [x for x in re.split(r"[,\s]+", text.strip()) if x]
         assert result == ["Маша", "Петя"]
 
     def test_parse_person_names_single(self):
         import re
+
         text = "Маша"
         result = [x for x in re.split(r"[,\s]+", text.strip()) if x]
         assert result == ["Маша"]
 
     def test_user_update_all_optional(self):
         from app.schemas.user import UserUpdate
+
         u = UserUpdate()
         assert u.language is None
         assert u.onboarding_completed is None
@@ -792,23 +859,27 @@ class TestConfig:
 
     def test_database_url_format(self):
         from app.config import settings
+
         url = settings.database_url
         assert url.startswith("postgresql+asyncpg://")
         assert settings.db_name in url
 
     def test_database_url_sync_format(self):
         from app.config import settings
+
         url = settings.database_url_sync
         assert url.startswith("postgresql://")
         assert "asyncpg" not in url
 
     def test_redis_url_format(self):
         from app.config import settings
+
         url = settings.redis_url
         assert url.startswith("redis://")
 
     def test_app_debug_default(self):
         from app.config import settings
+
         assert isinstance(settings.app_debug, bool)
 
 
@@ -955,26 +1026,32 @@ class TestMetrics:
 
     def test_message_counter_exists(self):
         from app.utils.metrics import messages_total
+
         assert messages_total is not None
 
     def test_ai_metrics_exist(self):
         from app.utils.metrics import ai_latency_seconds, ai_requests_total
+
         assert ai_requests_total is not None
         assert ai_latency_seconds is not None
 
     def test_entity_gauges_exist(self):
         from app.utils.metrics import events_total, wishes_total
+
         assert events_total is not None
         assert wishes_total is not None
 
     def test_notification_counter_exists(self):
         from app.utils.metrics import notifications_sent_total
+
         assert notifications_sent_total is not None
 
     def test_error_counter_exists(self):
         from app.utils.metrics import errors_total
+
         assert errors_total is not None
 
     def test_active_users_gauge_exists(self):
         from app.utils.metrics import active_users
+
         assert active_users is not None

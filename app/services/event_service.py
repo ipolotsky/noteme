@@ -48,9 +48,7 @@ async def count_user_events(session: AsyncSession, user_id: int) -> int:
     return result.scalar_one()
 
 
-async def create_event(
-    session: AsyncSession, user_id: int, data: EventCreate
-) -> Event:
+async def create_event(session: AsyncSession, user_id: int, data: EventCreate) -> Event:
     user = await session.get(User, user_id)
     if user is None:
         raise ValueError("User not found")

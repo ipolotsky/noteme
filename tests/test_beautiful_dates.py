@@ -202,6 +202,7 @@ class TestEngineIntegration:
 
         # Create strategies
         from app.models.beautiful_date_strategy import BeautifulDateStrategy
+
         for data in STRATEGIES[:3]:  # Just first 3 strategies for speed
             s = BeautifulDateStrategy(**data)
             session.add(s)
@@ -215,6 +216,7 @@ class TestEngineIntegration:
         from sqlalchemy import select
 
         from app.models.beautiful_date import BeautifulDate
+
         result = await session.execute(
             select(BeautifulDate).where(BeautifulDate.event_id == event.id)
         )
@@ -246,6 +248,7 @@ class TestEngineIntegration:
         await session.flush()
 
         from app.models.beautiful_date_strategy import BeautifulDateStrategy
+
         for data in STRATEGIES:
             s = BeautifulDateStrategy(**data)
             session.add(s)
@@ -256,6 +259,7 @@ class TestEngineIntegration:
         from sqlalchemy import select
 
         from app.models.beautiful_date import BeautifulDate
+
         result = await session.execute(
             select(BeautifulDate).where(BeautifulDate.event_id == event.id)
         )

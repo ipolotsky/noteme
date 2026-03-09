@@ -54,9 +54,15 @@ async def wish_agent_node(state: AgentState) -> AgentState:
     usage = getattr(response, "usage_metadata", None) or {}
     al.set_response(
         text=content,
-        tokens_prompt=usage.get("input_tokens") if isinstance(usage, dict) else getattr(usage, "input_tokens", None),
-        tokens_completion=usage.get("output_tokens") if isinstance(usage, dict) else getattr(usage, "output_tokens", None),
-        tokens_total=usage.get("total_tokens") if isinstance(usage, dict) else getattr(usage, "total_tokens", None),
+        tokens_prompt=usage.get("input_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "input_tokens", None),
+        tokens_completion=usage.get("output_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "output_tokens", None),
+        tokens_total=usage.get("total_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "total_tokens", None),
     )
     await al.flush()
 
@@ -70,9 +76,16 @@ async def wish_agent_node(state: AgentState) -> AgentState:
         state.wish_text = data.get("text", text)
         state.person_names = data.get("people", [])
         state.needs_confirmation = True
-        logger.info("[wish_agent] user=%s text=%r people=%r", state.user_id, state.wish_text[:100], state.person_names)
+        logger.info(
+            "[wish_agent] user=%s text=%r people=%r",
+            state.user_id,
+            state.wish_text[:100],
+            state.person_names,
+        )
     except (json.JSONDecodeError, ValueError, KeyError) as e:
-        logger.warning("[wish_agent] user=%s PARSE ERROR: %s content=%r", state.user_id, e, content)
+        logger.warning(
+            "[wish_agent] user=%s PARSE ERROR: %s content=%r", state.user_id, e, content
+        )
         state.wish_text = text
         state.needs_confirmation = True
 
