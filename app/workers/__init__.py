@@ -7,7 +7,10 @@ from app.config import settings
 from app.workers.action_logs import persist_action_logs_task
 from app.workers.ai_logs import persist_ai_logs_task
 from app.workers.cleanup import cleanup_past_beautiful_dates, deactivate_expired_subscriptions_task
-from app.workers.notifications import check_and_send_notifications, check_subscription_expiry_notifications
+from app.workers.notifications import (
+    check_and_send_notifications,
+    check_subscription_expiry_notifications,
+)
 
 
 def parse_redis_url() -> RedisSettings:
