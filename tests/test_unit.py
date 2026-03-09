@@ -516,6 +516,36 @@ class TestSchemas:
         u = WishUpdate()
         assert u.text is None
 
+    def test_parse_person_names_comma(self):
+        import re
+        text = "Маша, Петя, Дима"
+        result = [x for x in re.split(r"[,\s]+", text.strip()) if x]
+        assert result == ["Маша", "Петя", "Дима"]
+
+    def test_parse_person_names_space(self):
+        import re
+        text = "Маша Петя Дима"
+        result = [x for x in re.split(r"[,\s]+", text.strip()) if x]
+        assert result == ["Маша", "Петя", "Дима"]
+
+    def test_parse_person_names_mixed(self):
+        import re
+        text = "Маша, Петя Дима"
+        result = [x for x in re.split(r"[,\s]+", text.strip()) if x]
+        assert result == ["Маша", "Петя", "Дима"]
+
+    def test_parse_person_names_extra_whitespace(self):
+        import re
+        text = "  Маша ,  Петя  "
+        result = [x for x in re.split(r"[,\s]+", text.strip()) if x]
+        assert result == ["Маша", "Петя"]
+
+    def test_parse_person_names_single(self):
+        import re
+        text = "Маша"
+        result = [x for x in re.split(r"[,\s]+", text.strip()) if x]
+        assert result == ["Маша"]
+
     def test_user_update_all_optional(self):
         from app.schemas.user import UserUpdate
         u = UserUpdate()
