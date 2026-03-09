@@ -1,10 +1,17 @@
 """Tests for subscription expiry notifications."""
 
+import sys
+import types
 from datetime import UTC, date, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from aiogram.exceptions import TelegramForbiddenError
+
+_bot_module = types.ModuleType("app.bot")
+_bot_module.bot = MagicMock()
+if "app.bot" not in sys.modules:
+    sys.modules["app.bot"] = _bot_module
 
 
 def _make_mock_user(
