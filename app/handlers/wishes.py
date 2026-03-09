@@ -1,4 +1,5 @@
 import contextlib
+import re
 import uuid
 from html import escape
 
@@ -163,7 +164,7 @@ async def wish_create_people(
     if text is None:
         return
     data = await state.get_data()
-    person_names = [tg.strip() for tg in text.split(",") if tg.strip()]
+    person_names = [x for x in re.split(r"[,\s]+", text.strip()) if x]
     await _finish_wish_create(message, state, user, lang, session, data, person_names)
 
 
@@ -299,7 +300,7 @@ async def wish_edit_people(
     if text is None:
         return
     data = await state.get_data()
-    person_names = [tg.strip() for tg in text.split(",") if tg.strip()]
+    person_names = [x for x in re.split(r"[,\s]+", text.strip()) if x]
     wish = await update_wish(
         session, uuid.UUID(data["edit_wish_id"]), WishUpdate(person_names=person_names),
         user_id=user.id,

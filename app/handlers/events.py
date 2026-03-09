@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import date, datetime
 from html import escape
@@ -361,7 +362,7 @@ async def event_create_people(
     if text is None:
         return
     data = await state.get_data()
-    person_names = [x.strip() for x in text.split(",") if x.strip()]
+    person_names = [x for x in re.split(r"[,\s]+", text.strip()) if x]
     await _finish_event_create(message, state, user, lang, session, data, person_names)
 
 
@@ -609,7 +610,7 @@ async def event_edit_people(
     if text is None:
         return
     data = await state.get_data()
-    person_names = [x.strip() for x in text.split(",") if x.strip()]
+    person_names = [x for x in re.split(r"[,\s]+", text.strip()) if x]
     event = await update_event(
         session, uuid.UUID(data["edit_event_id"]), EventUpdate(person_names=person_names),
         user_id=user.id,
