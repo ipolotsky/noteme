@@ -400,7 +400,13 @@ async def _finish_event_create(
     try:
         event = await create_event(session, user.id, event_data)
     except EventLimitError:
-        await reply_and_cleanup(message, state, t("events.limit_reached", lang, max=str(user.max_events)))
+        from app.keyboards.subscription import upgrade_kb
+
+        await reply_and_cleanup(
+            message, state,
+            t("events.limit_reached", lang, max=str(user.max_events)),
+            reply_markup=upgrade_kb(lang),
+        )
         await state.clear()
         return
 

@@ -1,0 +1,56 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block content_header %}
+<div class="row align-items-center">
+    <div class="col">
+        <h2 class="page-title">Stars Balance</h2>
+        <div class="page-pretitle">Telegram Stars transactions</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="col-12">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Balance: {{ balance }} Stars</h3>
+        </div>
+        {% if error %}
+        <div class="card-body">
+            <p class="text-danger">{{ error }}</p>
+        </div>
+        {% elif transactions %}
+        <div class="table-responsive">
+            <table class="table card-table table-vcenter text-nowrap">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Direction</th>
+                        <th>Transaction ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                    <tr>
+                        <td>{{ t.date }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if t.incoming else 'danger' }}">
+                                {{ '+' if t.incoming else '-' }}{{ t.amount }}
+                            </span>
+                        </td>
+                        <td>{{ 'Incoming' if t.incoming else 'Outgoing' }}</td>
+                        <td><code>{{ t.id }}</code></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="card-body">
+            <p class="text-muted">No transactions yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

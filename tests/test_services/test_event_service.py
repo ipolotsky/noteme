@@ -98,3 +98,22 @@ async def test_get_user_events(session: AsyncSession, user_id: int):
     assert len(events) == 3
     count = await count_user_events(session, user_id)
     assert count == 3
+
+
+@pytest.mark.asyncio
+async def test_event_limit_bypassed_by_subscription(session: AsyncSession, user_id: int):
+    from app.services.subscription_service import grant_subscription
+
+    user = await _create_test_user(session, user_id)
+    user.max_events = 2
+    await session.flush()
+
+    for i in range(2):
+        data = EventCreate(title=f"Event {i}", event_date=date(2022, 1, i + 1))
+        await create_event(session, user_id, data)
+
+    await grant_subscription(session, user_id, months=1, source="admin")
+
+    data = EventCreate(title="Extra", event_date=date(2022, 1, 3))
+    event = await create_event(session, user_id, data)
+    assert event.title == "Extra"

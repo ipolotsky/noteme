@@ -20,7 +20,7 @@ STRATEGIES = [
         "name_ru": "Круглые сотни дней",
         "name_en": "Round hundreds of days",
         "strategy_type": "multiples",
-        "params": {"base": 100, "min": 100, "max": 1000, "unit": "days"},
+        "params": {"base": 100, "min": 100, "max": 400, "unit": "days"},
         "priority": 2,
     },
     {
@@ -34,7 +34,7 @@ STRATEGIES = [
         "name_ru": "Круглые тысячи дней",
         "name_en": "Round thousands of days",
         "strategy_type": "multiples",
-        "params": {"base": 1000, "min": 1000, "max": 100000, "unit": "days"},
+        "params": {"base": 1000, "min": 11000, "max": 100000, "unit": "days"},
         "priority": 4,
     },
     {
@@ -150,6 +150,24 @@ async def seed_strategies() -> int:
                 created += 1
         await session.commit()
     return created
+
+
+async def update_strategy_params() -> int:
+    """Update params of existing strategies to match code definitions."""
+    updated = 0
+    async with async_session_factory() as session:
+        for data in STRATEGIES:
+            result = await session.execute(
+                select(BeautifulDateStrategy).where(
+                    BeautifulDateStrategy.name_en == data["name_en"]
+                )
+            )
+            strategy = result.scalar_one_or_none()
+            if strategy is not None and strategy.params != data["params"]:
+                strategy.params = data["params"]
+                updated += 1
+        await session.commit()
+    return updated
 
 
 async def main() -> None:

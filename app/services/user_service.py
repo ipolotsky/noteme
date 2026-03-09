@@ -29,14 +29,26 @@ async def get_or_create_user(session: AsyncSession, data: UserCreate) -> tuple[U
             await session.flush()
         return user, False
 
+    from app.services.app_settings_service import get_int_setting
+
+    max_events = await get_int_setting(
+        session, "default_max_events", settings.default_max_events
+    )
+    max_wishes = await get_int_setting(
+        session, "default_max_wishes", settings.default_max_wishes
+    )
+    max_people = await get_int_setting(
+        session, "default_max_people_per_entity", settings.default_max_people_per_entity
+    )
+
     user = User(
         id=data.id,
         username=data.username,
         first_name=data.first_name,
         language=data.language,
-        max_events=settings.default_max_events,
-        max_wishes=settings.default_max_wishes,
-        max_people_per_entity=settings.default_max_people_per_entity,
+        max_events=max_events,
+        max_wishes=max_wishes,
+        max_people_per_entity=max_people,
     )
     session.add(user)
     await session.flush()

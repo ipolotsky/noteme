@@ -82,3 +82,22 @@ async def test_get_user_wishes(session: AsyncSession, user_id: int):
     assert len(wishes) == 3
     count = await count_user_wishes(session, user_id)
     assert count == 3
+
+
+@pytest.mark.asyncio
+async def test_wish_limit_bypassed_by_subscription(session: AsyncSession, user_id: int):
+    from app.services.subscription_service import grant_subscription
+
+    user = await _create_test_user(session, user_id)
+    user.max_wishes = 2
+    await session.flush()
+
+    for i in range(2):
+        data = WishCreate(text=f"Wish {i}")
+        await create_wish(session, user_id, data)
+
+    await grant_subscription(session, user_id, months=1, source="admin")
+
+    data = WishCreate(text="Extra wish")
+    wish = await create_wish(session, user_id, data)
+    assert wish.text == "Extra wish"

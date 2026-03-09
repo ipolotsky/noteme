@@ -196,9 +196,12 @@ async def _handle_agent_result(
                 ),
             )
         except EventLimitError:
+            from app.keyboards.subscription import upgrade_kb
+
             logger.warning("[handler] user=%s → event limit reached", user.id)
             await processing_msg.edit_text(
-                t("events.limit_reached", lang, max=str(user.max_events))
+                t("events.limit_reached", lang, max=str(user.max_events)),
+                reply_markup=upgrade_kb(lang),
             )
         except Exception:
             logger.exception("[handler] user=%s → event creation failed", user.id)
@@ -227,9 +230,12 @@ async def _handle_agent_result(
             )
             await processing_msg.edit_text(card, reply_markup=wish_view_kb(wish, lang))
         except WishLimitError:
+            from app.keyboards.subscription import upgrade_kb
+
             logger.warning("[handler] user=%s → wish limit reached", user.id)
             await processing_msg.edit_text(
-                t("wishes.limit_reached", lang, max=str(user.max_wishes))
+                t("wishes.limit_reached", lang, max=str(user.max_wishes)),
+                reply_markup=upgrade_kb(lang),
             )
         except Exception:
             logger.exception("[handler] user=%s → wish creation failed", user.id)

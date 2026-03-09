@@ -55,9 +55,15 @@ async def create_event(
     if user is None:
         raise ValueError("User not found")
 
+    from app.services.app_settings_service import get_int_setting
+
+    max_events = await get_int_setting(session, "default_max_events", user.max_events)
     count = await count_user_events(session, user_id)
-    if count >= user.max_events:
-        raise EventLimitError(user.max_events)
+    if count >= max_events:
+        from app.services.subscription_service import has_active_subscription
+
+        if not await has_active_subscription(session, user_id):
+            raise EventLimitError(max_events)
 
     people = []
     if data.person_names:

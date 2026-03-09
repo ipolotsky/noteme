@@ -2,12 +2,17 @@ from markupsafe import Markup
 from sqladmin import ModelView
 
 from app.models.ai_log import AILog
+from app.models.app_settings import AppSettings
 from app.models.beautiful_date import BeautifulDate
 from app.models.beautiful_date_strategy import BeautifulDateStrategy
 from app.models.event import Event
 from app.models.media_link import MediaLink
 from app.models.notification_log import NotificationLog
+from app.models.payment import Payment
 from app.models.person import Person
+from app.models.referral_reward import ReferralReward
+from app.models.subscription import Subscription
+from app.models.subscription_plan import SubscriptionPlan
 from app.models.user import User
 from app.models.user_action_log import UserActionLog
 from app.models.wish import Wish
@@ -47,7 +52,7 @@ class UserAdmin(ModelView, model=User):
     column_searchable_list = [User.username, User.first_name]
     column_sortable_list = [User.id, User.created_at]
     column_default_sort = ("created_at", True)
-    form_excluded_columns = [User.people, User.events, User.wishes]
+    form_excluded_columns = [User.people, User.events, User.wishes, User.subscriptions]
     name = "User"
     name_plural = "Users"
     icon = "fa-solid fa-users"
@@ -58,6 +63,10 @@ class UserAdmin(ModelView, model=User):
             f'style="margin-left:8px;padding:2px 8px;background:#0d6efd;color:#fff;'
             f'border-radius:4px;text-decoration:none;font-size:12px">'
             f'\U0001f514 Test</a>'
+            f' <a href="/admin/grant-premium/{m.id}" '
+            f'style="margin-left:4px;padding:2px 8px;background:#198754;color:#fff;'
+            f'border-radius:4px;text-decoration:none;font-size:12px">'
+            f'\u2b50 Premium</a>'
         ),
     }
 
@@ -226,3 +235,103 @@ class UserActionLogAdmin(ModelView, model=UserActionLog):
     name = "User Action"
     name_plural = "User Actions"
     icon = "fa-solid fa-list-check"
+
+
+class AppSettingsAdmin(ModelView, model=AppSettings):
+    column_list = [AppSettings.key, AppSettings.value, AppSettings.description]
+    column_searchable_list = [AppSettings.key]
+    column_sortable_list = [AppSettings.key]
+    column_default_sort = "key"
+    name = "App Setting"
+    name_plural = "App Settings"
+    icon = "fa-solid fa-sliders"
+
+    async def _invalidate_cache(self, model: AppSettings) -> None:
+        from app.services.app_settings_service import SETTINGS_CACHE_PREFIX
+        from app.services.cache import _get_redis
+
+        try:
+            r = _get_redis()
+            await r.delete(f"{SETTINGS_CACHE_PREFIX}{model.key}")
+        except Exception:
+            pass
+
+    async def after_model_change(self, data: dict, model: AppSettings, is_created: bool, request: object) -> None:
+        await self._invalidate_cache(model)
+
+    async def after_model_delete(self, model: AppSettings, request: object) -> None:
+        await self._invalidate_cache(model)
+
+
+class SubscriptionPlanAdmin(ModelView, model=SubscriptionPlan):
+    column_list = [
+        SubscriptionPlan.id,
+        SubscriptionPlan.name_en,
+        SubscriptionPlan.duration_months,
+        SubscriptionPlan.price_stars,
+        SubscriptionPlan.is_lifetime,
+        SubscriptionPlan.discount_percent,
+        SubscriptionPlan.is_active,
+        SubscriptionPlan.sort_order,
+    ]
+    column_sortable_list = [SubscriptionPlan.sort_order, SubscriptionPlan.price_stars]
+    column_default_sort = "sort_order"
+    form_excluded_columns = [SubscriptionPlan.subscriptions, SubscriptionPlan.payments]
+    name = "Subscription Plan"
+    name_plural = "Subscription Plans"
+    icon = "fa-solid fa-tags"
+
+
+class SubscriptionAdmin(ModelView, model=Subscription):
+    column_list = [
+        Subscription.id,
+        Subscription.user_id,
+        Subscription.plan_id,
+        Subscription.starts_at,
+        Subscription.expires_at,
+        Subscription.is_active,
+        Subscription.is_lifetime,
+        Subscription.source,
+        Subscription.created_at,
+    ]
+    column_sortable_list = [Subscription.created_at, Subscription.expires_at]
+    column_default_sort = ("created_at", True)
+    name = "Subscription"
+    name_plural = "Subscriptions"
+    icon = "fa-solid fa-crown"
+
+
+class PaymentAdmin(ModelView, model=Payment):
+    column_list = [
+        Payment.id,
+        Payment.user_id,
+        Payment.plan_id,
+        Payment.amount_stars,
+        Payment.status,
+        Payment.telegram_payment_charge_id,
+        Payment.created_at,
+    ]
+    column_sortable_list = [Payment.created_at, Payment.amount_stars]
+    column_default_sort = ("created_at", True)
+    can_create = False
+    can_edit = False
+    name = "Payment"
+    name_plural = "Payments"
+    icon = "fa-solid fa-credit-card"
+
+
+class ReferralRewardAdmin(ModelView, model=ReferralReward):
+    column_list = [
+        ReferralReward.id,
+        ReferralReward.referrer_id,
+        ReferralReward.referred_id,
+        ReferralReward.reward_months,
+        ReferralReward.created_at,
+    ]
+    column_sortable_list = [ReferralReward.created_at]
+    column_default_sort = ("created_at", True)
+    can_create = False
+    can_edit = False
+    name = "Referral Reward"
+    name_plural = "Referral Rewards"
+    icon = "fa-solid fa-user-plus"

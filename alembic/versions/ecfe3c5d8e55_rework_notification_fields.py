@@ -4,15 +4,16 @@ Revision ID: ecfe3c5d8e55
 Revises: 23ff32e98e49
 Create Date: 2026-03-06 12:35:51.263094
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
+
 revision: str = 'ecfe3c5d8e55'
-down_revision: Union[str, None] = '23ff32e98e49'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = '23ff32e98e49'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

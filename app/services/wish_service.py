@@ -58,9 +58,15 @@ async def create_wish(
     if user is None:
         raise ValueError("User not found")
 
+    from app.services.app_settings_service import get_int_setting
+
+    max_wishes = await get_int_setting(session, "default_max_wishes", user.max_wishes)
     count = await count_user_wishes(session, user_id)
-    if count >= user.max_wishes:
-        raise WishLimitError(user.max_wishes)
+    if count >= max_wishes:
+        from app.services.subscription_service import has_active_subscription
+
+        if not await has_active_subscription(session, user_id):
+            raise WishLimitError(max_wishes)
 
     people = []
     if data.person_names:
