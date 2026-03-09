@@ -1,5 +1,5 @@
 import logging
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -67,6 +67,24 @@ async def log_notification(
     )
     session.add(log)
     await session.flush()
+
+
+async def has_notification_been_sent(
+    session: AsyncSession,
+    user_id: int,
+    notification_type: str,
+    since: datetime,
+) -> bool:
+    result = await session.execute(
+        select(NotificationLog.id)
+        .where(
+            NotificationLog.user_id == user_id,
+            NotificationLog.notification_type == notification_type,
+            NotificationLog.sent_at >= since,
+        )
+        .limit(1)
+    )
+    return result.scalar_one_or_none() is not None
 
 
 async def get_active_notifiable_users(session: AsyncSession) -> list[User]:

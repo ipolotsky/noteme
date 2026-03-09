@@ -7,7 +7,7 @@ from app.config import settings
 from app.workers.action_logs import persist_action_logs_task
 from app.workers.ai_logs import persist_ai_logs_task
 from app.workers.cleanup import cleanup_past_beautiful_dates, deactivate_expired_subscriptions_task
-from app.workers.notifications import check_and_send_notifications
+from app.workers.notifications import check_and_send_notifications, check_subscription_expiry_notifications
 
 
 def parse_redis_url() -> RedisSettings:
@@ -36,6 +36,8 @@ class WorkerSettings:
         "app.workers.action_logs.persist_action_logs_task",
         "app.workers.cleanup.cleanup_past_beautiful_dates",
         "app.workers.cleanup.deactivate_expired_subscriptions_task",
+        "app.workers.notifications.send_subscription_expiry_notification",
+        "app.workers.notifications.check_subscription_expiry_notifications",
     ]
 
     cron_jobs = [
@@ -44,4 +46,5 @@ class WorkerSettings:
         cron(persist_action_logs_task, minute=set(range(60))),
         cron(cleanup_past_beautiful_dates, hour={3}, minute={0}),
         cron(deactivate_expired_subscriptions_task, hour={0}, minute={5}),
+        cron(check_subscription_expiry_notifications, minute=set(range(60))),
     ]
