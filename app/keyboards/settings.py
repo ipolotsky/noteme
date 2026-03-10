@@ -1,7 +1,7 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.i18n.loader import t
-from app.keyboards.callbacks import MenuCb, SettingsCb
+from app.keyboards.callbacks import MenuCb, SettingsCb, SubscribeCb
 from app.models.user import User
 
 
@@ -35,6 +35,18 @@ def settings_kb(user: User, lang: str) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(
                     text=t("settings.spoiler", lang, status=spoiler_status),
                     callback_data=SettingsCb(action="spoiler").pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("settings.billing", lang),
+                    callback_data=SettingsCb(action="billing").pack(),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("settings.referral", lang),
+                    callback_data=SettingsCb(action="referral").pack(),
                 )
             ],
             [
@@ -146,6 +158,28 @@ def digest_day_select_kb(lang: str) -> InlineKeyboardMarkup:
             InlineKeyboardButton(
                 text=f"\u25c0 {t('menu.back', lang)}",
                 callback_data=SettingsCb(action="notif_submenu").pack(),
+            )
+        ]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def billing_kb(lang: str, has_subscription: bool, is_lifetime: bool) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    if not is_lifetime:
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=t("settings.choose_plan", lang),
+                    callback_data=SubscribeCb(action="plans").pack(),
+                )
+            ]
+        )
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=f"\u25c0 {t('menu.back', lang)}",
+                callback_data=SettingsCb(action="view").pack(),
             )
         ]
     )
