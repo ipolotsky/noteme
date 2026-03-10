@@ -67,6 +67,33 @@ async def _send_date_card(bot, user_id: int, bd, lang: str, spoiler: bool, sessi
     await bot.send_message(user_id, text, reply_markup=kb)
 
 
+async def _send_teaser(bot, session, user, notification_type: str) -> bool:
+    from app.i18n.loader import t
+    from app.keyboards.subscription import upgrade_kb
+
+    today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    if await has_notification_been_sent(session, user.id, notification_type, today_start):
+        return False
+
+    try:
+        await bot.send_message(
+            user.id,
+            t("notifications.subscription_teaser", user.language),
+            reply_markup=upgrade_kb(user.language),
+        )
+        await log_notification(session, user.id, notification_type)
+        await session.commit()
+        return True
+    except TelegramForbiddenError:
+        logger.info("User %s blocked the bot, deactivating", user.id)
+        user.is_active = False
+        await session.commit()
+        return False
+    except Exception:
+        logger.exception("Failed to send %s to user %s", notification_type, user.id)
+        return False
+
+
 async def send_day_before_notification(ctx: dict, user_id: int, force: bool = False) -> bool:
     from app.bot import bot
 
@@ -81,6 +108,15 @@ async def send_day_before_notification(ctx: dict, user_id: int, force: bool = Fa
 
         lang = user.language
         tomorrow = date.today() + timedelta(days=1)
+
+        from app.services.subscription_service import is_over_free_limit
+
+        if await is_over_free_limit(session, user.id):
+            dates = await get_dates_for_day(session, user.id, tomorrow)
+            if not dates:
+                return False
+            return await _send_teaser(bot, session, user, "day_before_teaser")
+
         dates = await get_dates_for_day(session, user.id, tomorrow)
         if not dates:
             return False
@@ -121,6 +157,15 @@ async def send_week_before_notification(ctx: dict, user_id: int, force: bool = F
 
         lang = user.language
         week_later = date.today() + timedelta(days=7)
+
+        from app.services.subscription_service import is_over_free_limit
+
+        if await is_over_free_limit(session, user.id):
+            dates = await get_dates_for_day(session, user.id, week_later)
+            if not dates:
+                return False
+            return await _send_teaser(bot, session, user, "week_before_teaser")
+
         dates = await get_dates_for_day(session, user.id, week_later)
         if not dates:
             return False
@@ -162,6 +207,15 @@ async def send_weekly_digest_notification(ctx: dict, user_id: int, force: bool =
         lang = user.language
         today = date.today()
         end = today + timedelta(days=7)
+
+        from app.services.subscription_service import is_over_free_limit
+
+        if await is_over_free_limit(session, user.id):
+            dates = await get_dates_for_range(session, user.id, today, end)
+            if not dates:
+                return False
+            return await _send_teaser(bot, session, user, "weekly_digest_teaser")
+
         dates = await get_dates_for_range(session, user.id, today, end)
         if not dates:
             return False

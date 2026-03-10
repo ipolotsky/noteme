@@ -194,6 +194,27 @@ async def get_users_with_expiring_subscriptions(
     return list(result.tuples().all())
 
 
+async def is_over_free_limit(session: AsyncSession, user_id: int) -> bool:
+    if await has_active_subscription(session, user_id):
+        return False
+
+    from app.services.app_settings_service import get_int_setting
+    from app.services.event_service import count_user_events
+    from app.services.wish_service import count_user_wishes
+
+    user = await session.get(User, user_id)
+    if user is None:
+        return False
+
+    max_events = await get_int_setting(session, "default_max_events", user.max_events)
+    max_wishes = await get_int_setting(session, "default_max_wishes", user.max_wishes)
+
+    event_count = await count_user_events(session, user_id)
+    wish_count = await count_user_wishes(session, user_id)
+
+    return event_count > max_events or wish_count > max_wishes
+
+
 async def get_subscription_plans(session: AsyncSession) -> list[SubscriptionPlan]:
     result = await session.execute(
         select(SubscriptionPlan)

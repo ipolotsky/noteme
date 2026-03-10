@@ -121,7 +121,8 @@
     "prev": "Previous",
     "wishes_title": "Wishes",
     "no_wishes": "No wishes for this event.",
-    "open_stories": "For Stories"
+    "open_stories": "For Stories",
+    "subscription_required": "You have more events or wishes than the free plan allows. Subscribe to access the beautiful dates feed."
   },
 
   "settings": {
@@ -155,7 +156,8 @@
     "weekly_greeting": "Beautiful dates this week:",
     "open_feed": "Open feed",
     "sub_expiry_7d": "Your subscription expires in 7 days ({date}). Renew to keep all features!",
-    "sub_expiry_1d": "Your subscription expires tomorrow ({date}). Renew to keep access!"
+    "sub_expiry_1d": "Your subscription expires tomorrow ({date}). Renew to keep access!",
+    "subscription_teaser": "You have a beautiful date coming up! Subscribe to see the details."
   },
 
   "days_of_week": {

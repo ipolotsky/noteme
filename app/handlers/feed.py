@@ -242,6 +242,17 @@ async def show_feed_list(
 ) -> None:
     await _delete_previous_feed(callback.message.chat.id, state, callback.bot)  # type: ignore[union-attr]
 
+    from app.services.subscription_service import is_over_free_limit
+
+    if await is_over_free_limit(session, user.id):
+        from app.keyboards.subscription import upgrade_kb
+
+        await callback.message.edit_text(  # type: ignore[union-attr]
+            t("feed.subscription_required", lang),
+            reply_markup=upgrade_kb(lang),
+        )
+        return
+
     sent = await _show_card_new(callback.message, user, lang, session, state, offset=page)  # type: ignore[arg-type]
     if not sent:
         from app.keyboards.main_menu import main_menu_kb
@@ -267,6 +278,17 @@ async def send_feed_messages(
     from app.keyboards.main_menu import main_menu_kb
 
     await _delete_previous_feed(message.chat.id, state, message.bot)
+
+    from app.services.subscription_service import is_over_free_limit
+
+    if await is_over_free_limit(session, user.id):
+        from app.keyboards.subscription import upgrade_kb
+
+        await message.answer(
+            t("feed.subscription_required", lang),
+            reply_markup=upgrade_kb(lang),
+        )
+        return
 
     sent = await _show_card_new(message, user, lang, session, state, offset=page)
     if not sent:
@@ -294,6 +316,12 @@ async def feed_card(
     lang: str,
     session: AsyncSession,
 ) -> None:
+    from app.services.subscription_service import is_over_free_limit
+
+    if await is_over_free_limit(session, user.id):
+        await callback.answer(t("feed.subscription_required", lang), show_alert=True)
+        return
+
     total = await count_user_feed(session, user.id)
     if total == 0:
         await callback.answer(t("feed.empty", lang), show_alert=True)
