@@ -29,7 +29,7 @@ def onboarding_event_kb(lang: str) -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="\u23ed",
+                    text=t("onboarding.skip", lang),
                     callback_data=OnboardCb(action="skip").pack(),
                 )
             ],
@@ -44,7 +44,7 @@ def onboarding_skip_kb(lang: str) -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="\u23ed",
+                    text=t("onboarding.skip", lang),
                     callback_data=OnboardCb(action="skip").pack(),
                 )
             ],
