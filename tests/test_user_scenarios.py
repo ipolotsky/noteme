@@ -189,16 +189,32 @@ class TestEventCRUD:
 
     async def test_07_event_create_starts_fsm(self, session: AsyncSession):
         """S07: Press 'create event' → FSM state waiting_title, cancel button shown."""
+        from unittest.mock import patch
+
         from app.handlers.events import event_create_start
 
         cb = _mock_callback()
         state = _mock_state()
+        user = AsyncMock()
+        user.id = 100
+        user.max_events = 10
 
-        await event_create_start(cb, state, "ru")
+        with (
+            patch(
+                "app.services.app_settings_service.get_int_setting",
+                new_callable=AsyncMock,
+                side_effect=lambda session, key, default: default,
+            ),
+            patch(
+                "app.services.event_service.count_user_events",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+        ):
+            await event_create_start(cb, state, user, "ru", session)
 
         cb.message.edit_text.assert_called_once()
         state.set_state.assert_called_once()
-        # Verify cancel keyboard is present
         kw = cb.message.edit_text.call_args.kwargs
         assert "reply_markup" in kw
 
@@ -356,12 +372,29 @@ class TestWishCRUD:
 
     async def test_17_wish_create_starts_fsm(self, session: AsyncSession):
         """S17: Press 'create wish' → waiting_text state with cancel button."""
+        from unittest.mock import patch
+
         from app.handlers.wishes import wish_create_start
 
         cb = _mock_callback()
         state = _mock_state()
+        user = AsyncMock()
+        user.id = 100
+        user.max_wishes = 10
 
-        await wish_create_start(cb, state, "ru")
+        with (
+            patch(
+                "app.services.app_settings_service.get_int_setting",
+                new_callable=AsyncMock,
+                side_effect=lambda session, key, default: default,
+            ),
+            patch(
+                "app.handlers.wishes.count_user_wishes",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+        ):
+            await wish_create_start(cb, state, user, "ru", session)
 
         state.set_state.assert_called_once()
         kw = cb.message.edit_text.call_args.kwargs
