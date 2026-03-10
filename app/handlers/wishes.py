@@ -126,8 +126,25 @@ async def wish_view(
 async def wish_create_start(
     callback: CallbackQuery,
     state: FSMContext,
+    user: User,
     lang: str,
+    session: AsyncSession,
 ) -> None:
+    from app.services.app_settings_service import get_int_setting
+    from app.services.subscription_service import has_active_subscription
+
+    max_wishes = await get_int_setting(session, "default_max_wishes", user.max_wishes)
+    count = await count_user_wishes(session, user.id)
+    if count >= max_wishes and not await has_active_subscription(session, user.id):
+        from app.keyboards.subscription import upgrade_kb
+
+        await callback.message.edit_text(  # type: ignore[union-attr]
+            t("wishes.limit_reached", lang, max=str(max_wishes)),
+            reply_markup=upgrade_kb(lang),
+        )
+        await callback.answer()
+        return
+
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("wishes.create_text", lang),
         reply_markup=cancel_kb(lang),

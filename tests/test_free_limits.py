@@ -389,3 +389,193 @@ class TestNotificationTeaser:
 
         assert result is True
         self.mock_bot.send_message.assert_called_once()
+
+
+class TestEventCreateLimit:
+    async def test_blocked_when_over_limit(self):
+        from app.handlers.events import event_create_start
+
+        callback = AsyncMock()
+        callback.from_user = MagicMock(id=100)
+        callback.message = AsyncMock()
+        state = AsyncMock()
+        user = _make_mock_user(max_events=5)
+        session = AsyncMock()
+
+        with (
+            patch(
+                "app.services.app_settings_service.get_int_setting",
+                new_callable=AsyncMock,
+                side_effect=lambda session, key, default: default,
+            ),
+            patch(
+                "app.services.event_service.count_user_events",
+                new_callable=AsyncMock,
+                return_value=5,
+            ),
+            patch(
+                "app.services.subscription_service.has_active_subscription",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+        ):
+            await event_create_start(callback, state, user, "ru", session)
+
+        callback.message.edit_text.assert_called_once()
+        call_args = callback.message.edit_text.call_args
+        assert "5" in call_args.args[0]
+        state.set_state.assert_not_called()
+
+    async def test_allowed_when_under_limit(self):
+        from app.handlers.events import event_create_start
+
+        callback = AsyncMock()
+        callback.from_user = MagicMock(id=100)
+        callback.message = AsyncMock()
+        callback.message.message_id = 42
+        state = AsyncMock()
+        user = _make_mock_user(max_events=10)
+        session = AsyncMock()
+
+        with (
+            patch(
+                "app.services.app_settings_service.get_int_setting",
+                new_callable=AsyncMock,
+                side_effect=lambda session, key, default: default,
+            ),
+            patch(
+                "app.services.event_service.count_user_events",
+                new_callable=AsyncMock,
+                return_value=3,
+            ),
+        ):
+            await event_create_start(callback, state, user, "ru", session)
+
+        state.set_state.assert_called_once()
+
+    async def test_allowed_with_subscription(self):
+        from app.handlers.events import event_create_start
+
+        callback = AsyncMock()
+        callback.from_user = MagicMock(id=100)
+        callback.message = AsyncMock()
+        callback.message.message_id = 42
+        state = AsyncMock()
+        user = _make_mock_user(max_events=5)
+        session = AsyncMock()
+
+        with (
+            patch(
+                "app.services.app_settings_service.get_int_setting",
+                new_callable=AsyncMock,
+                side_effect=lambda session, key, default: default,
+            ),
+            patch(
+                "app.services.event_service.count_user_events",
+                new_callable=AsyncMock,
+                return_value=5,
+            ),
+            patch(
+                "app.services.subscription_service.has_active_subscription",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            await event_create_start(callback, state, user, "ru", session)
+
+        state.set_state.assert_called_once()
+
+
+class TestWishCreateLimit:
+    async def test_blocked_when_over_limit(self):
+        from app.handlers.wishes import wish_create_start
+
+        callback = AsyncMock()
+        callback.from_user = MagicMock(id=100)
+        callback.message = AsyncMock()
+        state = AsyncMock()
+        user = _make_mock_user(max_wishes=5)
+        session = AsyncMock()
+
+        with (
+            patch(
+                "app.services.app_settings_service.get_int_setting",
+                new_callable=AsyncMock,
+                side_effect=lambda session, key, default: default,
+            ),
+            patch(
+                "app.handlers.wishes.count_user_wishes",
+                new_callable=AsyncMock,
+                return_value=5,
+            ),
+            patch(
+                "app.services.subscription_service.has_active_subscription",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+        ):
+            await wish_create_start(callback, state, user, "ru", session)
+
+        callback.message.edit_text.assert_called_once()
+        call_args = callback.message.edit_text.call_args
+        assert "5" in call_args.args[0]
+        state.set_state.assert_not_called()
+
+    async def test_allowed_when_under_limit(self):
+        from app.handlers.wishes import wish_create_start
+
+        callback = AsyncMock()
+        callback.from_user = MagicMock(id=100)
+        callback.message = AsyncMock()
+        callback.message.message_id = 42
+        state = AsyncMock()
+        user = _make_mock_user(max_wishes=10)
+        session = AsyncMock()
+
+        with (
+            patch(
+                "app.services.app_settings_service.get_int_setting",
+                new_callable=AsyncMock,
+                side_effect=lambda session, key, default: default,
+            ),
+            patch(
+                "app.handlers.wishes.count_user_wishes",
+                new_callable=AsyncMock,
+                return_value=3,
+            ),
+        ):
+            await wish_create_start(callback, state, user, "ru", session)
+
+        state.set_state.assert_called_once()
+
+    async def test_allowed_with_subscription(self):
+        from app.handlers.wishes import wish_create_start
+
+        callback = AsyncMock()
+        callback.from_user = MagicMock(id=100)
+        callback.message = AsyncMock()
+        callback.message.message_id = 42
+        state = AsyncMock()
+        user = _make_mock_user(max_wishes=5)
+        session = AsyncMock()
+
+        with (
+            patch(
+                "app.services.app_settings_service.get_int_setting",
+                new_callable=AsyncMock,
+                side_effect=lambda session, key, default: default,
+            ),
+            patch(
+                "app.handlers.wishes.count_user_wishes",
+                new_callable=AsyncMock,
+                return_value=5,
+            ),
+            patch(
+                "app.services.subscription_service.has_active_subscription",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            await wish_create_start(callback, state, user, "ru", session)
+
+        state.set_state.assert_called_once()

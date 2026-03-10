@@ -280,8 +280,26 @@ async def event_wish_list(
 async def event_create_start(
     callback: CallbackQuery,
     state: FSMContext,
+    user: User,
     lang: str,
+    session: AsyncSession,
 ) -> None:
+    from app.services.app_settings_service import get_int_setting
+    from app.services.event_service import count_user_events
+    from app.services.subscription_service import has_active_subscription
+
+    max_events = await get_int_setting(session, "default_max_events", user.max_events)
+    count = await count_user_events(session, user.id)
+    if count >= max_events and not await has_active_subscription(session, user.id):
+        from app.keyboards.subscription import upgrade_kb
+
+        await callback.message.edit_text(  # type: ignore[union-attr]
+            t("events.limit_reached", lang, max=str(max_events)),
+            reply_markup=upgrade_kb(lang),
+        )
+        await callback.answer()
+        return
+
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("events.create_title", lang),
         reply_markup=cancel_kb(lang),
