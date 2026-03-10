@@ -347,7 +347,7 @@ class TestSettingsKeyboard:
         user.timezone = "Europe/Moscow"
         kb = settings_kb(user, "ru")
         buttons = [btn for row in kb.inline_keyboard for btn in row]
-        assert len(buttons) == 5
+        assert len(buttons) == 7
 
     def test_settings_kb_language_label_ru(self):
         from app.keyboards.settings import settings_kb

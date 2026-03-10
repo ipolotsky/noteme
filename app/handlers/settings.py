@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.handlers.states import SettingsStates
@@ -11,6 +11,7 @@ from app.i18n.loader import t
 from app.keyboards.callbacks import LangCb, SettingsCb
 from app.keyboards.main_menu import cancel_kb, persistent_menu_kb
 from app.keyboards.settings import (
+    billing_kb,
     digest_day_select_kb,
     language_select_kb,
     notification_settings_kb,
@@ -401,6 +402,79 @@ async def settings_set_digest_time(
         reply_markup=notification_settings_kb(user, lang),
     )
     await state.clear()
+
+
+@router.callback_query(SettingsCb.filter(F.action == "billing"))
+async def settings_billing(
+    callback: CallbackQuery,
+    user: User,
+    lang: str,
+    session: AsyncSession,
+) -> None:
+    from app.services.event_service import count_user_events
+    from app.services.subscription_service import get_active_subscription
+    from app.services.wish_service import count_user_wishes
+
+    subscription = await get_active_subscription(session, user.id)
+
+    if subscription is not None and subscription.is_lifetime:
+        text = t("settings.billing_lifetime", lang)
+        kb = billing_kb(lang, has_subscription=True, is_lifetime=True)
+    elif subscription is not None and subscription.expires_at:
+        date_str = subscription.expires_at.strftime("%d.%m.%Y")
+        text = t("settings.billing_active", lang, date=date_str)
+        kb = billing_kb(lang, has_subscription=True, is_lifetime=False)
+    else:
+        from app.services.app_settings_service import get_int_setting
+
+        max_events = await get_int_setting(session, "default_max_events", user.max_events)
+        max_wishes = await get_int_setting(session, "default_max_wishes", user.max_wishes)
+        event_count = await count_user_events(session, user.id)
+        wish_count = await count_user_wishes(session, user.id)
+        text = t(
+            "settings.billing_free",
+            lang,
+            events=str(event_count),
+            max_events=str(max_events),
+            wishes=str(wish_count),
+            max_wishes=str(max_wishes),
+        )
+        kb = billing_kb(lang, has_subscription=False, is_lifetime=False)
+
+    await callback.message.edit_text(text, reply_markup=kb)  # type: ignore[union-attr]
+    await callback.answer()
+
+
+@router.callback_query(SettingsCb.filter(F.action == "referral"))
+async def settings_referral(
+    callback: CallbackQuery,
+    user: User,
+    lang: str,
+    session: AsyncSession,
+) -> None:
+    from app.config import settings
+    from app.services.app_settings_service import get_int_setting
+    from app.services.referral_service import get_referral_link, get_referral_stats
+
+    months = await get_int_setting(session, "referral_reward_months", 1)
+    link = get_referral_link(settings.bot_username, user.id)
+    stats = await get_referral_stats(session, user.id)
+
+    text = t("subscription.referral_link", lang, months=str(months), link=link)
+    text += "\n\n" + t("subscription.referral_stats", lang, count=str(stats["referral_count"]))
+
+    back_kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=f"\u25c0 {t('menu.back', lang)}",
+                    callback_data=SettingsCb(action="view").pack(),
+                )
+            ]
+        ]
+    )
+    await callback.message.edit_text(text, reply_markup=back_kb)  # type: ignore[union-attr]
+    await callback.answer()
 
 
 @router.callback_query(SettingsCb.filter(F.action == "spoiler"))
