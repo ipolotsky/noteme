@@ -20,7 +20,6 @@ from app.models.wish import Wish
 
 class UserAdmin(ModelView, model=User):
     column_list = [
-        User.id,
         User.username,
         User.first_name,
         User.language,
@@ -58,8 +57,9 @@ class UserAdmin(ModelView, model=User):
     icon = "fa-solid fa-users"
 
     column_formatters = {
-        User.id: lambda m, _: Markup(
-            f'{m.id} <a href="/admin/test-notify/{m.id}" '
+        User.username: lambda m, _: Markup(
+            f'{m.username or "-"}'
+            f' <a href="/admin/test-notify/{m.id}" '
             f'style="margin-left:8px;padding:2px 8px;background:#0d6efd;color:#fff;'
             f'border-radius:4px;text-decoration:none;font-size:12px">'
             f"\U0001f514 Test</a>"
@@ -73,7 +73,6 @@ class UserAdmin(ModelView, model=User):
 
 class EventAdmin(ModelView, model=Event):
     column_list = [
-        Event.id,
         Event.user_id,
         Event.title,
         Event.event_date,
@@ -91,7 +90,6 @@ class EventAdmin(ModelView, model=Event):
 
 class WishAdmin(ModelView, model=Wish):
     column_list = [
-        Wish.id,
         Wish.user_id,
         Wish.text,
         Wish.reminder_date,
@@ -108,7 +106,7 @@ class WishAdmin(ModelView, model=Wish):
 
 
 class PersonAdmin(ModelView, model=Person):
-    column_list = [Person.id, Person.user_id, Person.name, Person.created_at]
+    column_list = [Person.user_id, Person.name, Person.created_at]
     column_searchable_list = [Person.name]
     column_sortable_list = [Person.name, Person.created_at]
     form_excluded_columns = [Person.events, Person.wishes]
@@ -119,7 +117,6 @@ class PersonAdmin(ModelView, model=Person):
 
 class BeautifulDateStrategyAdmin(ModelView, model=BeautifulDateStrategy):
     column_list = [
-        BeautifulDateStrategy.id,
         BeautifulDateStrategy.name_en,
         BeautifulDateStrategy.strategy_type,
         BeautifulDateStrategy.is_active,
@@ -136,7 +133,6 @@ class BeautifulDateStrategyAdmin(ModelView, model=BeautifulDateStrategy):
 
 class BeautifulDateAdmin(ModelView, model=BeautifulDate):
     column_list = [
-        BeautifulDate.id,
         BeautifulDate.event_id,
         BeautifulDate.target_date,
         BeautifulDate.label_en,
@@ -154,7 +150,6 @@ class BeautifulDateAdmin(ModelView, model=BeautifulDate):
 
 class MediaLinkAdmin(ModelView, model=MediaLink):
     column_list = [
-        MediaLink.id,
         MediaLink.wish_id,
         MediaLink.media_type,
         MediaLink.is_deleted,
@@ -166,7 +161,6 @@ class MediaLinkAdmin(ModelView, model=MediaLink):
 
 class NotificationLogAdmin(ModelView, model=NotificationLog):
     column_list = [
-        NotificationLog.id,
         NotificationLog.user_id,
         NotificationLog.notification_type,
         NotificationLog.sent_at,
@@ -183,7 +177,6 @@ class NotificationLogAdmin(ModelView, model=NotificationLog):
 
 class AILogAdmin(ModelView, model=AILog):
     column_list = [
-        AILog.id,
         AILog.user_id,
         AILog.agent_name,
         AILog.model,
@@ -220,7 +213,6 @@ class AILogAdmin(ModelView, model=AILog):
 
 class UserActionLogAdmin(ModelView, model=UserActionLog):
     column_list = [
-        UserActionLog.id,
         UserActionLog.user_id,
         UserActionLog.action,
         UserActionLog.detail,
@@ -272,7 +264,6 @@ class AppSettingsAdmin(ModelView, model=AppSettings):
 
 class SubscriptionPlanAdmin(ModelView, model=SubscriptionPlan):
     column_list = [
-        SubscriptionPlan.id,
         SubscriptionPlan.name_en,
         SubscriptionPlan.duration_months,
         SubscriptionPlan.price_stars,
@@ -291,7 +282,6 @@ class SubscriptionPlanAdmin(ModelView, model=SubscriptionPlan):
 
 class SubscriptionAdmin(ModelView, model=Subscription):
     column_list = [
-        Subscription.id,
         Subscription.user_id,
         Subscription.plan_id,
         Subscription.starts_at,
@@ -310,7 +300,6 @@ class SubscriptionAdmin(ModelView, model=Subscription):
 
 class PaymentAdmin(ModelView, model=Payment):
     column_list = [
-        Payment.id,
         Payment.user_id,
         Payment.plan_id,
         Payment.amount_stars,
@@ -329,7 +318,6 @@ class PaymentAdmin(ModelView, model=Payment):
 
 class ReferralRewardAdmin(ModelView, model=ReferralReward):
     column_list = [
-        ReferralReward.id,
         ReferralReward.referrer_id,
         ReferralReward.referred_id,
         ReferralReward.reward_months,
