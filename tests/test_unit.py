@@ -182,13 +182,13 @@ class TestMainMenuKeyboard:
         assert len(kb.inline_keyboard) == 1
         assert kb.inline_keyboard[0][0].callback_data == "cancel"
 
-    def test_onboarding_skip_kb_emoji_only(self):
+    def test_onboarding_skip_kb_text(self):
         from app.keyboards.main_menu import onboarding_skip_kb
 
         kb = onboarding_skip_kb("en")
         assert len(kb.inline_keyboard) == 1
         btn = kb.inline_keyboard[0][0]
-        assert btn.text == "\u23ed"
+        assert btn.text == "Skip"
         assert "onb:" in btn.callback_data
 
     def test_onboarding_event_kb_skip_button(self):
