@@ -26,7 +26,7 @@ async def test_process_referral(session: AsyncSession):
     referred = await _create_test_user(session, 222)
 
     result = await process_referral(session, referrer.id, referred.id)
-    assert result is True
+    assert result == 1
     assert await has_active_subscription(session, referrer.id) is True
 
 
@@ -37,7 +37,7 @@ async def test_process_referral_duplicate(session: AsyncSession):
 
     await process_referral(session, referrer.id, referred.id)
     result = await process_referral(session, referrer.id, referred.id)
-    assert result is False
+    assert result is None
 
 
 @pytest.mark.asyncio
