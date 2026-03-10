@@ -62,11 +62,11 @@ class UserAdmin(ModelView, model=User):
             f'{m.id} <a href="/admin/test-notify/{m.id}" '
             f'style="margin-left:8px;padding:2px 8px;background:#0d6efd;color:#fff;'
             f'border-radius:4px;text-decoration:none;font-size:12px">'
-            f'\U0001f514 Test</a>'
+            f"\U0001f514 Test</a>"
             f' <a href="/admin/grant-premium/{m.id}" '
             f'style="margin-left:4px;padding:2px 8px;background:#198754;color:#fff;'
             f'border-radius:4px;text-decoration:none;font-size:12px">'
-            f'\u2b50 Premium</a>'
+            f"\u2b50 Premium</a>"
         ),
     }
 
@@ -195,7 +195,12 @@ class AILogAdmin(ModelView, model=AILog):
         AILog.created_at,
     ]
     column_searchable_list = [AILog.agent_name, AILog.request_text, AILog.response_text]
-    column_sortable_list = [AILog.created_at, AILog.agent_name, AILog.latency_ms, AILog.tokens_total]
+    column_sortable_list = [
+        AILog.created_at,
+        AILog.agent_name,
+        AILog.latency_ms,
+        AILog.tokens_total,
+    ]
     column_default_sort = ("created_at", True)
     column_labels = {
         AILog.agent_name: "Agent",
@@ -256,7 +261,9 @@ class AppSettingsAdmin(ModelView, model=AppSettings):
         except Exception:
             pass
 
-    async def after_model_change(self, data: dict, model: AppSettings, is_created: bool, request: object) -> None:
+    async def after_model_change(
+        self, data: dict, model: AppSettings, is_created: bool, request: object
+    ) -> None:
         await self._invalidate_cache(model)
 
     async def after_model_delete(self, model: AppSettings, request: object) -> None:

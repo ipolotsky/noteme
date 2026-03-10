@@ -100,9 +100,7 @@ async def generate_share_uuid(
     return bd.share_uuid
 
 
-async def get_by_share_uuid(
-    session: AsyncSession, share_uuid: uuid.UUID
-) -> BeautifulDate | None:
+async def get_by_share_uuid(session: AsyncSession, share_uuid: uuid.UUID) -> BeautifulDate | None:
     """Get a beautiful date by its share UUID."""
     result = await session.execute(
         select(BeautifulDate)

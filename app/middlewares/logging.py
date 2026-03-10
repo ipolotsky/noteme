@@ -42,15 +42,14 @@ class LoggingMiddleware(BaseMiddleware):
             return result
         except Exception:
             elapsed = (time.monotonic() - start) * 1000
-            logger.exception(
-                "%s from %s failed after %.0fms", event_type, user_id, elapsed
-            )
+            logger.exception("%s from %s failed after %.0fms", event_type, user_id, elapsed)
             raise
 
     @staticmethod
     async def _log_action(user_id: int, action: str, detail: str | None) -> None:
         try:
             from app.services.action_logger import log_user_action
+
             await log_user_action(user_id, action, detail)
         except Exception:
             logger.debug("Action logging failed (non-critical)", exc_info=True)

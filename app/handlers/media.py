@@ -112,7 +112,9 @@ async def media_person_selected(
         return
 
     wish_text = _media_wish_text(
-        data["media_type"], lang, data.get("media_caption"),
+        data["media_type"],
+        lang,
+        data.get("media_caption"),
         filename=data.get("media_filename"),
         recorded_date=data.get("media_recorded_date"),
     )
@@ -193,7 +195,9 @@ async def media_new_person_name(
     data = await state.get_data()
     bot_msg_id = data.get(BOT_MSG_KEY)
     wish_text = _media_wish_text(
-        data["media_type"], lang, data.get("media_caption"),
+        data["media_type"],
+        lang,
+        data.get("media_caption"),
         filename=data.get("media_filename"),
         recorded_date=data.get("media_recorded_date"),
     )
@@ -212,7 +216,8 @@ async def media_new_person_name(
         from app.keyboards.subscription import upgrade_kb
 
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("wishes.limit_reached", lang, max=str(user.max_wishes)),
             reply_markup=upgrade_kb(lang),
         )

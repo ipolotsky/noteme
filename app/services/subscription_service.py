@@ -2,15 +2,16 @@
 
 import logging
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from dateutil.relativedelta import relativedelta
-from sqlalchemy import or_, select, update
+from sqlalchemy import Date, cast, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func
 
 from app.models.subscription import Subscription
 from app.models.subscription_plan import SubscriptionPlan
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +32,7 @@ async def has_active_subscription(session: AsyncSession, user_id: int) -> bool:
     return result.scalar_one_or_none() is not None
 
 
-async def get_active_subscription(
-    session: AsyncSession, user_id: int
-) -> Subscription | None:
+async def get_active_subscription(session: AsyncSession, user_id: int) -> Subscription | None:
     result = await session.execute(
         select(Subscription)
         .where(
@@ -176,6 +175,23 @@ async def deactivate_expired_subscriptions(session: AsyncSession) -> int:
         .values(is_active=False)
     )
     return result.rowcount
+
+
+async def get_users_with_expiring_subscriptions(
+    session: AsyncSession, target_date: date
+) -> list[tuple[User, Subscription]]:
+    result = await session.execute(
+        select(User, Subscription)
+        .join(Subscription, Subscription.user_id == User.id)
+        .where(
+            Subscription.is_active.is_(True),
+            Subscription.is_lifetime.is_(False),
+            cast(Subscription.expires_at, Date) == target_date,
+            User.is_active.is_(True),
+            User.notifications_enabled.is_(True),
+        )
+    )
+    return list(result.tuples().all())
 
 
 async def get_subscription_plans(session: AsyncSession) -> list[SubscriptionPlan]:

@@ -82,9 +82,7 @@ class TestEventEdgeCases:
         await create_event(session, u.id, EventCreate(title="E2", event_date=date.today()))
 
         with pytest.raises(EventLimitError):
-            await create_event(
-                session, u.id, EventCreate(title="E3", event_date=date.today())
-            )
+            await create_event(session, u.id, EventCreate(title="E3", event_date=date.today()))
 
     async def test_delete_last_event_leaves_empty(self, session, user):
         """Deleting the last event leaves the user with no events."""

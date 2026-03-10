@@ -107,7 +107,9 @@ class TestEventAgentNode:
     @patch("app.agents.event_agent.ChatOpenAI")
     async def test_extract_event(self, mock_llm_cls):
         mock_response = AsyncMock()
-        mock_response.content = '{"title": "Свадьба", "date": "2022-08-17", "description": "", "people": ["Макс"]}'
+        mock_response.content = (
+            '{"title": "Свадьба", "date": "2022-08-17", "description": "", "people": ["Макс"]}'
+        )
         mock_llm = AsyncMock()
         mock_llm.ainvoke = AsyncMock(return_value=mock_response)
         mock_llm_cls.return_value = mock_llm

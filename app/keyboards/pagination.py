@@ -14,20 +14,26 @@ def pagination_row(
     buttons: list[InlineKeyboardButton] = []
 
     if current_page > 0:
-        buttons.append(InlineKeyboardButton(
-            text=f"\u25c0 {t('buttons.prev', lang)}",
-            callback_data=PageCb(target=target, page=current_page - 1).pack(),
-        ))
+        buttons.append(
+            InlineKeyboardButton(
+                text=f"\u25c0 {t('buttons.prev', lang)}",
+                callback_data=PageCb(target=target, page=current_page - 1).pack(),
+            )
+        )
 
-    buttons.append(InlineKeyboardButton(
-        text=f"{current_page + 1}/{total_pages}",
-        callback_data="noop",
-    ))
+    buttons.append(
+        InlineKeyboardButton(
+            text=f"{current_page + 1}/{total_pages}",
+            callback_data="noop",
+        )
+    )
 
     if current_page < total_pages - 1:
-        buttons.append(InlineKeyboardButton(
-            text=f"{t('buttons.next', lang)} \u25b6",
-            callback_data=PageCb(target=target, page=current_page + 1).pack(),
-        ))
+        buttons.append(
+            InlineKeyboardButton(
+                text=f"{t('buttons.next', lang)} \u25b6",
+                callback_data=PageCb(target=target, page=current_page + 1).pack(),
+            )
+        )
 
     return buttons

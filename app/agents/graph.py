@@ -90,8 +90,12 @@ async def process_message(
 
     logger.info(
         "[pipeline] user=%s intent=%s title=%r date=%s wish=%r error=%r response=%r",
-        user_id, state.intent, state.event_title, state.event_date,
+        user_id,
+        state.intent,
+        state.event_title,
+        state.event_date,
         state.wish_text[:100] if state.wish_text else "",
-        state.error, state.response_text[:100] if state.response_text else "",
+        state.error,
+        state.response_text[:100] if state.response_text else "",
     )
     return state

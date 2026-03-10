@@ -82,6 +82,7 @@ async def menu_events(
     session: AsyncSession,
 ) -> None:
     from app.handlers.events import show_events_list
+
     await show_events_list(callback, user, lang, session, page=0)
     await callback.answer()
 
@@ -94,6 +95,7 @@ async def menu_wishes(
     session: AsyncSession,
 ) -> None:
     from app.handlers.wishes import show_wishes_list
+
     await show_wishes_list(callback, user, lang, session, page=0)
     await callback.answer()
 
@@ -106,6 +108,7 @@ async def menu_people(
     session: AsyncSession,
 ) -> None:
     from app.handlers.people import show_people_list
+
     await show_people_list(callback, user, lang, session, page=0)
     await callback.answer()
 
@@ -117,6 +120,7 @@ async def menu_settings(
     lang: str,
 ) -> None:
     from app.handlers.settings import show_settings
+
     await show_settings(callback, user, lang)
     await callback.answer()
 
@@ -130,6 +134,7 @@ async def menu_feed(
     session: AsyncSession,
 ) -> None:
     from app.handlers.feed import show_feed_list
+
     await show_feed_list(callback, user, lang, session, state, page=0)
     await callback.answer()
 
@@ -142,7 +147,9 @@ async def handle_noop(callback: CallbackQuery) -> None:
 def _is_reply_menu_button(text: str | None) -> bool:
     if not text:
         return False
-    return text.startswith((_EMOJI_FEED, _EMOJI_EVENTS, _EMOJI_WISHES, _EMOJI_PEOPLE, _EMOJI_SETTINGS))
+    return text.startswith(
+        (_EMOJI_FEED, _EMOJI_EVENTS, _EMOJI_WISHES, _EMOJI_PEOPLE, _EMOJI_SETTINGS)
+    )
 
 
 @router.message(F.text.startswith(_EMOJI_FEED))

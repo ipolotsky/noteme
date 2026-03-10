@@ -23,13 +23,15 @@ class MultiplesStrategy(BaseStrategy):
         while n <= max_val:
             target = _add_interval(event_date, n, unit)
             if target is not None:
-                results.append(BeautifulDateCandidate(
-                    target_date=target,
-                    interval_value=n,
-                    interval_unit=unit,
-                    label_ru=f"{decline(n, _unit_singular(unit), 'ru')} с «{event_title}»",
-                    label_en=f"{decline(n, _unit_singular(unit), 'en')} since \"{event_title}\"",
-                ))
+                results.append(
+                    BeautifulDateCandidate(
+                        target_date=target,
+                        interval_value=n,
+                        interval_unit=unit,
+                        label_ru=f"{decline(n, _unit_singular(unit), 'ru')} с «{event_title}»",
+                        label_en=f'{decline(n, _unit_singular(unit), "en")} since "{event_title}"',
+                    )
+                )
             n += base
 
         return results

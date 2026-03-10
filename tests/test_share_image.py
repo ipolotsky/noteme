@@ -53,6 +53,6 @@ class TestShareImage:
                 event_title="Test",
                 target_date_formatted="01.01.2027",
                 relative_date="Soon",
-                )
+            )
             assert isinstance(result, bytes)
             assert len(result) > 0

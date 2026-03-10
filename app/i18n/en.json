@@ -153,7 +153,9 @@
     "day_before": "Tomorrow",
     "week_before": "In a week",
     "weekly_greeting": "Beautiful dates this week:",
-    "open_feed": "Open feed"
+    "open_feed": "Open feed",
+    "sub_expiry_7d": "Your subscription expires in 7 days ({date}). Renew to keep all features!",
+    "sub_expiry_1d": "Your subscription expires tomorrow ({date}). Renew to keep access!"
   },
 
   "days_of_week": {

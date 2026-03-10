@@ -26,9 +26,7 @@ async def error_handler(event: ErrorEvent) -> bool:
             lang = "ru"  # Fallback — middleware may not have run
             await update.message.answer(t("errors.unknown", lang))
         elif update.callback_query:
-            await update.callback_query.answer(
-                t("errors.unknown", "ru"), show_alert=True
-            )
+            await update.callback_query.answer(t("errors.unknown", "ru"), show_alert=True)
     except Exception:
         logger.exception("Failed to send error message to user")
 

@@ -100,7 +100,8 @@ async def event_view(
     await callback.message.edit_text(  # type: ignore[union-attr]
         text,
         reply_markup=event_view_kb(
-            event, lang,
+            event,
+            lang,
             related_wishes_count=related_count,
             person_event_counts=person_counts,
         ),
@@ -126,7 +127,8 @@ async def event_view_new(
     await callback.message.answer(  # type: ignore[union-attr]
         text,
         reply_markup=event_view_kb(
-            event, lang,
+            event,
+            lang,
             related_wishes_count=related_count,
             person_event_counts=person_counts,
         ),
@@ -143,7 +145,11 @@ async def _build_event_card(
     from app.services.event_service import get_events_by_person_names
     from app.services.wish_service import get_wishes_by_person_names
 
-    people_str = ", ".join(escape(x.name) for x in event.people) if event.people else t("events.no_people", lang)
+    people_str = (
+        ", ".join(escape(x.name) for x in event.people)
+        if event.people
+        else t("events.no_people", lang)
+    )
     text = (
         f"<b>{t('events.view_title', lang, title=escape(event.title))}</b>\n"
         f"{t('events.date_label', lang, date=event.event_date.strftime('%d.%m.%Y'))}\n"
@@ -197,14 +203,22 @@ async def event_related_wishes(
 
     rows: list[list[InlineKeyboardButton]] = []
     if wishes:
-        rows.append([InlineKeyboardButton(
-            text=f"\u270f\ufe0f {t('events.edit_wish', lang)}",
-            callback_data=EventCb(action="wish_list", id=callback_data.id).pack(),
-        )])
-    rows.append([InlineKeyboardButton(
-        text=f"\u25c0 {t('menu.back', lang)}",
-        callback_data=EventCb(action="view", id=callback_data.id).pack(),
-    )])
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=f"\u270f\ufe0f {t('events.edit_wish', lang)}",
+                    callback_data=EventCb(action="wish_list", id=callback_data.id).pack(),
+                )
+            ]
+        )
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=f"\u25c0 {t('menu.back', lang)}",
+                callback_data=EventCb(action="view", id=callback_data.id).pack(),
+            )
+        ]
+    )
 
     await callback.message.edit_text(  # type: ignore[union-attr]
         text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows)
@@ -239,14 +253,22 @@ async def event_wish_list(
     rows: list[list[InlineKeyboardButton]] = []
     for x in wishes:
         preview = x.text[:40] + ("..." if len(x.text) > 40 else "")
-        rows.append([InlineKeyboardButton(
-            text=f"\U0001f4dd {preview}",
-            callback_data=WishCb(action="view", id=str(x.id)).pack(),
-        )])
-    rows.append([InlineKeyboardButton(
-        text=f"\u25c0 {t('menu.back', lang)}",
-        callback_data=EventCb(action="related_wishes", id=callback_data.id).pack(),
-    )])
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=f"\U0001f4dd {preview}",
+                    callback_data=WishCb(action="view", id=str(x.id)).pack(),
+                )
+            ]
+        )
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=f"\u25c0 {t('menu.back', lang)}",
+                callback_data=EventCb(action="related_wishes", id=callback_data.id).pack(),
+            )
+        ]
+    )
 
     await callback.message.edit_text(  # type: ignore[union-attr]
         text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows)
@@ -281,7 +303,8 @@ async def event_create_title(
         return
     await state.update_data(title=text)
     await reply_and_cleanup(
-        message, state,
+        message,
+        state,
         t("events.create_date", lang),
         reply_markup=cancel_kb(lang),
     )
@@ -302,7 +325,8 @@ async def event_create_date(
         event_date = datetime.strptime(text.strip(), "%d.%m.%Y").date()
     except ValueError:
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("events.invalid_date", lang),
             reply_markup=cancel_kb(lang),
         )
@@ -310,7 +334,8 @@ async def event_create_date(
 
     await state.update_data(event_date=event_date.isoformat())
     await reply_and_cleanup(
-        message, state,
+        message,
+        state,
         t("events.create_description", lang),
         reply_markup=event_skip_kb(lang),
     )
@@ -329,7 +354,8 @@ async def event_create_description(
         return
     await state.update_data(description=text)
     await reply_and_cleanup(
-        message, state,
+        message,
+        state,
         t("events.create_people", lang),
         reply_markup=event_skip_kb(lang),
     )
@@ -404,7 +430,8 @@ async def _finish_event_create(
         from app.keyboards.subscription import upgrade_kb
 
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("events.limit_reached", lang, max=str(user.max_events)),
             reply_markup=upgrade_kb(lang),
         )
@@ -412,10 +439,12 @@ async def _finish_event_create(
         return
 
     from app.services.beautiful_dates.engine import recalculate_for_event
+
     await recalculate_for_event(session, event)
 
     await reply_and_cleanup(
-        message, state,
+        message,
+        state,
         t("events.created", lang, title=escape(event.title)),
         reply_markup=event_view_kb(event, lang),
     )
@@ -442,7 +471,9 @@ async def event_edit_title_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(edit_event_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
+    await state.update_data(
+        edit_event_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id}
+    )  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("events.create_title", lang),
         reply_markup=cancel_kb(lang),
@@ -464,16 +495,25 @@ async def event_edit_title(
         return
     data = await state.get_data()
     event = await update_event(
-        session, uuid.UUID(data["edit_event_id"]), EventUpdate(title=text),
+        session,
+        uuid.UUID(data["edit_event_id"]),
+        EventUpdate(title=text),
         user_id=user.id,
     )
     if event:
-        bd_ids = (await session.execute(
-            select(BeautifulDate.id).where(BeautifulDate.event_id == event.id)
-        )).scalars().all()
+        bd_ids = (
+            (
+                await session.execute(
+                    select(BeautifulDate.id).where(BeautifulDate.event_id == event.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
         await invalidate_card_file_ids(list(bd_ids))
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("events.updated", lang),
             reply_markup=event_view_kb(event, lang),
         )
@@ -489,7 +529,9 @@ async def event_edit_date_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(edit_event_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
+    await state.update_data(
+        edit_event_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id}
+    )  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("events.create_date", lang),
         reply_markup=cancel_kb(lang),
@@ -513,7 +555,8 @@ async def event_edit_date(
         event_date = datetime.strptime(text.strip(), "%d.%m.%Y").date()
     except ValueError:
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("events.invalid_date", lang),
             reply_markup=cancel_kb(lang),
         )
@@ -521,16 +564,20 @@ async def event_edit_date(
 
     data = await state.get_data()
     event = await update_event(
-        session, uuid.UUID(data["edit_event_id"]), EventUpdate(event_date=event_date),
+        session,
+        uuid.UUID(data["edit_event_id"]),
+        EventUpdate(event_date=event_date),
         user_id=user.id,
     )
     if event:
         from app.services.beautiful_dates.engine import recalculate_for_event
+
         await recalculate_for_event(session, event)
 
     if event:
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("events.updated", lang),
             reply_markup=event_view_kb(event, lang),
         )
@@ -546,7 +593,9 @@ async def event_edit_desc_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(edit_event_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
+    await state.update_data(
+        edit_event_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id}
+    )  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("events.create_description", lang),
         reply_markup=cancel_kb(lang),
@@ -568,12 +617,15 @@ async def event_edit_desc(
         return
     data = await state.get_data()
     event = await update_event(
-        session, uuid.UUID(data["edit_event_id"]), EventUpdate(description=text),
+        session,
+        uuid.UUID(data["edit_event_id"]),
+        EventUpdate(description=text),
         user_id=user.id,
     )
     if event:
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("events.updated", lang),
             reply_markup=event_view_kb(event, lang),
         )
@@ -589,7 +641,9 @@ async def event_edit_people_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(edit_event_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
+    await state.update_data(
+        edit_event_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id}
+    )  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("events.create_people", lang),
         reply_markup=cancel_kb(lang),
@@ -612,12 +666,15 @@ async def event_edit_people(
     data = await state.get_data()
     person_names = [x for x in re.split(r"[,\s]+", text.strip()) if x]
     event = await update_event(
-        session, uuid.UUID(data["edit_event_id"]), EventUpdate(person_names=person_names),
+        session,
+        uuid.UUID(data["edit_event_id"]),
+        EventUpdate(person_names=person_names),
         user_id=user.id,
     )
     if event:
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("events.updated", lang),
             reply_markup=event_view_kb(event, lang),
         )
@@ -640,9 +697,7 @@ async def event_delete_ask(
         return
 
     if event.is_system:
-        await callback.answer(
-            t("events.cannot_delete_system", lang), show_alert=True
-        )
+        await callback.answer(t("events.cannot_delete_system", lang), show_alert=True)
         return
 
     await callback.message.edit_text(  # type: ignore[union-attr]
@@ -703,12 +758,16 @@ async def event_dates(
 
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text=f"\u25c0 {t('menu.back', lang)}",
-            callback_data=EventCb(action="view", id=callback_data.id).pack(),
-        )],
-    ])
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=f"\u25c0 {t('menu.back', lang)}",
+                    callback_data=EventCb(action="view", id=callback_data.id).pack(),
+                )
+            ],
+        ]
+    )
 
     await callback.message.edit_text(text, reply_markup=kb)  # type: ignore[union-attr]
     await callback.answer()

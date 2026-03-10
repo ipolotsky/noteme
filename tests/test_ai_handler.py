@@ -21,6 +21,7 @@ from app.schemas.wish import WishCreate
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def mock_user():
     """Create a mock User object."""
@@ -168,14 +169,20 @@ class TestFormatUserText:
         assert _format_user_text("") == ""
 
     def test_russian_text(self):
-        assert _format_user_text("позавчера я познакомился с Левой") == "Позавчера я познакомился с Левой."
+        assert (
+            _format_user_text("позавчера я познакомился с Левой")
+            == "Позавчера я познакомился с Левой."
+        )
 
     def test_russian_text_with_punctuation(self):
         assert _format_user_text("макс хочет наушники!") == "Макс хочет наушники!"
 
     def test_voice_transcript_cleanup(self):
         """Voice transcripts often have extra spaces and no punctuation."""
-        assert _format_user_text("  ну  вот  вчера я встретился с Максом  ") == "Ну вот вчера я встретился с Максом."
+        assert (
+            _format_user_text("  ну  вот  вчера я встретился с Максом  ")
+            == "Ну вот вчера я встретился с Максом."
+        )
 
 
 # =====================================================================
@@ -190,8 +197,14 @@ class TestHandleAgentResult:
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
     @patch("app.handlers.ai.create_event", new_callable=AsyncMock)
     async def test_create_event_with_empty_people(
-        self, mock_create, mock_recalc, mock_log,
-        mock_message, mock_processing_msg, mock_user, mock_session,
+        self,
+        mock_create,
+        mock_recalc,
+        mock_log,
+        mock_message,
+        mock_processing_msg,
+        mock_user,
+        mock_session,
     ):
         """create_event with empty person_names should work (was the bug)."""
         from app.handlers.ai import _handle_agent_result
@@ -212,7 +225,12 @@ class TestHandleAgentResult:
         )
 
         await _handle_agent_result(
-            mock_message, mock_processing_msg, state, mock_user, "ru", mock_session,
+            mock_message,
+            mock_processing_msg,
+            state,
+            mock_user,
+            "ru",
+            mock_session,
         )
 
         mock_create.assert_called_once()
@@ -226,8 +244,14 @@ class TestHandleAgentResult:
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
     @patch("app.handlers.ai.create_event", new_callable=AsyncMock)
     async def test_create_event_with_people(
-        self, mock_create, mock_recalc, mock_log,
-        mock_message, mock_processing_msg, mock_user, mock_session,
+        self,
+        mock_create,
+        mock_recalc,
+        mock_log,
+        mock_message,
+        mock_processing_msg,
+        mock_user,
+        mock_session,
     ):
         """create_event with populated people works."""
         mock_event = MagicMock()
@@ -247,7 +271,12 @@ class TestHandleAgentResult:
         )
 
         await _handle_agent_result(
-            mock_message, mock_processing_msg, state, mock_user, "ru", mock_session,
+            mock_message,
+            mock_processing_msg,
+            state,
+            mock_user,
+            "ru",
+            mock_session,
         )
 
         mock_create.assert_called_once()
@@ -257,8 +286,13 @@ class TestHandleAgentResult:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.create_wish", new_callable=AsyncMock)
     async def test_create_wish_with_empty_people(
-        self, mock_create, mock_log,
-        mock_message, mock_processing_msg, mock_user, mock_session,
+        self,
+        mock_create,
+        mock_log,
+        mock_message,
+        mock_processing_msg,
+        mock_user,
+        mock_session,
     ):
         """create_wish with empty person_names should work (was the bug)."""
         from app.handlers.ai import _handle_agent_result
@@ -276,7 +310,12 @@ class TestHandleAgentResult:
         )
 
         await _handle_agent_result(
-            mock_message, mock_processing_msg, state, mock_user, "ru", mock_session,
+            mock_message,
+            mock_processing_msg,
+            state,
+            mock_user,
+            "ru",
+            mock_session,
         )
 
         mock_create.assert_called_once()
@@ -288,8 +327,13 @@ class TestHandleAgentResult:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.create_wish", new_callable=AsyncMock)
     async def test_create_wish_with_people(
-        self, mock_create, mock_log,
-        mock_message, mock_processing_msg, mock_user, mock_session,
+        self,
+        mock_create,
+        mock_log,
+        mock_message,
+        mock_processing_msg,
+        mock_user,
+        mock_session,
     ):
         """create_wish with populated people works."""
         from app.handlers.ai import _handle_agent_result
@@ -306,7 +350,12 @@ class TestHandleAgentResult:
         )
 
         await _handle_agent_result(
-            mock_message, mock_processing_msg, state, mock_user, "ru", mock_session,
+            mock_message,
+            mock_processing_msg,
+            state,
+            mock_user,
+            "ru",
+            mock_session,
         )
 
         mock_create.assert_called_once()
@@ -314,7 +363,11 @@ class TestHandleAgentResult:
         assert wish_data.person_names == ["Лева", "подарки"]
 
     async def test_create_event_missing_date_no_db_call(
-        self, mock_message, mock_processing_msg, mock_user, mock_session,
+        self,
+        mock_message,
+        mock_processing_msg,
+        mock_user,
+        mock_session,
     ):
         """create_event without date falls through to default response."""
         from app.handlers.ai import _handle_agent_result
@@ -327,13 +380,22 @@ class TestHandleAgentResult:
         )
 
         await _handle_agent_result(
-            mock_message, mock_processing_msg, state, mock_user, "ru", mock_session,
+            mock_message,
+            mock_processing_msg,
+            state,
+            mock_user,
+            "ru",
+            mock_session,
         )
 
         mock_processing_msg.edit_text.assert_called_once()
 
     async def test_create_wish_empty_text_no_db_call(
-        self, mock_message, mock_processing_msg, mock_user, mock_session,
+        self,
+        mock_message,
+        mock_processing_msg,
+        mock_user,
+        mock_session,
     ):
         """create_wish without text falls through to default response."""
         from app.handlers.ai import _handle_agent_result
@@ -345,13 +407,22 @@ class TestHandleAgentResult:
         )
 
         await _handle_agent_result(
-            mock_message, mock_processing_msg, state, mock_user, "ru", mock_session,
+            mock_message,
+            mock_processing_msg,
+            state,
+            mock_user,
+            "ru",
+            mock_session,
         )
 
         mock_processing_msg.edit_text.assert_called_once()
 
     async def test_view_intents_no_db_call(
-        self, mock_message, mock_processing_msg, mock_user, mock_session,
+        self,
+        mock_message,
+        mock_processing_msg,
+        mock_user,
+        mock_session,
     ):
         """View intents just show a response and return."""
         from app.handlers.ai import _handle_agent_result
@@ -361,13 +432,22 @@ class TestHandleAgentResult:
             state = AgentState(intent=intent, user_language="ru")
 
             await _handle_agent_result(
-                mock_message, mock_processing_msg, state, mock_user, "ru", mock_session,
+                mock_message,
+                mock_processing_msg,
+                state,
+                mock_user,
+                "ru",
+                mock_session,
             )
 
             mock_processing_msg.edit_text.assert_called_once()
 
     async def test_help_intent_shows_response(
-        self, mock_message, mock_processing_msg, mock_user, mock_session,
+        self,
+        mock_message,
+        mock_processing_msg,
+        mock_user,
+        mock_session,
     ):
         """Help intent shows response_text from formatter."""
         from app.handlers.ai import _handle_agent_result
@@ -379,7 +459,12 @@ class TestHandleAgentResult:
         )
 
         await _handle_agent_result(
-            mock_message, mock_processing_msg, state, mock_user, "en", mock_session,
+            mock_message,
+            mock_processing_msg,
+            state,
+            mock_user,
+            "en",
+            mock_session,
         )
 
         mock_processing_msg.edit_text.assert_called_once()
@@ -390,8 +475,14 @@ class TestHandleAgentResult:
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
     @patch("app.handlers.ai.create_event", new_callable=AsyncMock)
     async def test_event_saves_raw_text_as_description(
-        self, mock_create, mock_recalc, mock_log,
-        mock_message, mock_processing_msg, mock_user, mock_session,
+        self,
+        mock_create,
+        mock_recalc,
+        mock_log,
+        mock_message,
+        mock_processing_msg,
+        mock_user,
+        mock_session,
     ):
         """Event description is the formatted original user text."""
         from app.handlers.ai import _handle_agent_result
@@ -412,7 +503,12 @@ class TestHandleAgentResult:
         )
 
         await _handle_agent_result(
-            mock_message, mock_processing_msg, state, mock_user, "ru", mock_session,
+            mock_message,
+            mock_processing_msg,
+            state,
+            mock_user,
+            "ru",
+            mock_session,
         )
 
         event_data = mock_create.call_args[0][2]
@@ -421,8 +517,13 @@ class TestHandleAgentResult:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.create_wish", new_callable=AsyncMock)
     async def test_wish_saves_formatted_raw_text(
-        self, mock_create, mock_log,
-        mock_message, mock_processing_msg, mock_user, mock_session,
+        self,
+        mock_create,
+        mock_log,
+        mock_message,
+        mock_processing_msg,
+        mock_user,
+        mock_session,
     ):
         """Wish text is the formatted original user text."""
         from app.handlers.ai import _handle_agent_result
@@ -440,7 +541,12 @@ class TestHandleAgentResult:
         )
 
         await _handle_agent_result(
-            mock_message, mock_processing_msg, state, mock_user, "ru", mock_session,
+            mock_message,
+            mock_processing_msg,
+            state,
+            mock_user,
+            "ru",
+            mock_session,
         )
 
         wish_data = mock_create.call_args[0][2]
@@ -450,8 +556,14 @@ class TestHandleAgentResult:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.create_event", new_callable=AsyncMock)
     async def test_event_limit_error(
-        self, mock_create, mock_log, mock_recalc,
-        mock_message, mock_processing_msg, mock_user, mock_session,
+        self,
+        mock_create,
+        mock_log,
+        mock_recalc,
+        mock_message,
+        mock_processing_msg,
+        mock_user,
+        mock_session,
     ):
         """EventLimitError shows limit_reached message."""
         from app.handlers.ai import _handle_agent_result
@@ -468,7 +580,12 @@ class TestHandleAgentResult:
         )
 
         await _handle_agent_result(
-            mock_message, mock_processing_msg, state, mock_user, "ru", mock_session,
+            mock_message,
+            mock_processing_msg,
+            state,
+            mock_user,
+            "ru",
+            mock_session,
         )
 
         call_text = mock_processing_msg.edit_text.call_args[0][0]
@@ -477,8 +594,13 @@ class TestHandleAgentResult:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.create_wish", new_callable=AsyncMock)
     async def test_wish_limit_error(
-        self, mock_create, mock_log,
-        mock_message, mock_processing_msg, mock_user, mock_session,
+        self,
+        mock_create,
+        mock_log,
+        mock_message,
+        mock_processing_msg,
+        mock_user,
+        mock_session,
     ):
         """WishLimitError shows limit_reached message."""
         from app.handlers.ai import _handle_agent_result
@@ -494,7 +616,12 @@ class TestHandleAgentResult:
         )
 
         await _handle_agent_result(
-            mock_message, mock_processing_msg, state, mock_user, "ru", mock_session,
+            mock_message,
+            mock_processing_msg,
+            state,
+            mock_user,
+            "ru",
+            mock_session,
         )
 
         call_text = mock_processing_msg.edit_text.call_args[0][0]
@@ -515,8 +642,16 @@ class TestHandleText:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_text_message_pipeline(
-        self, mock_rate, mock_log, mock_people, mock_process, mock_handle,
-        mock_message, mock_state, mock_user, mock_session,
+        self,
+        mock_rate,
+        mock_log,
+        mock_people,
+        mock_process,
+        mock_handle,
+        mock_message,
+        mock_state,
+        mock_user,
+        mock_session,
     ):
         """Text message goes through pipeline and calls _handle_agent_result."""
         from app.handlers.ai import handle_text
@@ -542,8 +677,14 @@ class TestHandleText:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_text_pipeline_exception_shows_error(
-        self, mock_rate, mock_log, mock_process,
-        mock_message, mock_state, mock_user, mock_session,
+        self,
+        mock_rate,
+        mock_log,
+        mock_process,
+        mock_message,
+        mock_state,
+        mock_user,
+        mock_session,
     ):
         """Exception in pipeline shows errors.unknown to user."""
         from app.handlers.ai import handle_text
@@ -561,7 +702,9 @@ class TestHandleText:
         assert len(call_text) > 0  # Has some error text
 
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=False)
-    async def test_rate_limited_text(self, mock_rate, mock_message, mock_state, mock_user, mock_session):
+    async def test_rate_limited_text(
+        self, mock_rate, mock_message, mock_state, mock_user, mock_session
+    ):
         """Rate-limited user gets rate_limit message."""
         from app.handlers.ai import handle_text
 
@@ -607,8 +750,17 @@ class TestHandleVoice:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_voice_full_pipeline(
-        self, mock_rate, mock_log, mock_people, mock_transcribe, mock_process, mock_handle,
-        mock_voice_message, mock_state, mock_user, mock_session,
+        self,
+        mock_rate,
+        mock_log,
+        mock_people,
+        mock_transcribe,
+        mock_process,
+        mock_handle,
+        mock_voice_message,
+        mock_state,
+        mock_user,
+        mock_session,
     ):
         """Voice message downloads, transcribes, processes, and handles result."""
         from app.handlers.ai import handle_voice
@@ -641,8 +793,13 @@ class TestHandleVoice:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_voice_too_long(
-        self, mock_rate, mock_log,
-        mock_voice_message, mock_state, mock_user, mock_session,
+        self,
+        mock_rate,
+        mock_log,
+        mock_voice_message,
+        mock_state,
+        mock_user,
+        mock_session,
     ):
         """Voice > 60s gets audio_too_long message."""
         from app.handlers.ai import handle_voice
@@ -654,7 +811,9 @@ class TestHandleVoice:
         mock_voice_message.answer.assert_called_once()
 
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=False)
-    async def test_voice_rate_limited(self, mock_rate, mock_voice_message, mock_state, mock_user, mock_session):
+    async def test_voice_rate_limited(
+        self, mock_rate, mock_voice_message, mock_state, mock_user, mock_session
+    ):
         """Rate-limited voice gets rate_limit message."""
         from app.handlers.ai import handle_voice
 
@@ -666,8 +825,14 @@ class TestHandleVoice:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_voice_empty_transcription(
-        self, mock_rate, mock_log, mock_transcribe,
-        mock_voice_message, mock_state, mock_user, mock_session,
+        self,
+        mock_rate,
+        mock_log,
+        mock_transcribe,
+        mock_voice_message,
+        mock_state,
+        mock_user,
+        mock_session,
     ):
         """Empty transcription shows audio_empty message."""
         from app.handlers.ai import handle_voice
@@ -684,8 +849,14 @@ class TestHandleVoice:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_voice_transcription_error(
-        self, mock_rate, mock_log, mock_transcribe,
-        mock_voice_message, mock_state, mock_user, mock_session,
+        self,
+        mock_rate,
+        mock_log,
+        mock_transcribe,
+        mock_voice_message,
+        mock_state,
+        mock_user,
+        mock_session,
     ):
         """Exception during transcription shows errors.unknown."""
         from app.handlers.ai import handle_voice
@@ -701,8 +872,13 @@ class TestHandleVoice:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_voice_download_error(
-        self, mock_rate, mock_log,
-        mock_voice_message, mock_state, mock_user, mock_session,
+        self,
+        mock_rate,
+        mock_log,
+        mock_voice_message,
+        mock_state,
+        mock_user,
+        mock_session,
     ):
         """Exception during file download shows errors.unknown."""
         from app.handlers.ai import handle_voice
@@ -721,8 +897,16 @@ class TestHandleVoice:
     @patch("app.handlers.ai.log_user_action", new_callable=AsyncMock)
     @patch("app.handlers.ai.check_ai_rate_limit", new_callable=AsyncMock, return_value=True)
     async def test_voice_uses_message_bot_not_import(
-        self, mock_rate, mock_log, mock_transcribe, mock_process, mock_handle,
-        mock_voice_message, mock_state, mock_user, mock_session,
+        self,
+        mock_rate,
+        mock_log,
+        mock_transcribe,
+        mock_process,
+        mock_handle,
+        mock_voice_message,
+        mock_state,
+        mock_user,
+        mock_session,
     ):
         """Voice handler uses message.bot (not imported bot) for file ops."""
         from app.handlers.ai import handle_voice
@@ -767,8 +951,14 @@ class TestAIHandlerIntegrationWithDB:
 
         with patch("app.handlers.ai.log_user_action", new_callable=AsyncMock):
             from app.handlers.ai import _handle_agent_result
+
             await _handle_agent_result(
-                mock_message, mock_processing_msg, state, user, "ru", session,
+                mock_message,
+                mock_processing_msg,
+                state,
+                user,
+                "ru",
+                session,
             )
 
         wishes = await get_user_wishes(session, user.id)
@@ -798,8 +988,14 @@ class TestAIHandlerIntegrationWithDB:
 
         with patch("app.handlers.ai.log_user_action", new_callable=AsyncMock):
             from app.handlers.ai import _handle_agent_result
+
             await _handle_agent_result(
-                mock_message, mock_processing_msg, state, user, "ru", session,
+                mock_message,
+                mock_processing_msg,
+                state,
+                user,
+                "ru",
+                session,
             )
 
         wishes = await get_user_wishes(session, user.id)
@@ -830,11 +1026,19 @@ class TestAIHandlerIntegrationWithDB:
 
         with (
             patch("app.handlers.ai.log_user_action", new_callable=AsyncMock),
-            patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock),
+            patch(
+                "app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock
+            ),
         ):
             from app.handlers.ai import _handle_agent_result
+
             await _handle_agent_result(
-                mock_message, mock_processing_msg, state, user, "en", session,
+                mock_message,
+                mock_processing_msg,
+                state,
+                user,
+                "en",
+                session,
             )
 
         events = await get_user_events(session, user.id)
@@ -866,11 +1070,19 @@ class TestAIHandlerIntegrationWithDB:
 
         with (
             patch("app.handlers.ai.log_user_action", new_callable=AsyncMock),
-            patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock),
+            patch(
+                "app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock
+            ),
         ):
             from app.handlers.ai import _handle_agent_result
+
             await _handle_agent_result(
-                mock_message, mock_processing_msg, state, user, "ru", session,
+                mock_message,
+                mock_processing_msg,
+                state,
+                user,
+                "ru",
+                session,
             )
 
         events = await get_user_events(session, user.id)

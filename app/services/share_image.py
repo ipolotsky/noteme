@@ -121,19 +121,32 @@ def generate_share_image(
     y += 20
 
     y = _draw_centered_text(
-        draw, overlay, target_date_formatted, y, font_date, _WHITE_80,
+        draw,
+        overlay,
+        target_date_formatted,
+        y,
+        font_date,
+        _WHITE_80,
     )
     y += 15
 
     _draw_centered_text(
-        draw, overlay, relative_date, y, font_relative, _WHITE_60,
+        draw,
+        overlay,
+        relative_date,
+        y,
+        font_relative,
+        _WHITE_60,
     )
 
     brand_bbox = draw.textbbox((0, 0), branding, font=font_brand)
     brand_width = brand_bbox[2] - brand_bbox[0]
     brand_x = (_WIDTH - brand_width) // 2
     overlay_draw.text(
-        (brand_x, _HEIGHT - 80), branding, font=font_brand, fill=_WHITE_40,
+        (brand_x, _HEIGHT - 80),
+        branding,
+        font=font_brand,
+        fill=_WHITE_40,
     )
 
     image = Image.alpha_composite(image.convert("RGBA"), overlay)

@@ -51,9 +51,7 @@ async def count_user_wishes(session: AsyncSession, user_id: int) -> int:
     return result.scalar_one()
 
 
-async def create_wish(
-    session: AsyncSession, user_id: int, data: WishCreate
-) -> Wish:
+async def create_wish(session: AsyncSession, user_id: int, data: WishCreate) -> Wish:
     user = await session.get(User, user_id)
     if user is None:
         raise ValueError("User not found")
@@ -126,9 +124,7 @@ async def create_wish_with_media(
 ) -> Wish:
     from app.models.media_link import MediaLink
 
-    wish = await create_wish(
-        session, user_id, WishCreate(text=text, person_names=person_names)
-    )
+    wish = await create_wish(session, user_id, WishCreate(text=text, person_names=person_names))
 
     media_link = MediaLink(
         wish_id=wish.id,

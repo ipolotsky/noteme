@@ -91,7 +91,11 @@ async def wish_view(
         await callback.answer(t("errors.not_found", lang), show_alert=True)
         return
 
-    people_str = ", ".join(escape(tg.name) for tg in wish.people) if wish.people else t("wishes.no_people", lang)
+    people_str = (
+        ", ".join(escape(tg.name) for tg in wish.people)
+        if wish.people
+        else t("wishes.no_people", lang)
+    )
     text = (
         f"<b>{t('wishes.view_title', lang)}</b>\n\n"
         f"{escape(wish.text)}\n\n"
@@ -145,7 +149,8 @@ async def wish_create_text(
         return
     await state.update_data(text=text)
     await reply_and_cleanup(
-        message, state,
+        message,
+        state,
         t("wishes.create_people", lang),
         reply_markup=wish_skip_kb(lang),
     )
@@ -201,7 +206,8 @@ async def _finish_wish_create(
         from app.keyboards.subscription import upgrade_kb
 
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("wishes.limit_reached", lang, max=str(user.max_wishes)),
             reply_markup=upgrade_kb(lang),
         )
@@ -209,7 +215,8 @@ async def _finish_wish_create(
         return
 
     await reply_and_cleanup(
-        message, state,
+        message,
+        state,
         t("wishes.created", lang),
         reply_markup=wish_view_kb(wish, lang),
     )
@@ -236,7 +243,9 @@ async def wish_edit_text_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(edit_wish_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
+    await state.update_data(
+        edit_wish_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id}
+    )  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("wishes.create_text", lang),
         reply_markup=cancel_kb(lang),
@@ -258,12 +267,15 @@ async def wish_edit_text(
         return
     data = await state.get_data()
     wish = await update_wish(
-        session, uuid.UUID(data["edit_wish_id"]), WishUpdate(text=text),
+        session,
+        uuid.UUID(data["edit_wish_id"]),
+        WishUpdate(text=text),
         user_id=user.id,
     )
     if wish:
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("wishes.updated", lang),
             reply_markup=wish_view_kb(wish, lang),
         )
@@ -279,7 +291,9 @@ async def wish_edit_people_start(
     state: FSMContext,
     lang: str,
 ) -> None:
-    await state.update_data(edit_wish_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id})  # type: ignore[union-attr]
+    await state.update_data(
+        edit_wish_id=callback_data.id, **{BOT_MSG_KEY: callback.message.message_id}
+    )  # type: ignore[union-attr]
     await callback.message.edit_text(  # type: ignore[union-attr]
         t("wishes.create_people", lang),
         reply_markup=cancel_kb(lang),
@@ -302,12 +316,15 @@ async def wish_edit_people(
     data = await state.get_data()
     person_names = [x for x in re.split(r"[,\s]+", text.strip()) if x]
     wish = await update_wish(
-        session, uuid.UUID(data["edit_wish_id"]), WishUpdate(person_names=person_names),
+        session,
+        uuid.UUID(data["edit_wish_id"]),
+        WishUpdate(person_names=person_names),
         user_id=user.id,
     )
     if wish:
         await reply_and_cleanup(
-            message, state,
+            message,
+            state,
             t("wishes.updated", lang),
             reply_markup=wish_view_kb(wish, lang),
         )

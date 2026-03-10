@@ -56,9 +56,15 @@ async def event_agent_node(state: AgentState) -> AgentState:
     usage = getattr(response, "usage_metadata", None) or {}
     al.set_response(
         text=content,
-        tokens_prompt=usage.get("input_tokens") if isinstance(usage, dict) else getattr(usage, "input_tokens", None),
-        tokens_completion=usage.get("output_tokens") if isinstance(usage, dict) else getattr(usage, "output_tokens", None),
-        tokens_total=usage.get("total_tokens") if isinstance(usage, dict) else getattr(usage, "total_tokens", None),
+        tokens_prompt=usage.get("input_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "input_tokens", None),
+        tokens_completion=usage.get("output_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "output_tokens", None),
+        tokens_total=usage.get("total_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "total_tokens", None),
     )
     await al.flush()
 
@@ -77,10 +83,16 @@ async def event_agent_node(state: AgentState) -> AgentState:
         state.needs_confirmation = True
         logger.info(
             "[event_agent] user=%s title=%r date=%s people=%r desc=%r",
-            state.user_id, state.event_title, state.event_date, state.person_names, state.event_description,
+            state.user_id,
+            state.event_title,
+            state.event_date,
+            state.person_names,
+            state.event_description,
         )
     except (json.JSONDecodeError, ValueError, KeyError) as e:
-        logger.warning("[event_agent] user=%s PARSE ERROR: %s content=%r", state.user_id, e, content)
+        logger.warning(
+            "[event_agent] user=%s PARSE ERROR: %s content=%r", state.user_id, e, content
+        )
         state.error = "parse_error"
 
     return state

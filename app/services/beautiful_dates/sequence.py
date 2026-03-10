@@ -21,12 +21,14 @@ class SequenceStrategy(BaseStrategy):
             else:
                 continue
 
-            results.append(BeautifulDateCandidate(
-                target_date=target,
-                interval_value=n,
-                interval_unit=unit,
-                label_ru=f"{decline(n, 'day', 'ru')} с «{event_title}»",
-                label_en=f"{decline(n, 'day', 'en')} since \"{event_title}\"",
-            ))
+            results.append(
+                BeautifulDateCandidate(
+                    target_date=target,
+                    interval_value=n,
+                    interval_unit=unit,
+                    label_ru=f"{decline(n, 'day', 'ru')} с «{event_title}»",
+                    label_en=f'{decline(n, "day", "en")} since "{event_title}"',
+                )
+            )
 
         return results

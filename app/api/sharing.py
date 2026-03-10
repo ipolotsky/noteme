@@ -58,9 +58,7 @@ async def share_page(
     if bd is None:
         return HTMLResponse(status_code=404, content="Not found")
 
-    result = await session.execute(
-        select(User).where(User.id == bd.event.user_id)
-    )
+    result = await session.execute(select(User).where(User.id == bd.event.user_id))
     user = result.scalar_one_or_none()
     lang = user.language if user else "ru"
 
@@ -113,9 +111,7 @@ async def mini_card_page(
     if bd is None:
         return HTMLResponse(status_code=404, content="Not found")
 
-    user_result = await session.execute(
-        select(User).where(User.id == bd.event.user_id)
-    )
+    user_result = await session.execute(select(User).where(User.id == bd.event.user_id))
     user = user_result.scalar_one_or_none()
     lang = user.language if user else "ru"
 

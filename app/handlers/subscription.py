@@ -26,9 +26,7 @@ logger = logging.getLogger(__name__)
 router = Router(name="subscription")
 
 
-async def _show_plans(
-    target: Message, user: User, lang: str, session: AsyncSession
-) -> None:
+async def _show_plans(target: Message, user: User, lang: str, session: AsyncSession) -> None:
     subscription = await get_active_subscription(session, user.id)
     if subscription is not None:
         if subscription.is_lifetime:
@@ -36,9 +34,7 @@ async def _show_plans(
             return
         if subscription.expires_at:
             date_str = subscription.expires_at.strftime("%d.%m.%Y")
-            await target.answer(
-                t("subscription.current_expires", lang, date=date_str)
-            )
+            await target.answer(t("subscription.current_expires", lang, date=date_str))
             return
 
     plans = await get_subscription_plans(session)
@@ -53,9 +49,7 @@ async def _show_plans(
 
 
 @router.message(Command("subscribe"))
-async def cmd_subscribe(
-    message: Message, user: User, lang: str, session: AsyncSession
-) -> None:
+async def cmd_subscribe(message: Message, user: User, lang: str, session: AsyncSession) -> None:
     await log_user_action(user.id, "subscribe_view")
     await _show_plans(message, user, lang, session)
 
@@ -117,9 +111,7 @@ async def subscribe_referral(
 
 
 @router.pre_checkout_query()
-async def pre_checkout(
-    query: PreCheckoutQuery, session: AsyncSession
-) -> None:
+async def pre_checkout(query: PreCheckoutQuery, session: AsyncSession) -> None:
     payload = query.invoice_payload
     if not payload.startswith("sub:"):
         await query.answer(ok=False, error_message="Invalid payload")
@@ -165,9 +157,7 @@ async def successful_payment(
     )
     session.add(payment)
 
-    subscription = await activate_subscription(
-        session, user.id, plan_id, source="payment"
-    )
+    subscription = await activate_subscription(session, user.id, plan_id, source="payment")
     await session.flush()
 
     if subscription.is_lifetime:

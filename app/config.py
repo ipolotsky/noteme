@@ -78,6 +78,7 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         from urllib.parse import quote_plus
+
         return (
             f"postgresql+asyncpg://{quote_plus(self.db_user)}:{quote_plus(self.db_password)}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
@@ -86,6 +87,7 @@ class Settings(BaseSettings):
     @property
     def database_url_sync(self) -> str:
         from urllib.parse import quote_plus
+
         return (
             f"postgresql://{quote_plus(self.db_user)}:{quote_plus(self.db_password)}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"

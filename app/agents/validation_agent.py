@@ -47,9 +47,15 @@ async def validation_node(state: AgentState) -> AgentState:
     usage = getattr(response, "usage_metadata", None) or {}
     al.set_response(
         text=result,
-        tokens_prompt=usage.get("input_tokens") if isinstance(usage, dict) else getattr(usage, "input_tokens", None),
-        tokens_completion=usage.get("output_tokens") if isinstance(usage, dict) else getattr(usage, "output_tokens", None),
-        tokens_total=usage.get("total_tokens") if isinstance(usage, dict) else getattr(usage, "total_tokens", None),
+        tokens_prompt=usage.get("input_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "input_tokens", None),
+        tokens_completion=usage.get("output_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "output_tokens", None),
+        tokens_total=usage.get("total_tokens")
+        if isinstance(usage, dict)
+        else getattr(usage, "total_tokens", None),
     )
     await al.flush()
 
@@ -61,5 +67,10 @@ async def validation_node(state: AgentState) -> AgentState:
         state.is_valid = False
         state.rejection_reason = lines[1] if len(lines) > 1 else ""
 
-    logger.info("[validation] user=%s valid=%s reason=%r", state.user_id, state.is_valid, state.rejection_reason)
+    logger.info(
+        "[validation] user=%s valid=%s reason=%r",
+        state.user_id,
+        state.is_valid,
+        state.rejection_reason,
+    )
     return state

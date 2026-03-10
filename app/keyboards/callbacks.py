@@ -28,7 +28,9 @@ class WishEditCb(CallbackData, prefix="ws_edit"):
 
 
 class PersonCb(CallbackData, prefix="pp"):
-    action: str  # "list", "view", "create", "rename", "delete", "confirm_delete", "events", "wishes"
+    action: (
+        str  # "list", "view", "create", "rename", "delete", "confirm_delete", "events", "wishes"
+    )
     id: str = ""
     page: int = 0
 
