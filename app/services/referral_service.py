@@ -10,8 +10,8 @@ from app.models.referral_reward import ReferralReward
 logger = logging.getLogger(__name__)
 
 
-async def process_referral(session: AsyncSession, referrer_id: int, referred_id: int) -> bool:
-    """Grant referral bonus to referrer. Returns True if bonus was granted."""
+async def process_referral(session: AsyncSession, referrer_id: int, referred_id: int) -> int | None:
+    """Grant referral bonus to referrer. Returns reward months or None if already processed."""
     from app.services.app_settings_service import get_int_setting
     from app.services.subscription_service import grant_subscription
 
@@ -19,7 +19,7 @@ async def process_referral(session: AsyncSession, referrer_id: int, referred_id:
         select(ReferralReward).where(ReferralReward.referred_id == referred_id)
     )
     if existing.scalar_one_or_none() is not None:
-        return False
+        return None
 
     reward_months = await get_int_setting(session, "referral_reward_months", 1)
 
@@ -38,7 +38,7 @@ async def process_referral(session: AsyncSession, referrer_id: int, referred_id:
         referrer_id,
         referred_id,
     )
-    return True
+    return reward_months
 
 
 def get_referral_link(bot_username: str, user_id: int) -> str:

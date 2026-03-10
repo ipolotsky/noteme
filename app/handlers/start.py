@@ -55,7 +55,16 @@ async def cmd_start(
                     await session.flush()
                     from app.services.referral_service import process_referral
 
-                    await process_referral(session, referrer_id, user.id)
+                    reward_months = await process_referral(session, referrer_id, user.id)
+                    if reward_months is not None:
+                        try:
+                            referrer_lang = referrer.language or "ru"
+                            await message.bot.send_message(
+                                referrer_id,
+                                t("subscription.referral_bonus", referrer_lang, months=reward_months),
+                            )
+                        except Exception:
+                            logger.warning("Failed to send referral notification to %d", referrer_id)
         except ValueError:
             logger.warning("Invalid referral args: %s", command.args)
         except Exception:

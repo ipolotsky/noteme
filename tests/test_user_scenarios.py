@@ -922,3 +922,50 @@ class TestEdgeCases:
         state.clear.assert_called_once()
         text = msg.answer.call_args.args[0]
         assert "найдено" in text.lower() or "found" in text.lower()
+
+
+class TestReferralNotification:
+
+    @patch("app.services.referral_service.process_referral", new_callable=AsyncMock, return_value=2)
+    @patch("app.handlers.start.log_user_action", new_callable=AsyncMock)
+    async def test_referral_sends_notification_to_referrer(
+        self, _mock_log, _mock_process, session: AsyncSession
+    ):
+        from app.handlers.start import cmd_start
+
+        await _make_user(session, user_id=111, language="en")
+        user = await _make_user(session, user_id=222, onboarding_completed=True)
+
+        msg = _mock_message("/start")
+        msg.bot = AsyncMock()
+        msg.bot.send_message = AsyncMock()
+        state = _mock_state()
+        command = MagicMock()
+        command.args = "ref_111"
+
+        await cmd_start(msg, state, user, "ru", session, command=command)
+
+        msg.bot.send_message.assert_called_once()
+        call_args = msg.bot.send_message.call_args
+        assert call_args.args[0] == 111
+        assert "2" in call_args.args[1]
+
+    @patch("app.handlers.start.log_user_action", new_callable=AsyncMock)
+    async def test_referral_no_notification_on_duplicate(self, _mock_log, session: AsyncSession):
+        from app.handlers.start import cmd_start
+
+        await _make_user(session, user_id=111, language="ru")
+        user = await _make_user(session, user_id=222, onboarding_completed=True)
+        user.referred_by = 111
+        await session.flush()
+
+        msg = _mock_message("/start")
+        msg.bot = AsyncMock()
+        msg.bot.send_message = AsyncMock()
+        state = _mock_state()
+        command = MagicMock()
+        command.args = "ref_111"
+
+        await cmd_start(msg, state, user, "ru", session, command=command)
+
+        msg.bot.send_message.assert_not_called()
