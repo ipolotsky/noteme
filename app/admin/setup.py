@@ -1,13 +1,14 @@
 """sqladmin setup with session-based auth + clear-db action + test notifications."""
 
 import logging
+from datetime import UTC, datetime, timedelta
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqladmin import Admin
 from sqladmin._menu import ItemMenu
 from sqladmin.authentication import AuthenticationBackend
-from sqlalchemy import text
+from sqlalchemy import Date, cast, func, select, text
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request
 
@@ -62,6 +63,94 @@ def setup_admin(app: FastAPI) -> Admin:
     app.add_middleware(SessionMiddleware, secret_key=settings.admin_secret_key)
 
     # --- Custom endpoints MUST be registered BEFORE Admin() mount ---
+
+    @app.get("/admin/dashboard", response_class=HTMLResponse)
+    async def dashboard_page(request: Request) -> HTMLResponse:
+        if not request.session.get("authenticated"):
+            return RedirectResponse(url="/admin/login", status_code=302)  # type: ignore[return-value]
+
+        from app.models.event import Event
+        from app.models.payment import Payment
+        from app.models.subscription import Subscription
+        from app.models.user import User
+        from app.models.wish import Wish
+
+        now = datetime.now(UTC)
+        week_ago = now - timedelta(days=7)
+        month_ago = now - timedelta(days=30)
+
+        async with async_session_factory() as session:
+            total_users = (await session.execute(select(func.count(User.id)))).scalar() or 0
+            new_users_7d = (
+                await session.execute(
+                    select(func.count(User.id)).where(User.created_at >= week_ago)
+                )
+            ).scalar() or 0
+            new_users_30d = (
+                await session.execute(
+                    select(func.count(User.id)).where(User.created_at >= month_ago)
+                )
+            ).scalar() or 0
+
+            paying_users = (
+                await session.execute(
+                    select(func.count(func.distinct(Subscription.user_id))).where(
+                        Subscription.is_active.is_(True)
+                    )
+                )
+            ).scalar() or 0
+            free_users = total_users - paying_users
+
+            total_stars = (
+                await session.execute(select(func.coalesce(func.sum(Payment.amount_stars), 0)))
+            ).scalar() or 0
+
+            total_events = (await session.execute(select(func.count(Event.id)))).scalar() or 0
+            total_wishes = (await session.execute(select(func.count(Wish.id)))).scalar() or 0
+
+            avg_events = round(total_events / total_users, 1) if total_users else 0
+            avg_wishes = round(total_wishes / total_users, 1) if total_users else 0
+            wish_event_ratio = round(total_wishes / total_events, 2) if total_events else 0
+
+            growth_rows = (
+                await session.execute(
+                    select(
+                        cast(User.created_at, Date).label("day"),
+                        func.count(User.id).label("cnt"),
+                    )
+                    .where(User.created_at >= month_ago)
+                    .group_by(cast(User.created_at, Date))
+                    .order_by(cast(User.created_at, Date))
+                )
+            ).all()
+
+            growth_labels = [row.day.strftime("%d.%m") for row in growth_rows]
+            growth_data: list[int] = []
+            running = total_users - new_users_30d
+            for row in growth_rows:
+                running += row.cnt
+                growth_data.append(running)
+
+        rendered = await request.app.state.admin.templates.TemplateResponse(
+            request,
+            "dashboard.html",
+            {
+                "total_users": total_users,
+                "new_users_7d": new_users_7d,
+                "new_users_30d": new_users_30d,
+                "paying_users": paying_users,
+                "free_users": free_users,
+                "total_stars": total_stars,
+                "total_events": total_events,
+                "total_wishes": total_wishes,
+                "avg_events": avg_events,
+                "avg_wishes": avg_wishes,
+                "wish_event_ratio": wish_event_ratio,
+                "growth_labels": growth_labels,
+                "growth_data": growth_data,
+            },
+        )
+        return HTMLResponse(content=rendered.body, status_code=rendered.status_code)
 
     @app.get("/admin/stars-balance", response_class=HTMLResponse)
     async def stars_balance_page(request: Request) -> HTMLResponse:
@@ -369,6 +458,17 @@ def setup_admin(app: FastAPI) -> Admin:
     admin.add_view(AILogAdmin)
     admin.add_view(UserActionLogAdmin)
 
+    class DashboardMenuItem(ItemMenu):
+        @property
+        def type_(self) -> str:
+            return "View"
+
+        def url(self, request: Request) -> str:
+            return "/admin/dashboard"
+
+        def is_active(self, request: Request) -> bool:
+            return request.url.path == "/admin/dashboard"
+
     class StarsMenuItem(ItemMenu):
         @property
         def type_(self) -> str:
@@ -380,6 +480,7 @@ def setup_admin(app: FastAPI) -> Admin:
         def is_active(self, request: Request) -> bool:
             return request.url.path == "/admin/stars-balance"
 
+    admin._menu.items.insert(0, DashboardMenuItem(name="Dashboard", icon="fa-solid fa-chart-line"))
     admin._menu.items.append(StarsMenuItem(name="Stars Balance", icon="fa-solid fa-star"))
 
     app.state.admin = admin
