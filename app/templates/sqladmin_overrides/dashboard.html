@@ -10,11 +10,12 @@
 {% endblock %}
 
 {% block content %}
-<div class="row row-deck row-cards">
     <div class="col-sm-6 col-lg-3">
         <div class="card">
             <div class="card-body">
-                <div class="subheader">Total users</div>
+                <div class="d-flex align-items-center">
+                    <div class="subheader">Total users</div>
+                </div>
                 <div class="h1 mb-0">{{ total_users }}</div>
                 <div class="text-muted mt-1">
                     +{{ new_users_7d }} (7d) / +{{ new_users_30d }} (30d)
@@ -25,7 +26,9 @@
     <div class="col-sm-6 col-lg-3">
         <div class="card">
             <div class="card-body">
-                <div class="subheader">Stars earned</div>
+                <div class="d-flex align-items-center">
+                    <div class="subheader">Stars earned</div>
+                </div>
                 <div class="h1 mb-0">{{ total_stars }}</div>
                 <div class="text-muted mt-1">
                     Paying: {{ paying_users }} / Free: {{ free_users }}
@@ -36,7 +39,9 @@
     <div class="col-sm-6 col-lg-3">
         <div class="card">
             <div class="card-body">
-                <div class="subheader">Events</div>
+                <div class="d-flex align-items-center">
+                    <div class="subheader">Events</div>
+                </div>
                 <div class="h1 mb-0">{{ total_events }}</div>
                 <div class="text-muted mt-1">
                     avg {{ avg_events }} per user
@@ -47,7 +52,9 @@
     <div class="col-sm-6 col-lg-3">
         <div class="card">
             <div class="card-body">
-                <div class="subheader">Wishes</div>
+                <div class="d-flex align-items-center">
+                    <div class="subheader">Wishes</div>
+                </div>
                 <div class="h1 mb-0">{{ total_wishes }}</div>
                 <div class="text-muted mt-1">
                     avg {{ avg_wishes }} per user / ratio {{ wish_event_ratio }}
@@ -55,13 +62,13 @@
             </div>
         </div>
     </div>
-</div>
 
-<div class="row row-deck row-cards mt-3">
     <div class="col-sm-6 col-lg-3">
         <div class="card">
             <div class="card-body">
-                <div class="subheader">AI tokens (this month)</div>
+                <div class="d-flex align-items-center">
+                    <div class="subheader">AI tokens (this month)</div>
+                </div>
                 <div class="h1 mb-0">{{ "{:,}".format(ai_month.tokens_total) }}</div>
                 <div class="text-muted mt-1">{{ ai_month.calls }} calls</div>
             </div>
@@ -70,7 +77,9 @@
     <div class="col-sm-6 col-lg-3">
         <div class="card">
             <div class="card-body">
-                <div class="subheader">AI cost (this month)</div>
+                <div class="d-flex align-items-center">
+                    <div class="subheader">AI cost (this month)</div>
+                </div>
                 <div class="h1 mb-0">${{ "%.4f"|format(ai_month.cost_usd) }}</div>
                 <div class="text-muted mt-1">
                     {{ "%.1f"|format(ai_month.cost_usd * rates.stars_per_usd) }} stars
@@ -81,7 +90,9 @@
     <div class="col-sm-6 col-lg-3">
         <div class="card">
             <div class="card-body">
-                <div class="subheader">AI cost (TON)</div>
+                <div class="d-flex align-items-center">
+                    <div class="subheader">AI cost (TON)</div>
+                </div>
                 <div class="h1 mb-0">
                     {% if rates.ton_per_usd > 0 %}
                         {{ "%.6f"|format(ai_month.cost_usd * rates.ton_per_usd) }}
@@ -98,7 +109,9 @@
     <div class="col-sm-6 col-lg-3">
         <div class="card">
             <div class="card-body">
-                <div class="subheader">Avg tokens per user</div>
+                <div class="d-flex align-items-center">
+                    <div class="subheader">Avg tokens per user</div>
+                </div>
                 <div class="h1 mb-0">{{ "{:,}".format(ai_avg_per_user) }}</div>
                 <div class="text-muted mt-1">
                     ${{ "%.4f"|format(ai_avg_cost_per_user) }}/user
@@ -106,9 +119,7 @@
             </div>
         </div>
     </div>
-</div>
 
-<div class="row mt-3">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
@@ -119,9 +130,7 @@
             </div>
         </div>
     </div>
-</div>
 
-<div class="row mt-3">
     <div class="col-lg-6">
         <div class="card">
             <div class="card-header">
@@ -148,9 +157,7 @@
             </div>
         </div>
     </div>
-</div>
 
-<div class="row mt-3">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
@@ -227,7 +234,6 @@
             </div>
         </div>
     </div>
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script>
