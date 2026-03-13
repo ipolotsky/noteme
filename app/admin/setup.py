@@ -1,5 +1,3 @@
-"""sqladmin setup with session-based auth + clear-db action + test notifications."""
-
 import logging
 from datetime import UTC, datetime, timedelta
 
@@ -37,7 +35,6 @@ class AdminAuth(AuthenticationBackend):
         return request.session.get("authenticated", False)
 
 
-# Tables to truncate (in FK-safe order, CASCADE handles the rest)
 _CLEAR_TABLES = [
     "referral_rewards",
     "payments",
@@ -56,13 +53,11 @@ _CLEAR_TABLES = [
 
 
 def setup_admin(app: FastAPI) -> Admin:
-    """Configure sqladmin and register all views."""
-
-    # Session middleware needed by custom endpoints below.
-    # Admin() also adds it, but double middleware is harmless.
     app.add_middleware(SessionMiddleware, secret_key=settings.admin_secret_key)
 
-    # --- Custom endpoints MUST be registered BEFORE Admin() mount ---
+    @app.get("/admin")
+    async def admin_index_redirect(request: Request) -> RedirectResponse:
+        return RedirectResponse(url="/admin/dashboard", status_code=302)
 
     @app.get("/admin/dashboard", response_class=HTMLResponse)
     async def dashboard_page(request: Request) -> HTMLResponse:
@@ -74,6 +69,11 @@ def setup_admin(app: FastAPI) -> Admin:
         from app.models.subscription import Subscription
         from app.models.user import User
         from app.models.wish import Wish
+        from app.services.ai_cost_service import (
+            get_current_month_stats,
+            get_exchange_rates,
+            get_monthly_stats,
+        )
 
         now = datetime.now(UTC)
         week_ago = now - timedelta(days=7)
@@ -131,6 +131,18 @@ def setup_admin(app: FastAPI) -> Admin:
                 running += row.cnt
                 growth_data.append(running)
 
+            ai_month = await get_current_month_stats(session)
+            ai_monthly = await get_monthly_stats(session, months=6)
+
+        rates = await get_exchange_rates()
+
+        ai_avg_per_user = round(ai_month["tokens_total"] / total_users) if total_users else 0
+        ai_avg_cost_per_user = ai_month["cost_usd"] / total_users if total_users else 0.0
+
+        ai_monthly_labels = [m["month"] for m in ai_monthly]
+        ai_monthly_tokens = [m["tokens_total"] for m in ai_monthly]
+        ai_monthly_costs = [round(m["cost_usd"], 4) for m in ai_monthly]
+
         rendered = await request.app.state.admin.templates.TemplateResponse(
             request,
             "dashboard.html",
@@ -148,6 +160,59 @@ def setup_admin(app: FastAPI) -> Admin:
                 "wish_event_ratio": wish_event_ratio,
                 "growth_labels": growth_labels,
                 "growth_data": growth_data,
+                "ai_month": ai_month,
+                "rates": rates,
+                "ai_avg_per_user": ai_avg_per_user,
+                "ai_avg_cost_per_user": ai_avg_cost_per_user,
+                "ai_monthly_labels": ai_monthly_labels,
+                "ai_monthly_tokens": ai_monthly_tokens,
+                "ai_monthly_costs": ai_monthly_costs,
+            },
+        )
+        return HTMLResponse(content=rendered.body, status_code=rendered.status_code)
+
+    @app.get("/admin/ai-costs", response_class=HTMLResponse)
+    async def ai_costs_page(request: Request) -> HTMLResponse:
+        if not request.session.get("authenticated"):
+            return RedirectResponse(url="/admin/login", status_code=302)  # type: ignore[return-value]
+
+        from app.services.ai_cost_service import (
+            get_current_month_stats,
+            get_exchange_rates,
+            get_monthly_stats,
+            get_users_token_stats,
+        )
+
+        page = int(request.query_params.get("page", 1))
+        page_size = 50
+
+        async with async_session_factory() as session:
+            user_stats, total_users = await get_users_token_stats(
+                session, page=page, page_size=page_size
+            )
+            monthly_stats = await get_monthly_stats(session, months=6)
+            current_month = await get_current_month_stats(session)
+
+        rates = await get_exchange_rates()
+
+        monthly_labels = [m["month"] for m in monthly_stats]
+        monthly_tokens = [m["tokens_total"] for m in monthly_stats]
+        monthly_costs = [round(m["cost_usd"], 4) for m in monthly_stats]
+
+        rendered = await request.app.state.admin.templates.TemplateResponse(
+            request,
+            "ai_costs.html",
+            {
+                "user_stats": user_stats,
+                "total_users": total_users,
+                "page": page,
+                "page_size": page_size,
+                "monthly_stats": monthly_stats,
+                "current_month": current_month,
+                "rates": rates,
+                "monthly_labels": monthly_labels,
+                "monthly_tokens": monthly_tokens,
+                "monthly_costs": monthly_costs,
             },
         )
         return HTMLResponse(content=rendered.body, status_code=rendered.status_code)
@@ -415,8 +480,6 @@ def setup_admin(app: FastAPI) -> Admin:
             "</body></html>"
         )
 
-    # --- Now mount sqladmin (catches remaining /admin/* paths) ---
-
     auth_backend = AdminAuth(secret_key=settings.admin_secret_key)
     admin = Admin(
         app,
@@ -480,7 +543,19 @@ def setup_admin(app: FastAPI) -> Admin:
         def is_active(self, request: Request) -> bool:
             return request.url.path == "/admin/stars-balance"
 
+    class AICostsMenuItem(ItemMenu):
+        @property
+        def type_(self) -> str:
+            return "View"
+
+        def url(self, request: Request) -> str:
+            return "/admin/ai-costs"
+
+        def is_active(self, request: Request) -> bool:
+            return request.url.path == "/admin/ai-costs"
+
     admin._menu.items.insert(0, DashboardMenuItem(name="Dashboard", icon="fa-solid fa-chart-line"))
+    admin._menu.items.append(AICostsMenuItem(name="AI Costs", icon="fa-solid fa-coins"))
     admin._menu.items.append(StarsMenuItem(name="Stars Balance", icon="fa-solid fa-star"))
 
     app.state.admin = admin

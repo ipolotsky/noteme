@@ -14,9 +14,7 @@
     <div class="col-sm-6 col-lg-3">
         <div class="card">
             <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="subheader">Total users</div>
-                </div>
+                <div class="subheader">Total users</div>
                 <div class="h1 mb-0">{{ total_users }}</div>
                 <div class="text-muted mt-1">
                     +{{ new_users_7d }} (7d) / +{{ new_users_30d }} (30d)
@@ -27,9 +25,7 @@
     <div class="col-sm-6 col-lg-3">
         <div class="card">
             <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="subheader">Stars earned</div>
-                </div>
+                <div class="subheader">Stars earned</div>
                 <div class="h1 mb-0">{{ total_stars }}</div>
                 <div class="text-muted mt-1">
                     Paying: {{ paying_users }} / Free: {{ free_users }}
@@ -40,9 +36,7 @@
     <div class="col-sm-6 col-lg-3">
         <div class="card">
             <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="subheader">Events</div>
-                </div>
+                <div class="subheader">Events</div>
                 <div class="h1 mb-0">{{ total_events }}</div>
                 <div class="text-muted mt-1">
                     avg {{ avg_events }} per user
@@ -53,12 +47,61 @@
     <div class="col-sm-6 col-lg-3">
         <div class="card">
             <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="subheader">Wishes</div>
-                </div>
+                <div class="subheader">Wishes</div>
                 <div class="h1 mb-0">{{ total_wishes }}</div>
                 <div class="text-muted mt-1">
                     avg {{ avg_wishes }} per user / ratio {{ wish_event_ratio }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row row-deck row-cards mt-3">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">AI tokens (this month)</div>
+                <div class="h1 mb-0">{{ "{:,}".format(ai_month.tokens_total) }}</div>
+                <div class="text-muted mt-1">{{ ai_month.calls }} calls</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">AI cost (this month)</div>
+                <div class="h1 mb-0">${{ "%.4f"|format(ai_month.cost_usd) }}</div>
+                <div class="text-muted mt-1">
+                    {{ "%.1f"|format(ai_month.cost_usd * rates.stars_per_usd) }} stars
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">AI cost (TON)</div>
+                <div class="h1 mb-0">
+                    {% if rates.ton_per_usd > 0 %}
+                        {{ "%.6f"|format(ai_month.cost_usd * rates.ton_per_usd) }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                <div class="text-muted mt-1">
+                    <a href="/admin/ai-costs">View details</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">Avg tokens per user</div>
+                <div class="h1 mb-0">{{ "{:,}".format(ai_avg_per_user) }}</div>
+                <div class="text-muted mt-1">
+                    ${{ "%.4f"|format(ai_avg_cost_per_user) }}/user
                 </div>
             </div>
         </div>
@@ -92,6 +135,23 @@
         </div>
     </div>
     <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Monthly AI costs</h3>
+            </div>
+            <div class="card-body">
+                {% if ai_monthly_labels %}
+                    <canvas id="aiCostChart"></canvas>
+                {% else %}
+                    <p class="text-muted">No data yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">Key metrics</h3>
@@ -142,6 +202,25 @@
                         <tr>
                             <td>Wishes/events ratio</td>
                             <td class="text-end"><strong>{{ wish_event_ratio }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>AI tokens (this month)</td>
+                            <td class="text-end">
+                                <strong>{{ "{:,}".format(ai_month.tokens_total) }}</strong>
+                                <span class="text-muted ms-1">
+                                    (${{ "%.4f"|format(ai_month.cost_usd) }}
+                                    / {{ "%.1f"|format(ai_month.cost_usd * rates.stars_per_usd) }} stars)
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Avg monthly tokens per user</td>
+                            <td class="text-end">
+                                <strong>{{ "{:,}".format(ai_avg_per_user) }}</strong>
+                                <span class="text-muted ms-1">
+                                    (${{ "%.4f"|format(ai_avg_cost_per_user) }})
+                                </span>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -194,5 +273,51 @@
             }
         }
     });
+
+    {% if ai_monthly_labels %}
+    var aiLabels = {{ ai_monthly_labels | tojson }};
+    var aiTokens = {{ ai_monthly_tokens | tojson }};
+    var aiCosts = {{ ai_monthly_costs | tojson }};
+
+    new Chart(document.getElementById('aiCostChart'), {
+        type: 'bar',
+        data: {
+            labels: aiLabels,
+            datasets: [
+                {
+                    label: 'Tokens',
+                    data: aiTokens,
+                    backgroundColor: 'rgba(13,110,253,0.6)',
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Cost (USD)',
+                    data: aiCosts,
+                    type: 'line',
+                    borderColor: '#dc3545',
+                    backgroundColor: 'transparent',
+                    yAxisID: 'y1',
+                    tension: 0.3,
+                    pointRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    position: 'left',
+                    title: { display: true, text: 'Tokens' },
+                    ticks: { precision: 0 }
+                },
+                y1: {
+                    position: 'right',
+                    title: { display: true, text: 'USD' },
+                    grid: { drawOnChartArea: false }
+                }
+            }
+        }
+    });
+    {% endif %}
 </script>
 {% endblock %}
