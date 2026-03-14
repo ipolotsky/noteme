@@ -1,0 +1,226 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block content_header %}
+<div class="row align-items-center">
+    <div class="col">
+        <h2 class="page-title">AI Costs</h2>
+        <div class="page-pretitle">Token usage and cost breakdown</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+    <div class="col-sm-6 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">This month tokens</div>
+                <div class="h1 mb-0">{{ "{:,}".format(current_month.tokens_total) }}</div>
+                <div class="text-muted mt-1">{{ current_month.calls }} calls</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">This month cost (USD)</div>
+                <div class="h1 mb-0">${{ "%.4f"|format(current_month.cost_usd) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">This month cost (TON)</div>
+                <div class="h1 mb-0">
+                    {% if rates.ton_per_usd > 0 %}
+                        {{ "%.6f"|format(current_month.cost_usd * rates.ton_per_usd) }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader">This month cost (Stars)</div>
+                <div class="h1 mb-0">{{ "%.1f"|format(current_month.cost_usd * rates.stars_per_usd) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Monthly token usage (last 6 months)</h3>
+            </div>
+            <div class="card-body">
+                {% if monthly_stats %}
+                    <canvas id="monthlyChart" height="80"></canvas>
+                {% else %}
+                    <p class="text-muted">No data yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Monthly breakdown</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="table card-table table-vcenter">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th class="text-end">Tokens</th>
+                            <th class="text-end">Calls</th>
+                            <th class="text-end">USD</th>
+                            <th class="text-end">TON</th>
+                            <th class="text-end">Stars</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in monthly_stats|reverse %}
+                        <tr>
+                            <td>{{ m.month }}</td>
+                            <td class="text-end">{{ "{:,}".format(m.tokens_total) }}</td>
+                            <td class="text-end">{{ "{:,}".format(m.calls) }}</td>
+                            <td class="text-end">${{ "%.4f"|format(m.cost_usd) }}</td>
+                            <td class="text-end">
+                                {% if rates.ton_per_usd > 0 %}
+                                    {{ "%.6f"|format(m.cost_usd * rates.ton_per_usd) }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td class="text-end">{{ "%.1f"|format(m.cost_usd * rates.stars_per_usd) }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% if not monthly_stats %}
+                        <tr>
+                            <td colspan="6" class="text-muted text-center">No data yet</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Per-user AI costs</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="table card-table table-vcenter">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th class="text-end">Total tokens</th>
+                            <th class="text-end">Avg monthly</th>
+                            <th class="text-end">USD</th>
+                            <th class="text-end">TON</th>
+                            <th class="text-end">Stars</th>
+                            <th class="text-end">Avg monthly USD</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in user_stats %}
+                        <tr>
+                            <td>
+                                <a href="/admin/user/details/{{ u.user_id }}">{{ u.username }}</a>
+                            </td>
+                            <td class="text-end">{{ "{:,}".format(u.tokens_total) }}</td>
+                            <td class="text-end">{{ "{:,}".format(u.avg_monthly_tokens) }}</td>
+                            <td class="text-end">${{ "%.4f"|format(u.cost_usd) }}</td>
+                            <td class="text-end">
+                                {% if rates.ton_per_usd > 0 %}
+                                    {{ "%.6f"|format(u.cost_usd * rates.ton_per_usd) }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td class="text-end">{{ "%.1f"|format(u.cost_usd * rates.stars_per_usd) }}</td>
+                            <td class="text-end">${{ "%.4f"|format(u.avg_monthly_cost_usd) }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% if not user_stats %}
+                        <tr>
+                            <td colspan="7" class="text-muted text-center">No data yet</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            {% if total_users > page_size %}
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <p class="m-0 text-muted">
+                    Showing {{ (page - 1) * page_size + 1 }}-{{ [page * page_size, total_users]|min }}
+                    of {{ total_users }}
+                </p>
+                <div>
+                    {% if page > 1 %}
+                        <a href="?page={{ page - 1 }}" class="btn btn-sm btn-outline-primary">Previous</a>
+                    {% endif %}
+                    {% if page * page_size < total_users %}
+                        <a href="?page={{ page + 1 }}" class="btn btn-sm btn-outline-primary">Next</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+{% if monthly_stats %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+    var labels = {{ monthly_labels | tojson }};
+    var tokensData = {{ monthly_tokens | tojson }};
+    var costData = {{ monthly_costs | tojson }};
+
+    new Chart(document.getElementById('monthlyChart'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Tokens',
+                    data: tokensData,
+                    backgroundColor: 'rgba(13,110,253,0.6)',
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Cost (USD)',
+                    data: costData,
+                    type: 'line',
+                    borderColor: '#dc3545',
+                    backgroundColor: 'transparent',
+                    yAxisID: 'y1',
+                    tension: 0.3,
+                    pointRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    position: 'left',
+                    title: { display: true, text: 'Tokens' },
+                    ticks: { precision: 0 }
+                },
+                y1: {
+                    position: 'right',
+                    title: { display: true, text: 'USD' },
+                    grid: { drawOnChartArea: false }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}
