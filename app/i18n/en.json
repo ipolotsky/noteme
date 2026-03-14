@@ -1,12 +1,17 @@
 {
-  "welcome": "Hi, {name}! I'm Noteme, a bot for important dates and the wishes of your loved ones.",
+  "welcome": "Hi, {name}!\nBefore we begin, choose your language",
   "welcome_back": "Welcome back, {name}!",
   "choose_language": "Choose your language:",
   "language_set": "Language set: English",
 
   "onboarding": {
-    "intro": "I remember important dates and find beautiful number coincidences - 100 days, 777 days, 1 year. Add an event, write down wishes, and I'll remind you what to give when a beautiful date comes.",
-    "step1": "Tell me about an important event - text or voice.\n\nExamples:\n\"Wedding with Maria on July 17, 2022\"\n\"Mike got his driver's license two days ago\"",
+    "intro": "Awesome! Let's get to know each other.\nI'm @notadate_bot.\n\nI remember important dates and find beautiful reasons to celebrate them.\n\n<i>Not a Date. More than just a date. Get it?</i> \ud83d\ude0f",
+    "dont_get_it": "Not yet \ud83d\udc40",
+    "example": "Let me show you.\n\nSay your wedding was on {date_777}.\nWhat if I told you that today is 777 days since your wedding (hypothetically)!\n\nPretty cool, right? Why not celebrate?",
+    "more_example": "One more example",
+    "got_it": "Oh, I get it!",
+    "step1_more": "Let's try with your example.\nTell me a date and an event. You can use voice.\nFor example:\n{date_example} - wedding with Maria\nMike got his license two days ago",
+    "step1_got_it": "Let's create your first event. Tell me a date and an event. You can use voice.\nFor example:\n{date_example} - wedding with Maria\nMike got his license two days ago",
     "step2_personal": "Let's save your wishes. Say or type:\n\"I want big headphones with noise cancellation\"",
     "step2_with_person": "Let's remember what {name} loves or wants. Say:\n\"{name} wants big headphones\"",
     "step3": "All set! Use the menu below to navigate.",

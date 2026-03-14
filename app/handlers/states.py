@@ -3,6 +3,8 @@ from aiogram.fsm.state import State, StatesGroup
 
 class OnboardingStates(StatesGroup):
     waiting_language = State()
+    waiting_intro_response = State()
+    waiting_example_response = State()
     waiting_first_event = State()
     waiting_first_wish = State()
 

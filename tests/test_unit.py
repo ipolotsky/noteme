@@ -200,6 +200,25 @@ class TestMainMenuKeyboard:
         assert len(buttons) == 1
         assert "onb:" in buttons[0].callback_data
 
+    def test_onboarding_intro_kb(self):
+        from app.keyboards.main_menu import onboarding_intro_kb
+
+        kb = onboarding_intro_kb("ru")
+        assert len(kb.inline_keyboard) == 1
+        btn = kb.inline_keyboard[0][0]
+        assert "onb:" in btn.callback_data
+        assert "dont_get_it" in btn.callback_data
+
+    def test_onboarding_example_kb(self):
+        from app.keyboards.main_menu import onboarding_example_kb
+
+        kb = onboarding_example_kb("ru")
+        assert len(kb.inline_keyboard) == 1
+        buttons = kb.inline_keyboard[0]
+        assert len(buttons) == 2
+        assert "more_example" in buttons[0].callback_data
+        assert "got_it" in buttons[1].callback_data
+
 
 class TestEventsKeyboard:
     """Test event keyboard builders."""
@@ -457,6 +476,8 @@ class TestFSMStates:
         from app.handlers.states import OnboardingStates
 
         assert OnboardingStates.waiting_language
+        assert OnboardingStates.waiting_intro_response
+        assert OnboardingStates.waiting_example_response
         assert OnboardingStates.waiting_first_event
         assert OnboardingStates.waiting_first_wish
 

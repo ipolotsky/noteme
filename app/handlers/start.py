@@ -1,17 +1,25 @@
 import logging
-from datetime import date
+from datetime import date, timedelta
 from html import escape
+from pathlib import Path
 
 from aiogram import F, Router
 from aiogram.filters import CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, FSInputFile, Message
+from dateutil.relativedelta import relativedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.handlers.states import OnboardingStates
 from app.i18n.loader import t
 from app.keyboards.callbacks import LangCb, OnboardCb
-from app.keyboards.main_menu import onboarding_event_kb, onboarding_skip_kb, persistent_menu_kb
+from app.keyboards.main_menu import (
+    onboarding_event_kb,
+    onboarding_example_kb,
+    onboarding_intro_kb,
+    onboarding_skip_kb,
+    persistent_menu_kb,
+)
 from app.keyboards.settings import language_select_kb
 from app.models.user import User
 from app.schemas.user import UserUpdate
@@ -22,6 +30,37 @@ from app.utils.bot_utils import transcribe_voice
 logger = logging.getLogger(__name__)
 
 router = Router(name="start")
+
+ONBOARDING_GIF = Path(__file__).resolve().parent.parent / "assets" / "onboarding.gif"
+
+MONTHS_RU = {
+    1: "января",
+    2: "февраля",
+    3: "марта",
+    4: "апреля",
+    5: "мая",
+    6: "июня",
+    7: "июля",
+    8: "августа",
+    9: "сентября",
+    10: "октября",
+    11: "ноября",
+    12: "декабря",
+}
+
+
+def _format_date(d: date, lang: str) -> str:
+    if lang == "ru":
+        return f"{d.day} {MONTHS_RU[d.month]} {d.year}"
+    return d.strftime("%B %d, %Y")
+
+
+def _date_777_ago() -> date:
+    return date.today() - timedelta(days=777)
+
+
+def _date_example() -> date:
+    return date.today() - relativedelta(years=3, months=3, days=4)
 
 
 def _build_step2_text(lang: str, person_names: list[str]) -> str:
@@ -77,8 +116,9 @@ async def cmd_start(
         )
         return
 
+    await message.answer_animation(animation=FSInputFile(ONBOARDING_GIF))
     await message.answer(
-        t("welcome", lang, name=user.first_name) + "\n\n" + t("choose_language", lang),
+        t("welcome", lang, name=user.first_name),
         reply_markup=language_select_kb(),
     )
     await state.set_state(OnboardingStates.waiting_language)
@@ -104,13 +144,94 @@ async def onboarding_language(
     )
     await callback.message.answer(  # type: ignore[union-attr]
         t("onboarding.intro", lang),
+        reply_markup=onboarding_intro_kb(lang),
+        parse_mode="HTML",
     )
-    await callback.message.answer(  # type: ignore[union-attr]
-        t("onboarding.step1", lang),
+    await state.set_state(OnboardingStates.waiting_intro_response)
+    await state.update_data(lang=lang)
+    await callback.answer()
+
+
+@router.callback_query(
+    OnboardingStates.waiting_intro_response,
+    OnboardCb.filter(F.action == "dont_get_it"),
+)
+async def onboarding_intro_button(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+) -> None:
+    data = await state.get_data()
+    lang = data.get("lang", user.language)
+
+    await callback.message.edit_reply_markup(reply_markup=None)  # type: ignore[union-attr]
+    await _send_example(callback.message, state, lang)  # type: ignore[arg-type]
+    await callback.answer()
+
+
+@router.message(OnboardingStates.waiting_intro_response, F.text)
+async def onboarding_intro_text(
+    message: Message,
+    state: FSMContext,
+    user: User,
+) -> None:
+    data = await state.get_data()
+    lang = data.get("lang", user.language)
+    await _send_example(message, state, lang)
+
+
+async def _send_example(
+    message: Message,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    date_777 = _format_date(_date_777_ago(), lang)
+    await message.answer(
+        t("onboarding.example", lang, date_777=date_777),
+        reply_markup=onboarding_example_kb(lang),
+    )
+    await state.set_state(OnboardingStates.waiting_example_response)
+
+
+@router.callback_query(
+    OnboardingStates.waiting_example_response,
+    OnboardCb.filter(F.action == "more_example"),
+)
+async def onboarding_more_example(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+) -> None:
+    data = await state.get_data()
+    lang = data.get("lang", user.language)
+
+    date_ex = _format_date(_date_example(), lang)
+    await callback.message.edit_text(  # type: ignore[union-attr]
+        t("onboarding.step1_more", lang, date_example=date_ex),
         reply_markup=onboarding_event_kb(lang),
     )
     await state.set_state(OnboardingStates.waiting_first_event)
-    await state.update_data(lang=lang)
+    await callback.answer()
+
+
+@router.callback_query(
+    OnboardingStates.waiting_example_response,
+    OnboardCb.filter(F.action == "got_it"),
+)
+async def onboarding_got_it(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+) -> None:
+    data = await state.get_data()
+    lang = data.get("lang", user.language)
+
+    date_ex = _format_date(_date_example(), lang)
+    await callback.message.edit_text(  # type: ignore[union-attr]
+        t("onboarding.step1_got_it", lang, date_example=date_ex),
+        reply_markup=onboarding_event_kb(lang),
+    )
+    await state.set_state(OnboardingStates.waiting_first_event)
     await callback.answer()
 
 
