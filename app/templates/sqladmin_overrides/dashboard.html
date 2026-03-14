@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block content %}
-    <div class="col-sm-6 col-lg-3">
+    <div class="col-sm-6 col-lg-4">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -23,7 +23,7 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-6 col-lg-3">
+    <div class="col-sm-6 col-lg-4">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -36,7 +36,7 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-6 col-lg-3">
+    <div class="col-sm-6 col-lg-4">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -49,7 +49,7 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-6 col-lg-3">
+    <div class="col-sm-6 col-lg-4">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -63,7 +63,7 @@
         </div>
     </div>
 
-    <div class="col-sm-6 col-lg-3">
+    <div class="col-sm-6 col-lg-4">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -74,7 +74,7 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-6 col-lg-3">
+    <div class="col-sm-6 col-lg-4">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -87,7 +87,7 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-6 col-lg-3">
+    <div class="col-sm-6 col-lg-4">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -106,7 +106,7 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-6 col-lg-3">
+    <div class="col-sm-6 col-lg-4">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -115,6 +115,23 @@
                 <div class="h1 mb-0">{{ "{:,}".format(ai_avg_per_user) }}</div>
                 <div class="text-muted mt-1">
                     ${{ "%.4f"|format(ai_avg_cost_per_user) }}/user
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="subheader">Min price / month</div>
+                </div>
+                <div class="h1 mb-0">{{ min_price_stars }} stars</div>
+                <div class="text-muted mt-1">
+                    {% if paying_users > 0 %}
+                        breakeven at {{ paying_users }} paying
+                    {% else %}
+                        no paying users
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -226,6 +243,15 @@
                                 <strong>{{ "{:,}".format(ai_avg_per_user) }}</strong>
                                 <span class="text-muted ms-1">
                                     (${{ "%.4f"|format(ai_avg_cost_per_user) }})
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Min subscription price (breakeven)</td>
+                            <td class="text-end">
+                                <strong>{{ min_price_stars }} stars</strong>
+                                <span class="text-muted ms-1">
+                                    (${{ "%.4f"|format(min_price_stars / rates.stars_per_usd) }})
                                 </span>
                             </td>
                         </tr>

@@ -175,6 +175,21 @@ class NotificationLogAdmin(ModelView, model=NotificationLog):
     icon = "fa-solid fa-bell"
 
 
+def _format_tokens_with_cost(model: AILog, name: str) -> Markup:
+    from app.services.ai_cost_service import STARS_PER_USD, calculate_cost_usd
+
+    tokens = model.tokens_total or 0
+    cost = calculate_cost_usd(
+        model.tokens_prompt or 0, model.tokens_completion or 0, model.model or ""
+    )
+    stars = cost * STARS_PER_USD
+    return Markup(
+        f"{tokens:,}"
+        f'<br><span style="color:#6c757d;font-size:0.85em">'
+        f"${cost:.4f} / {stars:.1f} stars</span>"
+    )
+
+
 class AILogAdmin(ModelView, model=AILog):
     column_list = [
         AILog.user_id,
@@ -201,6 +216,9 @@ class AILogAdmin(ModelView, model=AILog):
         AILog.response_text: "Response",
         AILog.tokens_total: "Tokens",
         AILog.latency_ms: "Latency (ms)",
+    }
+    column_formatters = {
+        AILog.tokens_total: _format_tokens_with_cost,
     }
     can_create = False
     can_edit = False

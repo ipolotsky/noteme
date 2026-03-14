@@ -13,17 +13,18 @@ services:
       - NOTEME_DB_PORT=5432
       - NOTEME_REDIS_HOST=redis
       - NOTEME_REDIS_PORT=6379
+      - NOTEME_APP_PORT=8001
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     ports:
-      - "8001:8000"
+      - "8001:8001"
     volumes:
       - .:/app
       - app_venv:/app/.venv
-    command: sh -c "uv sync --frozen --no-dev && python -m app"
+    command: sh -c "uv sync --frozen && watchfiles 'python -m app' /app/app"
 
   worker:
     build:

@@ -139,6 +139,15 @@ def setup_admin(app: FastAPI) -> Admin:
         ai_avg_per_user = round(ai_month["tokens_total"] / total_users) if total_users else 0
         ai_avg_cost_per_user = ai_month["cost_usd"] / total_users if total_users else 0.0
 
+        from app.services.ai_cost_service import STARS_PER_USD
+
+        if paying_users > 0:
+            min_price_stars = round(
+                ai_month["cost_usd"] * STARS_PER_USD / paying_users, 1
+            )
+        else:
+            min_price_stars = round(ai_month["cost_usd"] * STARS_PER_USD, 1)
+
         ai_monthly_labels = [m["month"] for m in ai_monthly]
         ai_monthly_tokens = [m["tokens_total"] for m in ai_monthly]
         ai_monthly_costs = [round(m["cost_usd"], 4) for m in ai_monthly]
@@ -167,6 +176,7 @@ def setup_admin(app: FastAPI) -> Admin:
                 "ai_monthly_labels": ai_monthly_labels,
                 "ai_monthly_tokens": ai_monthly_tokens,
                 "ai_monthly_costs": ai_monthly_costs,
+                "min_price_stars": min_price_stars,
             },
         )
         return HTMLResponse(content=rendered.body, status_code=rendered.status_code)
