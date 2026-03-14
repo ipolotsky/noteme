@@ -89,18 +89,19 @@ class TestOnboarding:
     """Scenarios 1-5: Onboarding flow."""
 
     async def test_01_start_new_user_shows_language_selection(self, session: AsyncSession):
-        """S01: /start for a new user → welcome + language select keyboard."""
+        """S01: /start for a new user → GIF + welcome + language select keyboard."""
         from app.handlers.start import cmd_start
 
         user = await _make_user(session, onboarding_completed=False)
         msg = _mock_message("/start")
+        msg.answer_animation = AsyncMock()
         state = _mock_state()
 
         await cmd_start(msg, state, user, "ru", session)
 
+        msg.answer_animation.assert_called_once()
         msg.answer.assert_called_once()
         call_kwargs = msg.answer.call_args
-        assert "language_select" not in str(call_kwargs)  # Just verify it was called
         text = call_kwargs.args[0] if call_kwargs.args else call_kwargs.kwargs.get("text", "")
         assert user.first_name in text
         state.clear.assert_called_once()
@@ -120,9 +121,10 @@ class TestOnboarding:
         assert user.first_name in text
         assert "reply_markup" in msg.answer.call_args.kwargs
 
-    async def test_03_onboarding_language_advances_to_step1(self, session: AsyncSession):
-        """S03: Language selection -> step1 prompt with event keyboard."""
+    async def test_03_onboarding_language_advances_to_intro(self, session: AsyncSession):
+        """S03: Language selection -> intro prompt with 'dont get it' button."""
         from app.handlers.start import onboarding_language
+        from app.handlers.states import OnboardingStates
 
         user = await _make_user(session, onboarding_completed=False)
         cb = _mock_callback()
@@ -132,8 +134,69 @@ class TestOnboarding:
         await onboarding_language(cb, cd, state, user, session)
 
         cb.message.edit_text.assert_called_once()
-        assert cb.message.answer.call_count >= 2
-        state.set_state.assert_called_once()
+        cb.message.answer.assert_called_once()
+        state.set_state.assert_called_once_with(OnboardingStates.waiting_intro_response)
+
+    async def test_03a_intro_button_advances_to_example(self, session: AsyncSession):
+        """S03a: 'Dont get it' button -> shows example with 777 days."""
+        from app.handlers.start import onboarding_intro_button
+        from app.handlers.states import OnboardingStates
+
+        user = await _make_user(session, onboarding_completed=False)
+        cb = _mock_callback()
+        state = _mock_state(data={"lang": "ru"})
+
+        await onboarding_intro_button(cb, state, user)
+
+        cb.message.edit_reply_markup.assert_called_once()
+        cb.message.answer.assert_called_once()
+        answer_text = cb.message.answer.call_args.args[0]
+        assert "777" in answer_text
+        state.set_state.assert_called_once_with(OnboardingStates.waiting_example_response)
+
+    async def test_03b_intro_text_advances_to_example(self, session: AsyncSession):
+        """S03b: Any text in intro state -> shows example with 777 days."""
+        from app.handlers.start import onboarding_intro_text
+        from app.handlers.states import OnboardingStates
+
+        user = await _make_user(session, user_id=55551, onboarding_completed=False)
+        msg = _mock_message("test")
+        state = _mock_state(data={"lang": "ru"})
+
+        await onboarding_intro_text(msg, state, user)
+
+        msg.answer.assert_called_once()
+        answer_text = msg.answer.call_args.args[0]
+        assert "777" in answer_text
+        state.set_state.assert_called_once_with(OnboardingStates.waiting_example_response)
+
+    async def test_03c_got_it_advances_to_event_creation(self, session: AsyncSession):
+        """S03c: 'Got it' button -> shows event creation prompt."""
+        from app.handlers.start import onboarding_got_it
+        from app.handlers.states import OnboardingStates
+
+        user = await _make_user(session, user_id=55552, onboarding_completed=False)
+        cb = _mock_callback()
+        state = _mock_state(data={"lang": "ru"})
+
+        await onboarding_got_it(cb, state, user)
+
+        cb.message.edit_text.assert_called_once()
+        state.set_state.assert_called_once_with(OnboardingStates.waiting_first_event)
+
+    async def test_03d_more_example_advances_to_event_creation(self, session: AsyncSession):
+        """S03d: 'More example' button -> shows event creation prompt."""
+        from app.handlers.start import onboarding_more_example
+        from app.handlers.states import OnboardingStates
+
+        user = await _make_user(session, user_id=55553, onboarding_completed=False)
+        cb = _mock_callback()
+        state = _mock_state(data={"lang": "ru"})
+
+        await onboarding_more_example(cb, state, user)
+
+        cb.message.edit_text.assert_called_once()
+        state.set_state.assert_called_once_with(OnboardingStates.waiting_first_event)
 
     @patch("app.services.beautiful_dates.engine.recalculate_for_event", new_callable=AsyncMock)
     async def test_04_onboarding_skip_event_advances_to_wish(

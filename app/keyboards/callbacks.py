@@ -66,7 +66,7 @@ class LangCb(CallbackData, prefix="lang"):
 
 
 class OnboardCb(CallbackData, prefix="onb"):
-    action: str  # "skip", "continue"
+    action: str  # "skip", "continue", "dont_get_it", "more_example", "got_it"
 
 
 class SubscribeCb(CallbackData, prefix="sub"):

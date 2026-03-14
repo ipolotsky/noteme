@@ -22,6 +22,40 @@ def cancel_kb(lang: str) -> InlineKeyboardMarkup:
     )
 
 
+def onboarding_intro_kb(lang: str) -> InlineKeyboardMarkup:
+    from app.keyboards.callbacks import OnboardCb
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=t("onboarding.dont_get_it", lang),
+                    callback_data=OnboardCb(action="dont_get_it").pack(),
+                )
+            ],
+        ]
+    )
+
+
+def onboarding_example_kb(lang: str) -> InlineKeyboardMarkup:
+    from app.keyboards.callbacks import OnboardCb
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=t("onboarding.more_example", lang),
+                    callback_data=OnboardCb(action="more_example").pack(),
+                ),
+                InlineKeyboardButton(
+                    text=t("onboarding.got_it", lang),
+                    callback_data=OnboardCb(action="got_it").pack(),
+                ),
+            ],
+        ]
+    )
+
+
 def onboarding_event_kb(lang: str) -> InlineKeyboardMarkup:
     from app.keyboards.callbacks import OnboardCb
 
